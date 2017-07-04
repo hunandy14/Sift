@@ -21,9 +21,10 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
     // for(auto&& i : gau_mat) {
     //     cout << i << ", ";
     // } cout << endl;
-    // 高斯模糊
+    // 高斯模糊 X 軸
+    vector<unsigned char> img_gauX(img_ori.size());
     img_gau.resize(img_ori.size());
-    int r = gau_mat.size()/2;
+    const int r = gau_mat.size()/2;
     for(unsigned j = 0; j < height; ++j) {
         for(unsigned i = 0; i < width; ++i) {
             size_t sum = 0;
@@ -32,12 +33,21 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
                 if(idx < 0) { idx=0; }
                 sum += img_ori[j*height+idx]*gau_mat[k];
             }
-            img_gau[j*height+i] = sum;
+            img_gauX[j*height+i] = sum;
         }
     }
-
-    
-
+    // 高斯模糊 Y 軸
+    for(unsigned j = 0; j < height; ++j) {
+        for(unsigned i = 0; i < width; ++i) {
+            size_t sum = 0;
+            for(unsigned k = 0; k < gau_mat.size(); ++k) {
+                int idx = (j-r+k);
+                if(idx < 0) { idx=0; }
+                sum += img_gauX[i*height+idx]*gau_mat[k];
+            }
+            img_gau[i*height+j] = sum;
+        }
+    }
 }
 
 //----------------------------------------------------------------
