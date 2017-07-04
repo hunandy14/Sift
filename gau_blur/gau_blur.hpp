@@ -10,7 +10,12 @@ Final: 2017/07/04
 #include <vector>
 #include <cmath>
 using namespace std;
-
+// 來源相同的例外
+class file_same : public std::runtime_error {
+public:
+    file_same(const std::string& str): std::runtime_error(str) {}
+};
+// 高斯模糊
 class GauBlur{
 public:
     static void raw2GauBlur(vector<unsigned char>& img_gau, 

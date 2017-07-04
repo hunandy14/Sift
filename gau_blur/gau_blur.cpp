@@ -16,15 +16,17 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
     vector<unsigned char>& img_ori, 
     size_t width, size_t height, float p)
 {
-    vector<float> gau_mat = gau_matrix(p);
-    
-    // for(auto&& i : gau_mat) {
-    //     cout << i << ", ";
-    // } cout << endl;
-    // 高斯模糊 X 軸
+    // 來源相同例外
+    if(&img_gau == &img_ori) {
+        throw file_same("## Erroe! in and out is same.");
+    }
+    // 設定正確的大小
     vector<unsigned char> img_gauX(img_ori.size());
     img_gau.resize(img_ori.size());
+    // 高斯矩陣與半徑
+    vector<float> gau_mat = gau_matrix(p);
     const int r = gau_mat.size()/2;
+    // 高斯模糊 X 軸
     for(unsigned j = 0; j < height; ++j) {
         for(unsigned i = 0; i < width; ++i) {
             size_t sum = 0;
