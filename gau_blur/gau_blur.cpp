@@ -33,9 +33,9 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
             for(unsigned k = 0; k < gau_mat.size(); ++k) {
                 int idx = (i-r+k);
                 if(idx < 0) { idx=0; }
-                sum += img_ori[j*height+idx]*gau_mat[k];
+                sum += img_ori[j*width+idx]*gau_mat[k];
             }
-            img_gauX[j*height+i] = sum;
+            img_gauX[j*width+i] = sum;
         }
     }
     // 高斯模糊 Y 軸
