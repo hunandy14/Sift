@@ -23,6 +23,6 @@ public:
         size_t width, size_t height, float p=1.69864);
 private:
     static vector<float> gau_matrix(float p=1.69864);
-    static float g_onedim(size_t r, float p=1.69864);
+    static float gau_meth(size_t r, float p=1.69864);
 };
 

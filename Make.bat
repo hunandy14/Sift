@@ -10,9 +10,9 @@ set folder=%OneDrive%\Git Repository\%project%
 ::=========================================================================
 ::檔案名稱 - 多檔編譯(自動補上".cpp")
 set main=%project%_main
-set file0=gau_blur\gau_blur.cpp
-set file1=Raw2Img\Raw2Img.cpp
-set file2=
+set file0=
+set file1=SingleFile.cpp
+set file2=Sift.cpp
 set file3=
 set file4=
 set file5=

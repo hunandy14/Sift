@@ -12,6 +12,7 @@ using namespace std;
 #include "gau_blur.hpp"
 constexpr auto M_PI = 3.14159265358979323846;
 
+// 高斯模糊
 void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau, 
     vector<unsigned char>& img_ori, 
     size_t width, size_t height, float p)
@@ -53,12 +54,14 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
 }
 
 //----------------------------------------------------------------
-float GauBlur::g_onedim(size_t r, float p) {
+// 高斯公式
+float GauBlur::gau_meth(size_t r, float p) {
     float two = 2;
     float num = exp(-pow(r, two) / (two*pow(p, two)));
     num /= sqrt(two*M_PI)*p;
     return num;
 }
+// 高斯矩陣
 vector<float> GauBlur::gau_matrix(float p){
     vector<float> gau_mat;
     // 計算矩陣長度
@@ -70,12 +73,12 @@ vector<float> GauBlur::gau_matrix(float p){
     for(int i=0, j=mat_len/2; j < mat_len; ++i, ++j) {
         float temp;
         if(i) {
-            temp = g_onedim(i);
+            temp = gau_meth(i);
             gau_mat[j] = temp;
             gau_mat[mat_len-j-1] = temp;
             sum += temp += temp;
         } else {
-            gau_mat[j]=g_onedim(i);
+            gau_mat[j]=gau_meth(i);
             sum += gau_mat[j];
         }
     }
