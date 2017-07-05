@@ -5,5 +5,5 @@ By   : CharlotteHonG
 Final: 2017/07/05
 *****************************************************************/
 // 加速編譯速度
-#include "gau_blur\gau_blur.cpp"
+#include "imglib\imglib.cpp"
 #include "Raw2Img\Raw2Img.cpp"

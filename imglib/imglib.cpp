@@ -9,7 +9,7 @@ Final: 2017/07/04
 #include <cmath>
 using namespace std;
 
-#include "gau_blur.hpp"
+#include "imglib.hpp"
 constexpr auto M_PI = 3.14159265358979323846;
 
 // 高斯模糊
