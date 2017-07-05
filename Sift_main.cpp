@@ -19,13 +19,18 @@ int main(int argc, char const *argv[]){
     vector<unsigned char> raw_img;
     Raw::read_raw(raw_img, rawName2);
     Raw::raw2gray(raw_img);
-    // 高斯暫存
-    vector<unsigned char> gau_img;
-    GauBlur::raw2GauBlur(gau_img, raw_img, 960, 540);
+
+    // 高斯模糊
+    vector<unsigned char> img2;
+    float r=2;
+    // GauBlur::raw2GauBlur(img2, raw_img, 960, 540);
+    // 縮放大小
+    Scaling::first(img2, raw_img, 960, 540, r);
     // 輸出BMP
-    Raw::raw2bmp(bmpName, gau_img, 960, 540, 8);
-    Raw::raw2bmp(bmpName2, raw_img, 960, 540, 8);
-    // system(bmpName.c_str());
+    Raw::raw2bmp(bmpName, img2, 960*r, 540*r, 8);
+    // Raw::raw2bmp(bmpName2, raw_img, 960, 540, 8);
+    Raw::write_raw("a.raw", img2);
+    system(bmpName.c_str());
     // system(bmpName2.c_str());
     return 0;
 }
