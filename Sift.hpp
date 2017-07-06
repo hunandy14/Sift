@@ -9,3 +9,11 @@ Final: 2017/07/05
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 
+class Sift{
+public:
+    Sift(){
+
+    }
+private:
+    
+};
