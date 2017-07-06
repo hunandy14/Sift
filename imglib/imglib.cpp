@@ -6,28 +6,29 @@ Final: 2017/07/04
 *****************************************************************/
 #include <iostream>
 #include <vector>
+#include <string>
 #include <cmath>
 using namespace std;
 
 #include "imglib.hpp"
 constexpr auto M_PI = 3.14159265358979323846;
 
-// é«˜æ–¯æ¨¡ç³Š
+// °ª´µ¼Ò½k
 void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
     vector<unsigned char>& img_ori,
     size_t width, size_t height, float p)
 {
-    // ä¾†æºç›¸åŒä¾‹å¤–
+    // ¨Ó·½¬Û¦P¨Ò¥~
     if(&img_gau == &img_ori) {
         throw file_same("## Erroe! in and out is same.");
     }
-    // è¨­å®šæ­£ç¢ºçš„å¤§å°
+    // ³]©w¥¿½Tªº¤j¤p
     vector<unsigned char> img_gauX(img_ori.size());
     img_gau.resize(img_ori.size());
-    // é«˜æ–¯çŸ©é™£èˆ‡åŠå¾‘
+    // °ª´µ¯x°}»P¥b®|
     vector<float> gau_mat = gau_matrix(p);
     const int r = gau_mat.size()/2;
-    // é«˜æ–¯æ¨¡ç³Š X è»¸
+    // °ª´µ¼Ò½k X ¶b
     for(unsigned j = 0; j < height; ++j) {
         for(unsigned i = 0; i < width; ++i) {
             size_t sum = 0;
@@ -39,7 +40,7 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
             img_gauX[j*width+i] = sum;
         }
     }
-    // é«˜æ–¯æ¨¡ç³Š Y è»¸
+    // °ª´µ¼Ò½k Y ¶b
     for(unsigned j = 0; j < height; ++j) {
         for(unsigned i = 0; i < width; ++i) {
             size_t sum = 0;
@@ -52,22 +53,20 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
         }
     }
 }
-
-//----------------------------------------------------------------
-// é«˜æ–¯å…¬å¼
+// °ª´µ¤½¦¡
 float GauBlur::gau_meth(size_t r, float p) {
     float two = 2;
     float num = exp(-pow(r, two) / (two*pow(p, two)));
     num /= sqrt(two*M_PI)*p;
     return num;
 }
-// é«˜æ–¯çŸ©é™£
+// °ª´µ¯x°}
 vector<float> GauBlur::gau_matrix(float p){
     vector<float> gau_mat;
-    // è¨ˆç®—çŸ©é™£é•·åº¦
+    // ­pºâ¯x°}ªø«×
     int mat_len = ((p-0.8) / 0.3+1.0) * 2.0;
     if (mat_len % 2 == 0) {++mat_len;}
-    // ä¸€ç¶­é«˜æ–¯çŸ©é™£
+    // ¤@ºû°ª´µ¯x°}
     gau_mat.resize(mat_len);
     float sum=0;
     for(int i=0, j=mat_len/2; j < mat_len; ++i, ++j) {
@@ -82,13 +81,12 @@ vector<float> GauBlur::gau_matrix(float p){
             sum += gau_mat[j];
         }
     }
-    // æ­¸ä¸€åŒ–
+    // Âk¤@¤Æ
     for(auto&& i : gau_mat) { i /= sum; }
     return gau_mat;
 }
 //----------------------------------------------------------------
-
-// ZroOrderèª¿æ•´å¤§å°
+// ZroOrder½Õ¾ã¤j¤p
 void Scaling::zero(vector<unsigned char>& img,
     vector<unsigned char>& img_ori, size_t width,
     size_t height, float Ratio)
@@ -102,7 +100,7 @@ void Scaling::zero(vector<unsigned char>& img,
         }
     }
 }
-// FisrtOrderèª¿æ•´å¤§å°
+// FisrtOrder½Õ¾ã¤j¤p
 void Scaling::first(vector<unsigned char>& img,
     vector<unsigned char>& img_ori, size_t width,
     size_t height, float Ratio)
@@ -111,14 +109,15 @@ void Scaling::first(vector<unsigned char>& img,
     int h=floor(height * Ratio);
     img.resize(h*w);
 
-    unsigned char A, B, C, D;// é™„è¿‘çš„å››å€‹é»
+    unsigned char A, B, C, D;// ªşªñªº¥|­ÓÂI
     unsigned char AB, CD, X;
-    int oy, ox;// å°æ‡‰åˆ°åŸåœ–çš„åº§æ¨™
-    int a, b;// å…¬å¼çš„ a èˆ‡ b
+    int oy, ox;// ¹ïÀ³¨ì­ì¹Ïªº®y¼Ğ
+    int a, b;// ¤½¦¡ªº a »P b
 
     for(int j=0; j < h; ++j) {
         for(int i=0; i < w; ++i) {
-            oy=j/Ratio; ox=i/Ratio;
+            oy = floor(j/Ratio);
+            ox = floor(i/Ratio);
 
             A = img_ori[oy*width + ox];
             B = img_ori[oy*width + ox+1];
@@ -135,36 +134,37 @@ void Scaling::first(vector<unsigned char>& img,
         }
     }
 }
-// Bicubicèª¿æ•´å¤§å°
+// Bicubic½Õ¾ã¤j¤p
 void Scaling::cubic(vector<unsigned char>& img,
     vector<unsigned char>& img_ori, size_t width,
     size_t height, float Ratio)
 {
-    // Bicubic å–å¾—å‘¨åœ16é»
+    using uch = unsigned char;
+    // Bicubic ¨ú±o©P³ò16ÂI
     auto getMask = [&](size_t oy, size_t ox){
-        unsigned char** mask = new unsigned char*[4];
+        uch** mask = new uch*[4];
         for (unsigned i = 0; i < 4; ++i)
-            mask[i] = new unsigned char[4];
-        // å–å¾—å‘¨åœ16é»
-        int foy,fox; // ä¿®å¾©å¾Œçš„åŸå§‹åº§æ¨™
+            mask[i] = new uch[4];
+        // ¨ú±o©P³ò16ÂI
+        int foy,fox; // ­×´_«áªº­ì©l®y¼Ğ
         for (int j = 0; j < 4; ++j){
             for (int i = 0; i < 4; ++i){
                 foy=oy+(j-1); fox=ox+(i-1);
-                // è¶…éå·¦é‚Šç•Œä¿®å¾©
+                // ¶W¹L¥ªÃä¬É­×´_
                 if (foy<0){foy=1;}
-                // è¶…éä¸Šé‚Šç•Œä¿®å¾©
+                // ¶W¹L¤WÃä¬É­×´_
                 if (fox<0){fox=1;}
-                // è¶…éä¸‹é‚Šç•Œä¿®å¾©
+                // ¶W¹L¤UÃä¬É­×´_
                 if(foy==(int)height){foy-=2;}
                 if(foy==(int)height-1){foy-=1;}
-                // è¶…éå³é‚Šç•Œä¿®å¾©
+                // ¶W¹L¥kÃä¬É­×´_
                 if (fox==(int)width){fox-=2;}
                 if (fox==(int)width-1){fox-=1;}
-                // ç´€éŒ„å°æ‡‰çš„æŒ‡æ¨™
+                // ¬ö¿ı¹ïÀ³ªº«ü¼Ğ
                 mask[j][i] = img_ori[foy*width + fox];
             }
         }
-        // é‡‹æ”¾è¨˜æ†¶é«”
+        // ÄÀ©ñ°O¾ĞÅé
         // for (int i = 0; i < 4; ++i)
         //     delete [] mask[i];
         // delete [] mask;
@@ -174,25 +174,26 @@ void Scaling::cubic(vector<unsigned char>& img,
     int w=floor(width * Ratio);
     int h=floor(height * Ratio);
     img.resize(h*w);
-    int oy, ox; // å°æ‡‰åˆ°åŸåœ–çš„åº§æ¨™
-    double a, b;// æ’å…¥çš„æ¯”ä¾‹ä½ç½®
-    unsigned char** mask;// é®ç½©(å‘¨åœçš„16é»)
-    unsigned char X;     // æš«å­˜
+    int oy, ox; // ¹ïÀ³¨ì­ì¹Ïªº®y¼Ğ
+    double a, b;// ´¡¤Jªº¤ñ¨Ò¦ì¸m
+    uch** mask;// ¾B¸n(©P³òªº16ÂI)
+    uch X;     // ¼È¦s
     for(int j = 0; j < h; ++j) {
         for(int i = 0; i < w; ++i) {
-            oy=(int)j/Ratio; ox=(int)i/Ratio;
+            oy = floor(j/Ratio);
+            ox = floor(i/Ratio);
             a = (i-ox*Ratio)/(Ratio);
             b = (j-oy*Ratio)/(Ratio);
-            // å–å¾—å‘¨åœ16é»
+            // ¨ú±o©P³ò16ÂI
             mask = getMask(oy, ox);
-            // å°å…¥å‘¨åœ16é»èˆ‡æ’å…¥çš„æ¯”ä¾‹ä½ç½®
+            // ¾É¤J©P³ò16ÂI»P´¡¤Jªº¤ñ¨Ò¦ì¸m
             X = bicubicInterpolate(mask, b, a);
-            // å¯«å…¥æš«å­˜å…§
+            // ¼g¤J¼È¦s¤º
             img[j*w + i] = X;
-            // é‡‹æ”¾è¨˜æ†¶é«”
-            for (int i = 0; i < 4; ++i)
-                delete [] mask[i];
-            delete [] mask;
+            // ÄÀ©ñ°O¾ĞÅé
+            // for (int i = 0; i < 4; ++i)
+            //     delete [] mask[i];
+            // delete [] mask;
         }
     }
 }

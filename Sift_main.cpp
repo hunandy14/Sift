@@ -5,6 +5,9 @@ By   : CharlotteHonG
 Final: 2017/07/04
 *****************************************************************/
 #include <iostream>
+#include <vector>
+#include <string>
+#include <cmath>
 using namespace std;
 #include "Sift.hpp"
 // #include "OpenRAW_fun\OpenRAW.hpp"

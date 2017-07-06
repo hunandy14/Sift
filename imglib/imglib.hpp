@@ -6,14 +6,12 @@ Final: 2017/07/04
 *****************************************************************/
 #pragma once
 
-#include <iostream>
-#include <vector>
-#include <cmath>
-using namespace std;
+using std::vector;
+using std::string;
 // 來源相同的例外
 class file_same : public std::runtime_error {
 public:
-    file_same(const std::string& str): std::runtime_error(str) {}
+    file_same(const string& str): std::runtime_error(str) {}
 };
 // 高斯模糊
 class GauBlur{
@@ -42,16 +40,20 @@ public:
         size_t height, float Ratio);
 private:
     // Bicubic 插值核心運算
-    static unsigned char cubicInterpolate (unsigned char* p, double x) {
+    static unsigned char cubicInterpolate (
+        unsigned char* p, double x)
+    {
         double temp = (double)(p[1] + 0.5 * 
             x*(p[2] - p[0] +x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - 
                 p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0]))));
         if (temp > 255) { temp = 255; }
         else if (temp < 0) { temp = 0; }
-        return (unsigned char)temp;
+        return static_cast<unsigned char>(temp);
     }
     // Bicubic 輸入16點與插入位置，取得目標值
-    static unsigned char bicubicInterpolate (unsigned char** p, double y, double x) {
+    static unsigned char bicubicInterpolate (
+        unsigned char** p, double y, double x)
+    {
         unsigned char* arr = new unsigned char[4];
         for (int i = 0; i < 4; ++i)
             arr[i] = cubicInterpolate(p[i], x);
