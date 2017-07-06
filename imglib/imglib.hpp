@@ -52,12 +52,12 @@ private:
     }
     // Bicubic 輸入16點與插入位置，取得目標值
     static unsigned char bicubicInterpolate (
-        unsigned char** p, double y, double x)
+        unsigned char* p, double y, double x)
     {
-        unsigned char* arr = new unsigned char[4];
-        for (int i = 0; i < 4; ++i)
-            arr[i] = cubicInterpolate(p[i], x);
-        return cubicInterpolate(arr, y);
+        unsigned char arr[4];
+        for (int i = 0; i < 4; ++i){
+            arr[i] = cubicInterpolate((i*4 + p), x);
+        } return cubicInterpolate(arr, y);
     }
 };
 

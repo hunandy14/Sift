@@ -26,9 +26,9 @@ int main(int argc, char const *argv[]){
     vector<unsigned char> img_gau;
     vector<unsigned char> img1;
     float r=2;
-    GauBlur::raw2GauBlur(img_gau, raw_img, 960, 540);
+    // GauBlur::raw2GauBlur(img_gau, raw_img, 960, 540);
     // 縮放大小
-    Scaling::cubic(img1, img_gau, 960, 540, r);
+    Scaling::cubic(img1, raw_img, 960, 540, r);
     // 輸出BMP
     Raw::raw2bmp(bmpName, img1, 960*r, 540*r, 8);
     // Raw::raw2bmp(bmpName2, raw_img, 960, 540, 8);

@@ -96,7 +96,8 @@ void Scaling::zero(vector<unsigned char>& img,
     img.resize(w*h);
     for(int j = 0; j < h; ++j) {
         for(int i = 0; i < w; ++i) {
-            img[j*w+i] = img_ori[(int)(j/Ratio)*width + (int)(i/Ratio)];
+            img[j*w+i] = 
+                img_ori[(int)(j/Ratio)*width + (int)(i/Ratio)];
         }
     }
 }
@@ -105,31 +106,27 @@ void Scaling::first(vector<unsigned char>& img,
     vector<unsigned char>& img_ori, size_t width,
     size_t height, float Ratio)
 {
+    using uch = unsigned char;
     int w=floor(width * Ratio);
     int h=floor(height * Ratio);
     img.resize(h*w);
 
-    unsigned char A, B, C, D;// 附近的四個點
-    unsigned char AB, CD, X;
-    int oy, ox;// 對應到原圖的座標
-    int a, b;// 公式的 a 與 b
-
     for(int j=0; j < h; ++j) {
         for(int i=0; i < w; ++i) {
-            oy = floor(j/Ratio);
-            ox = floor(i/Ratio);
-
-            A = img_ori[oy*width + ox];
-            B = img_ori[oy*width + ox+1];
-            C = img_ori[oy+1*width + ox];
-            D = img_ori[oy+1*width + ox+1];
-
-            a = (i-ox*Ratio)/(Ratio);
-            b = (j-oy*Ratio)/(Ratio);
-            AB = (A*(1.0-a)) + (B*a);
-            CD = (C*(1.0-a)) + (D*a);
-            X = ((AB*(1.0-b)) + (CD*b));
-
+            // 對應到原圖的座標
+            int oy = floor(j/Ratio);
+            int ox = floor(i/Ratio);
+            // 附近的四個點
+            uch A = img_ori[oy*width + ox];
+            uch B = img_ori[oy*width + ox+1];
+            uch C = img_ori[oy+1*width + ox];
+            uch D = img_ori[oy+1*width + ox+1];
+            // 公式的 a 與 b
+            int a = (i-ox*Ratio)/(Ratio);
+            int b = (j-oy*Ratio)/(Ratio);
+            uch AB = (A*(1.0-a)) + (B*a);
+            uch CD = (C*(1.0-a)) + (D*a);
+            uch X = ((AB*(1.0-b)) + (CD*b));
             img[j*w + i] = X;
         }
     }
@@ -141,14 +138,11 @@ void Scaling::cubic(vector<unsigned char>& img,
 {
     using uch = unsigned char;
     // Bicubic 取得周圍16點
-    auto getMask = [&](size_t oy, size_t ox){
-        uch** mask = new uch*[4];
-        for (unsigned i = 0; i < 4; ++i)
-            mask[i] = new uch[4];
+    auto getMask = [&](uch* mask, size_t oy, size_t ox){
         // 取得周圍16點
         int foy,fox; // 修復後的原始座標
-        for (int j = 0; j < 4; ++j){
-            for (int i = 0; i < 4; ++i){
+        for (int j = 0, idx = 0; j < 4; ++j){
+            for (int i = 0; i < 4; ++i, ++idx){
                 foy=oy+(j-1); fox=ox+(i-1);
                 // 超過左邊界修復
                 if (foy<0){foy=1;}
@@ -161,39 +155,28 @@ void Scaling::cubic(vector<unsigned char>& img,
                 if (fox==(int)width){fox-=2;}
                 if (fox==(int)width-1){fox-=1;}
                 // 紀錄對應的指標
-                mask[j][i] = img_ori[foy*width + fox];
+                mask[idx] = img_ori[foy*width + fox];
             }
         }
-        // 釋放記憶體
-        // for (int i = 0; i < 4; ++i)
-        //     delete [] mask[i];
-        // delete [] mask;
-        return mask;
     };
 
     int w=floor(width * Ratio);
     int h=floor(height * Ratio);
     img.resize(h*w);
-    int oy, ox; // 對應到原圖的座標
-    double a, b;// 插入的比例位置
-    uch** mask;// 遮罩(周圍的16點)
-    uch X;     // 暫存
     for(int j = 0; j < h; ++j) {
         for(int i = 0; i < w; ++i) {
-            oy = floor(j/Ratio);
-            ox = floor(i/Ratio);
-            a = (i-ox*Ratio)/(Ratio);
-            b = (j-oy*Ratio)/(Ratio);
+            // 對應到原圖的座標
+            int oy = floor(j/Ratio);
+            int ox = floor(i/Ratio);
+            double a = (i-ox*Ratio)/(Ratio);
+            double b = (j-oy*Ratio)/(Ratio);
             // 取得周圍16點
-            mask = getMask(oy, ox);
+            uch mask[16];
+            getMask(mask, oy, ox);
             // 導入周圍16點與插入的比例位置
-            X = bicubicInterpolate(mask, b, a);
+            uch X = bicubicInterpolate(mask, b, a);
             // 寫入暫存內
             img[j*w + i] = X;
-            // 釋放記憶體
-            // for (int i = 0; i < 4; ++i)
-            //     delete [] mask[i];
-            // delete [] mask;
         }
     }
 }
