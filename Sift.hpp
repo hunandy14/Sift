@@ -11,9 +11,16 @@ Final: 2017/07/05
 
 class Sift{
 public:
-    Sift(){
+    Sift(vector<unsigned char> raw_img, size_t width, size_t height): 
+        raw_img(raw_img), width(width), height(height)
+    {
 
     }
+public:
+    void pyramid(size_t s=3);
 private:
-    
+    using v_uch = vector<unsigned char>;
+    v_uch raw_img;
+    size_t width;
+    size_t height;
 };

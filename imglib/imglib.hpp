@@ -18,10 +18,10 @@ class GauBlur{
 public:
     static void raw2GauBlur(vector<unsigned char>& img_gau,
         vector<unsigned char>& img_ori,
-        size_t width, size_t height, float p=1.69864);
+        size_t width, size_t height, float p);
 private:
-    static vector<float> gau_matrix(float p=1.69864);
-    static float gau_meth(size_t r, float p=1.69864);
+    static vector<float> gau_matrix(float p);
+    static float gau_meth(size_t r, float p);
 };
 // 圖像縮放
 class Scaling{
