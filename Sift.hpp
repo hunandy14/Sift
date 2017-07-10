@@ -19,6 +19,7 @@ public:
 public:
     void pyramid(size_t s=3);
 private:
+    using uch = unsigned char;
     using v_uch = vector<unsigned char>;
     v_uch raw_img;
     size_t width;
