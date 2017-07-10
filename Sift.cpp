@@ -12,33 +12,36 @@ using namespace std;
 
 void Sift::pyramid(size_t s){
     s+=3;
-    // size_t octvs = log(std::min(height, width)) / log(2.0) - 2;
+    // size_t octvs = log(min(width, height)) / log(2.0) - 2;
+    
+    // 測試層數先設3
     size_t octvs = 3;
+
     vector<v_uch> pyr_img;
     pyr_img.resize(octvs*s);
     // 放大
     v_uch temp;
-    Scaling::cubic(temp, raw_img, height, width, 2);
+    Scaling::cubic(temp, raw_img, width, height, 2);
     height*=2, width*=2;
     raw_img=temp;
     // 模糊
     float p=1.6;
-    GauBlur::raw2GauBlur(pyr_img[0], raw_img, height, width, p);
+    GauBlur::raw2GauBlur(pyr_img[0], raw_img, width, height, p);
     for(unsigned i = 1; i < s; ++i) {
-        p *= pow(2.0, 1.0/s);
-        GauBlur::raw2GauBlur(pyr_img[i], pyr_img[i-1], height, width, p);
+        GauBlur::raw2GauBlur(pyr_img[i], pyr_img[i-1], 
+            width, height, p*= pow(2.0, 1.0/s));
     }
-    
-
-    // Raw::raw2bmp("2.bmp", temp, width*2, height*2, 8);
-
-    // vector<unsigned char> img1;
-    float r=2;
-    // Scaling::cubic(img1, raw_img, 256, 256, r);
-    Raw::raw2bmp("0.bmp", pyr_img[0], 256*r, 256*r, 8);
-    Raw::raw2bmp("1.bmp", pyr_img[1], 256*r, 256*r, 8);
-    Raw::raw2bmp("2.bmp", pyr_img[2], 256*r, 256*r, 8);
-    Raw::raw2bmp("3.bmp", pyr_img[3], 256*r, 256*r, 8);
-    Raw::raw2bmp("4.bmp", pyr_img[4], 256*r, 256*r, 8);
-    Raw::raw2bmp("5.bmp", pyr_img[5], 256*r, 256*r, 8);
+    // 合成圖片
+    v_uch big_img(width*height*s);
+    size_t idx=0;
+    for(unsigned j = 0; j < height; ++j) {
+        for(unsigned n = 0; n < s; ++n) {
+            for(unsigned i = 0; i < width; ++i) {
+                big_img[idx++] = pyr_img[n][j*width + i];
+            }
+        }
+    }
+    Raw::raw2bmp("big.bmp", 
+            big_img, width*s, height, 8);
+    system("big.bmp");
 }

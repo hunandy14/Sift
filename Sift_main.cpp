@@ -21,33 +21,9 @@ int main(int argc, char const *argv[]){
     // 讀取圖片
     vector<unsigned char> raw_img;
     Raw::read_raw(raw_img, rawName);
-    // Raw::raw2gray(raw_img);
-    // 高斯模糊
-    vector<unsigned char> img_gau;
-    // vector<unsigned char> img1;
-    // float r=2;
-    // GauBlur::raw2GauBlur(img_gau, raw_img, 256 , 256, 10);
-    // Raw::raw2bmp("gau.bmp", img_gau, 256, 256, 8);
-    // system("gau.bmp");
-
-    // 縮放大小
-    // Scaling::cubic(img1, raw_img, 256, 256, r);
-    // 輸出BMP
-    // Raw::raw2bmp(bmpName, img1, 256*r, 256*r, 8);
-    // Raw::raw2bmp(bmpName2, raw_img, 960, 540, 8);
-    // Raw::write_raw("a.raw", img1);
-
-
-
-
-
-
-
-
+    // 特徵點
     Sift img(raw_img, 256, 256);
     img.pyramid();
-    // img.write("Seymour_Park.bmp");
-    // system(bmpName);
     return 0;
 }
 //================================================================

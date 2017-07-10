@@ -23,20 +23,21 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
         throw file_same("## Erroe! in and out is same.");
     }
     // 設定正確的大小
-    vector<float> img_gauX(img_ori.size());
     img_gau.resize(img_ori.size());
+    // 緩存
+    vector<double> img_gauX(img_ori.size());
     // 高斯矩陣與半徑
     vector<float> gau_mat = gau_matrix(p);
     const int r = gau_mat.size()/2;
     // 高斯模糊 X 軸
     for(unsigned j = 0; j < height; ++j) {
         for(unsigned i = 0; i < width; ++i) {
-            float sum = 0;
+            double sum = 0;
             for(unsigned k = 0; k < gau_mat.size(); ++k) {
                 int idx = (i-r+k);
                 if(idx < 0) { idx=0; }
                 else if(idx > (int)(width-1)) { idx = width-1; }
-                sum += img_ori[j*width+idx] * gau_mat[k];
+                sum += (float)img_ori[j*width+idx] * gau_mat[k];
             }
             img_gauX[j*width+i] = sum;
         }
@@ -44,11 +45,12 @@ void GauBlur::raw2GauBlur(vector<unsigned char>& img_gau,
     // 高斯模糊 Y 軸
     for(unsigned j = 0; j < height; ++j) {
         for(unsigned i = 0; i < width; ++i) {
-            float sum = 0;
+            double sum = 0;
             for(unsigned k = 0; k < gau_mat.size(); ++k) {
                 int idx = (j-r+k);
                 if(idx < 0) { idx=0; }
-                sum += img_gauX[i*height+idx]*gau_mat[k];
+                else if(idx > (int)(width-1)) { idx = width-1; }
+                sum += (float)img_gauX[i*height+idx] * gau_mat[k];
             }
             img_gau[i*height+j] = sum;
         }
