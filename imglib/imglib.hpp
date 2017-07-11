@@ -4,6 +4,7 @@ Date : 2017/07/04
 By   : CharlotteHonG
 Final: 2017/07/04
 *****************************************************************/
+#pragma warning(disable : 4819)
 #pragma once
 
 using std::vector;

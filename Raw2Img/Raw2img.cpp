@@ -4,6 +4,7 @@ Date : 2017/06/14
 By   : CharlotteHonG
 Final: 2017/06/14
 *****************************************************************/
+#pragma warning(disable : 4819)
 #include <iostream>
 #include <fstream>
 #include <vector>

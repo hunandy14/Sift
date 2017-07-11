@@ -4,6 +4,7 @@ Date : 2017/07/04
 By   : CharlotteHonG
 Final: 2017/07/04
 *****************************************************************/
+#pragma warning(disable : 4819)
 #include <iostream>
 #include <vector>
 #include <string>
@@ -116,14 +117,17 @@ void Scaling::first(vector<unsigned char>& img,
 
     for(int j=0; j < h; ++j) {
         for(int i=0; i < w; ++i) {
+            
             // 對應到原圖的座標
             int oy = floor(j/Ratio);
             int ox = floor(i/Ratio);
             // 附近的四個點
+            int xp = (ox+1) > (int)(width-1)? width-1: (ox+1);
+            int yp = (oy+1) > (int)(height-1)? height-1: (oy+1);
             uch A = img_ori[oy*width + ox];
-            uch B = img_ori[oy*width + ox+1];
-            uch C = img_ori[oy+1*width + ox];
-            uch D = img_ori[oy+1*width + ox+1];
+            uch B = img_ori[oy*width + xp];
+            uch C = img_ori[yp*width + ox];
+            uch D = img_ori[yp*width + xp];           
             // 公式的 a 與 b
             int a = (i-ox*Ratio)/(Ratio);
             int b = (j-oy*Ratio)/(Ratio);
