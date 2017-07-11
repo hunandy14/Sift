@@ -9,6 +9,79 @@ Final: 2017/07/05
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 
+
+class ImgRaw{
+private:
+    using uch = unsigned char;
+public:
+    ImgRaw(vector<uch> img, size_t width, size_t height):
+        raw_img(img), width(width), height(height){}
+    operator vector<uch>&(){ return raw_img; }
+    // 重載下標符號
+    uch & operator[](size_t idx){
+        return const_cast<uch&>(static_cast<const ImgRaw&>(*this)[idx]);
+    }
+    const uch & operator[](size_t idx) const{
+        return raw_img[idx];
+    }
+public:
+    // 大小是否相等
+    friend bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs);
+    friend bool operator==(const ImgRaw& lhs, const ImgRaw& rhs);
+    // 差分圖
+    ImgRaw& operator-=(const ImgRaw& rhs){
+        if((*this) != rhs) { // 尺寸不同
+            cout << "Error size is diff." << endl;
+            return (*this);
+        }
+        // 差分運算
+        for(unsigned i = 0; i < width*height; ++i) {
+            raw_img[i] -= rhs.raw_img[i]+128;
+        }
+        return (*this);
+    }
+    friend ImgRaw operator-(ImgRaw lhs, const ImgRaw& rhs){
+        return lhs -= rhs;
+    }
+    
+public:
+    static void zero(ImgRaw& tar, ImgRaw& sou, float z){
+        Scaling::zero(tar.raw_img, 
+            sou.raw_img, sou.width, sou.height, z);
+        tar.width *= z;
+        tar.height *= z;
+    }
+    static void first(ImgRaw& tar, ImgRaw& sou, float z){
+        Scaling::first(tar.raw_img, 
+            sou.raw_img, sou.width, sou.height, z);
+        tar.width *= z;
+        tar.height *= z;
+    }
+    static void cubic(ImgRaw& tar, ImgRaw& sou, float z){
+        Scaling::cubic(tar.raw_img, 
+            sou.raw_img, sou.width, sou.height, z);
+        tar.width *= z;
+        tar.height *= z;
+    }
+    static void gauBlur(ImgRaw& tar, ImgRaw& sou, float p){
+        GauBlur::raw2GauBlur(tar, sou, sou.width, sou.height, p);
+    }
+public:
+    vector<uch> raw_img;
+    size_t width;
+    size_t height;
+};
+
+// 大小是否相等
+inline bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs){
+    return !(lhs == rhs);
+}
+inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs){
+    if(lhs.width==rhs.width &&  lhs.height == rhs.height) {
+        return 1;
+    } return 0;
+}
+//----------------------------------------------------------------
 class Sift{
 public:
     Sift(vector<unsigned char> raw_img, size_t width, size_t height): 

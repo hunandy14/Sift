@@ -21,6 +21,7 @@ int main(int argc, char const *argv[]){
     // 讀取圖片
     vector<unsigned char> raw_img;
     Raw::read_raw(raw_img, rawName);
+
     // 特徵點
     Sift img(raw_img, 256, 256);
     img.pyramid();
