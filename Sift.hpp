@@ -16,6 +16,8 @@ private:
 public:
     ImgRaw(vector<uch> img, size_t width, size_t height):
         raw_img(img), width(width), height(height){}
+    ImgRaw(size_t width, size_t height):
+        raw_img(width*height), width(width), height(height){}
     operator vector<uch>&(){ return raw_img; }
     // ÖØÝdÏÂ˜Ë·ûÌ–
     uch & operator[](size_t idx){
@@ -34,7 +36,6 @@ public:
             cout << "Error size is diff." << endl;
             return (*this);
         }
-        // ²î·Öß\Ëã
         for(unsigned i = 0; i < width*height; ++i) {
             raw_img[i] -= rhs.raw_img[i]+128;
         }
@@ -43,25 +44,24 @@ public:
     friend ImgRaw operator-(ImgRaw lhs, const ImgRaw& rhs){
         return lhs -= rhs;
     }
-    
+    // Œ‘ BMP ™n
+    ImgRaw& bmp(string name){
+        Raw::raw2bmp(name, raw_img, width, height, 8);
+        return (*this);
+    }
+
 public:
     static void zero(ImgRaw& tar, ImgRaw& sou, float z){
-        Scaling::zero(tar.raw_img, 
-            sou.raw_img, sou.width, sou.height, z);
-        tar.width *= z;
-        tar.height *= z;
+        Scaling::zero(tar, sou, sou.width, sou.height, z);
+        tar.width = sou.width*z, tar.height = sou.width*z;
     }
     static void first(ImgRaw& tar, ImgRaw& sou, float z){
-        Scaling::first(tar.raw_img, 
-            sou.raw_img, sou.width, sou.height, z);
-        tar.width *= z;
-        tar.height *= z;
+        Scaling::first(tar, sou, sou.width, sou.height, z);
+        tar.width = sou.width*z, tar.height = sou.width*z;
     }
     static void cubic(ImgRaw& tar, ImgRaw& sou, float z){
-        Scaling::cubic(tar.raw_img, 
-            sou.raw_img, sou.width, sou.height, z);
-        tar.width *= z;
-        tar.height *= z;
+        Scaling::cubic(tar, sou, sou.width, sou.height, z);
+        tar.width = sou.width*z, tar.height = sou.width*z;
     }
     static void gauBlur(ImgRaw& tar, ImgRaw& sou, float p){
         GauBlur::raw2GauBlur(tar, sou, sou.width, sou.height, p);
@@ -85,7 +85,8 @@ inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs){
 class Sift{
 public:
     Sift(vector<unsigned char> raw_img, size_t width, size_t height): 
-        raw_img(raw_img), width(width), height(height)
+        // raw_img(raw_img), width(width), height(height)
+        raw_img(raw_img, width, height)
     {
 
     }
@@ -94,7 +95,8 @@ public:
 private:
     using uch = unsigned char;
     using v_uch = vector<unsigned char>;
-    v_uch raw_img;
-    size_t width;
-    size_t height;
+    // v_uch raw_img;
+    // size_t width;
+    // size_t height;
+    ImgRaw raw_img;
 };
