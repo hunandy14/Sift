@@ -102,7 +102,7 @@ void Scaling::zero(vector<unsigned char>& img,
 	for (int j = 0; j < h; ++j) {
 		for (int i = 0; i < w; ++i) {
 			img[j*w + i] =
-				img_ori[(int)(j / Ratio)*width + (int)(i / Ratio)];
+				img_ori[(int)(j/Ratio)*width + (int)(i/Ratio)];
 		}
 	}
 }
@@ -115,10 +115,8 @@ void Scaling::first(vector<unsigned char>& img,
 	int w = (int)floor(width * Ratio);
 	int h = (int)floor(height * Ratio);
 	img.resize(h*w);
-
 	for (int j = 0; j < h; ++j) {
 		for (int i = 0; i < w; ++i) {
-
 			// 對應到原圖的座標
 			int oy = (int)floor(j / Ratio);
 			int ox = (int)floor(i / Ratio);
