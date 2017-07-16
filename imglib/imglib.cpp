@@ -92,8 +92,8 @@ vector<float> GauBlur::gau_matrix(float p) {
 }
 //----------------------------------------------------------------
 // ZroOrder調整大小
-void Scaling::zero(vector<unsigned char>& img,
-	vector<unsigned char>& img_ori, size_t width,
+void Scaling::zero(vector<types>& img,
+	vector<types>& img_ori, size_t width,
 	size_t height, float Ratio)
 {
 	int w = (int)floor(width * Ratio);
@@ -107,11 +107,11 @@ void Scaling::zero(vector<unsigned char>& img,
 	}
 }
 // FisrtOrder調整大小
-void Scaling::first(vector<unsigned char>& img,
-	vector<unsigned char>& img_ori, size_t width,
+void Scaling::first(vector<types>& img,
+	vector<types>& img_ori, size_t width,
 	size_t height, float Ratio)
 {
-	using uch = unsigned char;
+	using uch = types;
 	int w = (int)floor(width * Ratio);
 	int h = (int)floor(height * Ratio);
 	img.resize(h*w);

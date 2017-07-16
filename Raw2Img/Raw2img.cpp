@@ -69,8 +69,8 @@ void Raw::read_bmp(vector<uch>& raw, string name) {
         for(unsigned i = 0; i < info_h.width; ++i) {
             // 來源是 rgb
             if(info_h.bits == 24) {
-                file.read(p + j*info_h.width*3+i*3 + G, 1);
                 file.read(p + j*info_h.width*3+i*3 + B, 1);
+                file.read(p + j*info_h.width*3+i*3 + G, 1);
                 file.read(p + j*info_h.width*3+i*3 + R, 1);
             }
             // 來源是 gray

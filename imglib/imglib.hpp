@@ -26,14 +26,16 @@ private:
 };
 // 圖像縮放
 class Scaling{
+private:
+    using types = float;
 public:
     // ZroOrder調整大小
-    static void zero(vector<unsigned char>& img,
-        vector<unsigned char>& img_ori, 
+    static void zero(vector<types>& img,
+        vector<types>& img_ori, 
         size_t width, size_t height, float Ratio);
     // FisrtOrder調整大小
-    static void first(vector<unsigned char>& img,
-        vector<unsigned char>& img_ori, 
+    static void first(vector<types>& img,
+        vector<types>& img_ori, 
         size_t width, size_t height, float Ratio);
     // Bicubic調整大小
     static void cubic(vector<unsigned char>& img,

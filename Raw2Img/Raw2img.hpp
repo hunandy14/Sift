@@ -75,6 +75,7 @@ public:
     static void read_raw(std::vector<uch>& raw, std::string name) {
         std::fstream file(name.c_str(),
                           std::ios::in | std::ios::binary | std::ios::ate);
+        if (!file) throw bad_openFile("# Error opening file.");
         raw.resize(static_cast<size_t>(file.tellg()));
         file.seekg(0, std::ios::beg);
         file.read(reinterpret_cast<char*>(raw.data()), raw.size());
