@@ -10,6 +10,11 @@ Final: 2017/07/05
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 
+// 尺寸大小不合
+class Size_error : public std::runtime_error {
+public:
+    Size_error(const std::string& str): std::runtime_error(str) {}
+};
 
 class ImgRaw {
 private:
@@ -26,7 +31,7 @@ public:
     operator vector<unsigned char>() {
         vector<unsigned char> img(raw_img.size());
         for(unsigned i = 0; i < raw_img.size(); ++i) {
-            img[i] = (unsigned char)raw_img[i];
+            img[i] = (unsigned char)(raw_img[i]*255);
         }
         return img;
     }
@@ -50,12 +55,12 @@ public:
     friend bool operator==(const ImgRaw& lhs, const ImgRaw& rhs);
     // 差分圖
     ImgRaw& operator-=(const ImgRaw& rhs) {
-        if ((*this) != rhs) { // 尺寸不同
-            std::cout << "Error size is diff." << std::endl;
-            return (*this);
+        // 尺寸不同
+        if ((*this) != rhs) {
+            throw Size_error("Error size is diff.");
         }
         for (unsigned i = 0; i < width*height; ++i) {
-            raw_img[i] -= rhs.raw_img[i]+128;
+            raw_img[i] -= rhs.raw_img[i];
         }
         return (*this);
     }
@@ -80,13 +85,16 @@ public:
         tar.width = (size_t)(sou.width*z);
         tar.height = (size_t)(sou.height*z);
     }
-    // static void cubic(ImgRaw& tar, ImgRaw& sou, float z) {
-    //     Scaling::cubic(tar, sou, sou.width, sou.height, z);
-    //     tar.width = (size_t)(sou.width*z), tar.height = (size_t)(sou.width*z);
-    // }
-    // static void gauBlur(ImgRaw& tar, ImgRaw& sou, float p) {
-    //     GauBlur::raw2GauBlur(tar, sou, sou.width, sou.height, p);
-    // }
+    static void cubic(ImgRaw& tar, ImgRaw& sou, float z) {
+        Scaling::cubic(tar, sou, sou.width, sou.height, z);
+        tar.width = (size_t)(sou.width*z);
+        tar.height = (size_t)(sou.height*z);
+    }
+    static void gauBlur(ImgRaw& tar, ImgRaw& sou, float p) {
+        GauBlur::raw2GauBlur(tar, sou, sou.width, sou.height, p);
+        tar.width = (size_t)(sou.width);
+        tar.height = (size_t)(sou.height);
+    }
 public:
     vector<types> raw_img;
     size_t width;
@@ -94,31 +102,28 @@ public:
 };
 
 // 大小是否相等
-// inline bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs) {
-//     return !(lhs == rhs);
-// }
-// inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
-//     if (lhs.width == rhs.width &&  lhs.height == rhs.height) {
-//         return 1;
-//     } return 0;
-// }
+inline bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs) {
+    return !(lhs == rhs);
+}
+inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
+    if (lhs.width == rhs.width &&  lhs.height == rhs.height) {
+        return 1;
+    } return 0;
+}
 //----------------------------------------------------------------
-/*
-class Sift {
-public:
-    Sift(vector<unsigned char> raw_img, size_t width, size_t height) :
-        // raw_img(raw_img), width(width), height(height)
-        raw_img(raw_img, width, height)
-    {
 
-    }
+class Sift {
+private:
+    using types = float;
+public:
+    Sift(ImgRaw img): raw_img(img) {}
+    Sift(vector<float> raw_img, size_t width, size_t height):
+        raw_img(raw_img, width, height) {}
 public:
     void pyramid(size_t s = 3);
     void comp(vector<ImgRaw>& pyrs, string name="");
     vector<ImgRaw> dog_gau(ImgRaw& img, size_t s);
 private:
-    using uch = unsigned char;
-    using v_uch = vector<unsigned char>;
     ImgRaw raw_img;
     vector<vector<ImgRaw>> pyrs;
-};*/
+};

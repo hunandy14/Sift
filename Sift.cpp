@@ -12,7 +12,7 @@ Final: 2017/07/05
 #include <algorithm>
 #include "Sift.hpp"
 using namespace std;
-/*
+
 // 合成圖片
 void Sift::comp(vector<ImgRaw>& pyrs, string name){
     // 合成圖片
@@ -29,7 +29,7 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name){
     // 輸出圖片並開啟
     if(name!="") {
         name += ".bmp";
-        big_img.bmp(name);
+        big_img.bmp("pic/"+name, 8);
         // system(name.c_str());
     }
 };
@@ -57,16 +57,19 @@ void Sift::pyramid(size_t s){
     // 長寬不同的圖會出問題
     s += 3;
     size_t octvs = 3;
+    octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
+    pyrs.resize(octvs);
     // 輸入圖
     ImgRaw temp(raw_img, raw_img.width, raw_img.height);
-    ImgRaw::cubic(temp, raw_img, 2);
     // 高斯金字塔
-    pyrs.resize(octvs);
     pyrs[0] = dog_gau(temp, s);
     comp(pyrs[0], "Sift-gau_"+to_string(0));
     for(unsigned i = 1; i < octvs; ++i) {
+        // 縮小一張圖
         ImgRaw::first(temp, pyrs[i-1][s/2], 0.5);
+        // 回傳 s 張模糊圖
         pyrs[i] = dog_gau(temp, s);
+        // 合成圖片
         comp(pyrs[i], "Sift-gau_" + to_string(i));
     }
     // 高斯金字塔差分圖
@@ -77,9 +80,8 @@ void Sift::pyramid(size_t s){
         } pyrs[j].erase(--(pyrs[j].end()));
         comp(pyrs[j], "Sift-diff_" + to_string(j));
     }
-    
     // 取得遮罩
-    auto getMask = [](v_uch& mask,
+    auto getMask = [](vector<types>& mask,
             ImgRaw& img, size_t y, size_t x)
     {
         // 創建臨時遮罩
@@ -103,22 +105,22 @@ void Sift::pyramid(size_t s){
         }
         // return mask;
     };
+    
 
-    // pyrs[0]
-    v_uch mask;
+    // 尋找 cubic 極值
+    vector<types> mask;
     getMask(mask, pyrs[0][0], 1, 1);
     getMask(mask, pyrs[0][1], 1, 1);
     getMask(mask, pyrs[0][2], 1, 1);
-    // uch p = mask[(mask.size()-1)/2];
     auto max=std::max_element(mask.begin(), mask.end());
     auto min=std::min_element(mask.begin(), mask.end());
-    cout << "idx=" << (int)(*max) << endl;
-    cout << "idx=" << (int)(*min) << endl;
+    cout << "idx=" << (*max) << endl;
+    cout << "idx=" << (*min) << endl;
 
     for(auto&& i : mask) {
-        cout << (int)i << ", ";
+        cout << i << ", ";
     }
 
     cout << "mask.size()=" << (mask.size()-1)/2 << endl;
-}*/
+}
 

@@ -12,69 +12,40 @@ Final: 2017/07/04
 using namespace std;
 #include "Sift.hpp"
 
-string rawName = "Rena_256x256_8bit.raw";
-string rawName2 = "Seymour_Park_960x540_24bit.raw";
-string bmpName = "Rena.bmp";
-string bmpName2 = "Rena2.bmp";
 //================================================================
 int main(int argc, char const *argv[]){
     // 讀取圖片
     vector<unsigned char> raw_img;
     vector<unsigned char> raw_img2x;
-    Raw::read_bmp(raw_img, "conna.bmp");
-    Raw::raw2gray(raw_img); // 轉灰階
+
+
+    // 圖片1
+    // Raw::read_bmp(raw_img, "Lena.bmp");
+    // Raw::raw2gray(raw_img); // 轉灰階
+    // 圖片2
+    Raw::read_raw(raw_img, "en_420x420.raw");
     // 轉浮點數
-    auto tof = [](vector<unsigned char>& img) {
-        vector<float> f_img(size(img));
-        for(unsigned i = 0; i < f_img.size(); ++i)
-            f_img[i] = img[i];
-        return f_img;
+    auto raw2f = [](vector<unsigned char>& img) {
+        vector<float> temp(size(img));
+        for(unsigned i = 0; i < temp.size(); ++i)
+            temp[i] = (float)img[i] / 255.0;
+        return temp;
     };
     // 轉浮char
-    auto toch = [](vector<float>& img) {
-        vector<unsigned char> f_img(size(img));
-        for(unsigned i = 0; i < f_img.size(); ++i)
-            f_img[i] = img[i];
-        return f_img;
-    };
+    // auto f2raw = [](vector<float>& img) {
+    //     vector<unsigned char> temp(size(img));
+    //     for(unsigned i = 0; i < temp.size(); ++i)
+    //         temp[i] = img[i];
+    //     return temp;
+    // };
     // 創建結構
-    vector<float> f_img = tof(raw_img);
-    ImgRaw s_img(f_img, 850, 602);
-    ImgRaw s_img2(850*2, 602*2);
+    ImgRaw temp(raw2f(raw_img), 420 , 420);
+    ImgRaw input_img(0, 0);
+    ImgRaw::first(input_img, temp, 2);
 
-// 測試成功zero可以轉
-    // Scaling::zero(raw_img2x, raw_img, 850, 602, 2);
-    // Scaling::zero(s_img2, s_img, 850, 602, 2);
-
-
-    ImgRaw::first(s_img2, s_img, 2);
-    // vector<unsigned char> b=toch(s_img2);
-    // Raw::raw2bmp("2X.bmp", b, 1700, 1204, 8);
-    s_img2.bmp("2x.bmp", 8);
-
-
-
-
-
-
-
-
-
-    vector<float> raw_img2;
-    // raw_img.resize(raw_img2.size());
-    // for(unsigned i = 0; i < raw_img2.size(); ++i) {
-    //     raw_img[i] = raw_img2[i];
-    // }
-    // Raw::raw2bmp("2x.bmp", raw_img, 850*2, 602*2, 24);
-
-
-    // s_img.bmp("2x.bmp", 24);
-    // raw_img=s_img;
-    // ImgRaw::zero(s_img2, s_img, 2);
-    // s_img2.bmp("2x.bmp", 24);
-    // vector<unsigned char> i = s_img;
-    // Sift img(raw_img, 420, 420);
-    // img.pyramid();
+    // 金字塔
+    Sift img(input_img);
+    img.pyramid();
 	return 0;
 }
 //================================================================

@@ -16,13 +16,15 @@ public:
 };
 // 高斯模糊
 class GauBlur{
+private:
+    using types = float;
 public:
-    static void raw2GauBlur(vector<unsigned char>& img_gau,
-        vector<unsigned char>& img_ori,
+    static void raw2GauBlur(vector<types>& img_gau,
+        vector<types>& img_ori,
         size_t width, size_t height, float p);
 private:
-    static vector<float> gau_matrix(float p);
-    static float gau_meth(size_t r, float p);
+    static vector<types> gau_matrix(float p);
+    static types gau_meth(size_t r, float p);
 };
 // 圖像縮放
 class Scaling{
@@ -38,26 +40,26 @@ public:
         vector<types>& img_ori, 
         size_t width, size_t height, float Ratio);
     // Bicubic調整大小
-    static void cubic(vector<unsigned char>& img,
-        vector<unsigned char>& img_ori, size_t width, 
+    static void cubic(vector<types>& img,
+        vector<types>& img_ori, size_t width, 
         size_t height, float Ratio);
 private:
     // Bicubic 插值核心運算
-    static unsigned char cubicInterpolate (
-        unsigned char* p, double x)
+    static float cubicInterpolate (
+        float* p, float x)
     {
-        double temp = (double)(p[1] + 0.5 * 
+        float temp = (float)(p[1] + 0.5 * 
             x*(p[2] - p[0] +x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - 
                 p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0]))));
         if (temp > 255) { temp = 255; }
         else if (temp < 0) { temp = 0; }
-        return static_cast<unsigned char>(temp);
+        return temp;
     }
     // Bicubic 輸入16點與插入位置，取得目標值
-    static unsigned char bicubicInterpolate (
-        unsigned char* p, double y, double x)
+    static float bicubicInterpolate (
+        float* p, float y, float x)
     {
-        unsigned char arr[4];
+        float arr[4];
         for (int i = 0; i < 4; ++i){
             arr[i] = cubicInterpolate((i*4 + p), x);
         } return cubicInterpolate(arr, y);
