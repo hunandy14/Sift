@@ -34,3 +34,11 @@
 # User
 *.bmp
 *.raw
+
+# vc15
+*.tlog
+*.idb
+*.pdb
+*.vcxproj
+*.vcxproj.filters
+*.log
