@@ -57,7 +57,7 @@ void Sift::pyramid(size_t s){
     // 長寬不同的圖會出問題
     s += 3;
     size_t octvs = 3;
-    octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
+    // octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
     pyrs.resize(octvs);
     // 輸入圖
     ImgRaw temp(raw_img, raw_img.width, raw_img.height);
@@ -109,18 +109,28 @@ void Sift::pyramid(size_t s){
 
     // 尋找 cubic 極值
     vector<types> mask;
-    getMask(mask, pyrs[0][0], 1, 1);
-    getMask(mask, pyrs[0][1], 1, 1);
-    getMask(mask, pyrs[0][2], 1, 1);
-    auto max=std::max_element(mask.begin(), mask.end());
-    auto min=std::min_element(mask.begin(), mask.end());
-    cout << "idx=" << (*max) << endl;
-    cout << "idx=" << (*min) << endl;
+	//pyrs[0][0].height - 1
+	//for(unsigned j = 1; j < pyrs[0][0].height - 1; ++j) {
+	//for (unsigned j = 1; j < 2; ++j) {
+		for (unsigned i = 1; i < pyrs[0][0].width - 1; ++i) {
 
-    for(auto&& i : mask) {
-        cout << i << ", ";
-    }
+			getMask(mask, pyrs[0][0], j, i);
+			getMask(mask, pyrs[0][1], j, i);
+			getMask(mask, pyrs[0][2], j, i);
+			float max = *std::max_element(mask.begin(), mask.end());
+			float min = *std::min_element(mask.begin(), mask.end());
+			// cout << "max=" << max << endl;
+			// cout << "min=" << min << endl;
+			size_t mid = (mask.size() - 1) / 2;
+			if (mask[mid] == max) {
+				cout << "get_max" << endl;
+			}
+			else if (mask[mid] == min) {
+				cout << "get_min" << endl;
+			}
+		}
+	}
 
-    cout << "mask.size()=" << (mask.size()-1)/2 << endl;
+
 }
 

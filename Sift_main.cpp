@@ -38,14 +38,14 @@ int main(int argc, char const *argv[]){
     //         temp[i] = img[i];
     //     return temp;
     // };
+
     // 創建結構
     ImgRaw temp(raw2f(raw_img), 420 , 420);
     ImgRaw input_img(0, 0);
-    ImgRaw::first(input_img, temp, 2);
-
+    ImgRaw::first(input_img, temp, 0.5);
     // 金字塔
     Sift img(input_img);
-    img.pyramid();
+    img.pyramid(1);
 	return 0;
 }
 //================================================================
