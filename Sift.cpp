@@ -57,7 +57,7 @@ void Sift::pyramid(size_t s){
     // 長寬不同的圖會出問題
     s += 3;
     size_t octvs = 3;
-    // octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
+    octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
     pyrs.resize(octvs);
     // 輸入圖
     ImgRaw temp(raw_img, raw_img.width, raw_img.height);
@@ -80,57 +80,52 @@ void Sift::pyramid(size_t s){
         } pyrs[j].erase(--(pyrs[j].end()));
         comp(pyrs[j], "Sift-diff_" + to_string(j));
     }
-    // 取得遮罩
+    // 取得遮罩(沒有邊緣防呆)
     auto getMask = [](vector<types>& mask,
             ImgRaw& img, size_t y, size_t x)
     {
-        // 創建臨時遮罩
-        // ImgRaw mask(3, 3);
-        size_t w=3, h=3;
-        size_t mx = (w-1)/2;
-        size_t my = (h-1)/2;
         // 複製遮罩
-        for (unsigned j = 0; j < h; ++j){
-            for (unsigned i = 0; i < w; ++i){
-                int sx=i-mx;
-                int sy=j-my;
-                // 修正邊緣
-                if (sy <0){sy = 0;}
-                if (sy > (int)img.height-1){sy = (int)img.height-1;}
-                if (sx <0){sx = 0;}
-                if (sx > (int)img.width-1){sx = (int)img.width-1;}
-                // 複製數值
-                mask.emplace_back(img.at2d(sy, sx));
-            }
-        }
-        // return mask;
+		mask.resize(9);
+		mask[0]= img.at2d(y-1, x-1);
+		mask[1]= img.at2d(y-1, x+0);
+		mask[2]= img.at2d(y-1, x-1);
+
+		mask[3]= img.at2d(y+0, x-1);
+		mask[4]= img.at2d(y+0, x+0);
+		mask[5]= img.at2d(y+0, x-1);
+
+		mask[6]= img.at2d(y+1, x-1);
+		mask[7]= img.at2d(y+1, x+0);
+		mask[8]= img.at2d(y+1, x+1);
     };
-    
 
     // 尋找 cubic 極值
     vector<types> mask;
-	//pyrs[0][0].height - 1
-	//for(unsigned j = 1; j < pyrs[0][0].height - 1; ++j) {
-	//for (unsigned j = 1; j < 2; ++j) {
-		for (unsigned i = 1; i < pyrs[0][0].width - 1; ++i) {
-
-			getMask(mask, pyrs[0][0], j, i);
-			getMask(mask, pyrs[0][1], j, i);
-			getMask(mask, pyrs[0][2], j, i);
-			float max = *std::max_element(mask.begin(), mask.end());
-			float min = *std::min_element(mask.begin(), mask.end());
-			// cout << "max=" << max << endl;
-			// cout << "min=" << min << endl;
-			size_t mid = (mask.size() - 1) / 2;
-			if (mask[mid] == max) {
-				cout << "get_max" << endl;
+	for (unsigned py = 0; py < pyrs.size() - 1; ++py) {
+		for (unsigned px = 1; px < pyrs[py].size() - 1; ++px) {
+			ImgRaw fea(pyrs[py][px].width, pyrs[py][px].height);
+			for (unsigned j = 1; j < pyrs[py][px].height - 1; ++j) {
+				for (unsigned i = 1; i < pyrs[py][px].width - 1; ++i) {
+					getMask(mask, pyrs[py][px - 1], j, i);
+					getMask(mask, pyrs[py][px], j, i);
+					getMask(mask, pyrs[py][px + 1], j, i);
+					float max = *std::max_element(mask.begin(), mask.end());
+					float min = *std::min_element(mask.begin(), mask.end());
+					size_t mid = (mask.size() - 1) / 2;
+					if (mask[mid] == max or mask[mid] == min) {
+						if (mask[mid] < 0.15 or mask[mid] > -0.15) {
+							fea.at2d(j, i) = 128;
+						}
+					}
+				}
 			}
-			else if (mask[mid] == min) {
-				cout << "get_min" << endl;
-			}
+			// 特徵點圖片預覽
+			fea.bmp("fea/fea" + to_string(py) + "-" + to_string(px) + ".bmp", 8);
 		}
 	}
 
 
+
+	cout << "end" << endl;
 }
 

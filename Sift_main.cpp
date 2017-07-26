@@ -20,10 +20,10 @@ int main(int argc, char const *argv[]){
 
 
     // 圖片1
-    // Raw::read_bmp(raw_img, "Lena.bmp");
-    // Raw::raw2gray(raw_img); // 轉灰階
+    Raw::read_bmp(raw_img, "ball_01.bmp");
+    Raw::raw2gray(raw_img); // 轉灰階
     // 圖片2
-    Raw::read_raw(raw_img, "en_420x420.raw");
+    // Raw::read_raw(raw_img, "en_420x420.raw");
     // 轉浮點數
     auto raw2f = [](vector<unsigned char>& img) {
         vector<float> temp(size(img));
@@ -40,12 +40,12 @@ int main(int argc, char const *argv[]){
     // };
 
     // 創建結構
-    ImgRaw temp(raw2f(raw_img), 420 , 420);
+    ImgRaw temp(raw2f(raw_img), 1334 , 1000);
     ImgRaw input_img(0, 0);
-    ImgRaw::first(input_img, temp, 0.5);
+    ImgRaw::first(input_img, temp, 1);
     // 金字塔
     Sift img(input_img);
-    img.pyramid(1);
+    img.pyramid(3);
 	return 0;
 }
 //================================================================

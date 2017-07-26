@@ -7,6 +7,13 @@ Final: 2017/07/05
 #pragma warning(disable : 4819)
 #pragma once
 
+#if defined(_MSC_VER)
+    #define or ||
+    #define and &&
+    #define OR ||
+    #define AND &&
+#endif
+
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 
