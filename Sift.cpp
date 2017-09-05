@@ -57,7 +57,7 @@ void Sift::pyramid(size_t s){
     // 長寬不同的圖會出問題
     s += 3;
     size_t octvs = 3;
-    octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
+    //octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
     pyrs.resize(octvs);
     // 輸入圖
     ImgRaw temp(raw_img, raw_img.width, raw_img.height);
@@ -100,21 +100,26 @@ void Sift::pyramid(size_t s){
     };
 
     // 尋找 cubic 極值
-    vector<types> mask;
+    vector<types> mask; // 臨時方塊27點找極值
 	for (unsigned py = 0; py < pyrs.size() - 1; ++py) {
 		for (unsigned px = 1; px < pyrs[py].size() - 1; ++px) {
-			ImgRaw fea(pyrs[py][px].width, pyrs[py][px].height);
-			for (unsigned j = 1; j < pyrs[py][px].height - 1; ++j) {
-				for (unsigned i = 1; i < pyrs[py][px].width - 1; ++i) {
+			ImgRaw fea(pyrs[py][px].width, pyrs[py][px].height); // 暫存畫布
+			// 選定層級找極值(不處理邊緣)
+			for (unsigned j = 1; j < pyrs[py][px].height-2; ++j) {
+				for (unsigned i = 1; i < pyrs[py][px].width-2; ++i) {
+					// 取得上下層的九宮格
 					getMask(mask, pyrs[py][px - 1], j, i);
 					getMask(mask, pyrs[py][px], j, i);
 					getMask(mask, pyrs[py][px + 1], j, i);
+
 					float max = *std::max_element(mask.begin(), mask.end());
 					float min = *std::min_element(mask.begin(), mask.end());
+
 					size_t mid = (mask.size() - 1) / 2;
-					if (mask[mid] == max or mask[mid] == min) {
-						if (mask[mid] < 0.15 or mask[mid] > -0.15) {
-							fea.at2d(j, i) = 128;
+					if (mask[mid] == max or mask[mid] == min) { // 保留極值
+						constexpr float thre = 0.03/2; // 保留變動大於 0.03
+						if (mask[mid] > thre or mask[mid] < -thre) {
+							fea.at2d(j, i) = 1;
 						}
 					}
 				}
