@@ -4,24 +4,7 @@ Date : 2017/06/23
 By   : CharlotteHonG
 Final: 2017/06/23
 *****************************************************************/
-#pragma warning(disable : 4819)
 #pragma once
-
-/*
-    ######## ##     ##  ######  ######## ########
-    ##        ##   ##  ##    ## ##       ##     ##
-    ##         ## ##   ##       ##       ##     ##
-    ######      ###    ##       ######   ########
-    ##         ## ##   ##       ##       ##
-    ##        ##   ##  ##    ## ##       ##
-    ######## ##     ##  ######  ######## ##
-*/
-// 開檔例外
-class bad_openFile : public std::runtime_error {
-public:
-    bad_openFile(const std::string& str): 
-        std::runtime_error(str) {}
-};
 /*
     ########   ######   ########
     ##     ## ##    ##  ##     ##
@@ -43,96 +26,6 @@ private:
     RGB rgb;
 };
 /*
-    ########  ##    ## ######## ######## ##
-    ##     ##  ##  ##     ##    ##       ##    ##
-    ##     ##   ####      ##    ##       ##    ##
-    ########     ##       ##    ######   ##    ##
-    ##     ##    ##       ##    ##       #########
-    ##     ##    ##       ##    ##             ##
-    ########     ##       ##    ########       ##
-*/
-
-union byte4_t {
-    uint32_t raw;
-    struct Bit_slice {
-        uint32_t a:8;
-        uint32_t b:8;
-        uint32_t c:8;
-        uint32_t d:8;
-    } bit;
-    byte4_t() = default;
-    byte4_t(uint32_t i): raw(i) {}
-    operator uint32_t&() {return raw;}
-    friend std::ostream& operator<<(
-        std::ostream& os, byte4_t const& rhs);
-    friend std::fstream& operator>>(
-        std::fstream& is, byte4_t& rhs);
-};
-inline std::ostream& operator<<(
-    std::ostream& os, byte4_t const& rhs)
-{
-    os << static_cast<unsigned char>(rhs.bit.a);
-    os << static_cast<unsigned char>(rhs.bit.b);
-    os << static_cast<unsigned char>(rhs.bit.c);
-    os << static_cast<unsigned char>(rhs.bit.d);
-    return os;
-}
-inline std::fstream& operator>>(
-    std::fstream& is, byte4_t& rhs)
-{
-    char temp;
-    is >> temp;
-    rhs.bit.a = temp;
-    is >> temp;
-    rhs.bit.b = temp;
-    is >> temp;
-    rhs.bit.c = temp;
-    is >> temp;
-    rhs.bit.d = temp;
-    return is;
-}
-/*
-    ########  ##    ## ######## ########  #######
-    ##     ##  ##  ##     ##    ##       ##     ##
-    ##     ##   ####      ##    ##              ##
-    ########     ##       ##    ######    #######
-    ##     ##    ##       ##    ##       ##
-    ##     ##    ##       ##    ##       ##
-    ########     ##       ##    ######## #########
-*/
-
-union byte2_t {
-    uint16_t raw;
-    struct Bit_slice {
-        uint16_t a:8;
-        uint16_t b:8;
-    } bit;
-    byte2_t() = default;
-    byte2_t(uint16_t i): raw(i) {}
-    operator uint16_t&() {return raw;}
-    friend std::ostream& operator<<(
-        std::ostream& os, byte2_t const& rhs);
-    friend std::fstream& operator>>(
-        std::fstream& is, byte2_t& rhs);
-};
-inline std::ostream& operator<<(
-    std::ostream& os, byte2_t const& rhs)
-{
-    os << static_cast<unsigned char>(rhs.bit.a);
-    os << static_cast<unsigned char>(rhs.bit.b);
-    return os;
-}
-inline std::fstream& operator>>(
-    std::fstream& is, byte2_t& rhs)
-{
-    char temp;
-    is >> temp;
-    rhs.bit.a = temp;
-    is >> temp;
-    rhs.bit.b = temp;
-    return is;
-}
-/*
     ######## #### ##       ########         ##     ##
     ##        ##  ##       ##               ##     ##
     ##        ##  ##       ##               ##     ##
@@ -142,35 +35,54 @@ inline std::fstream& operator>>(
     ##       #### ######## ######## ####### ##     ##
 */
 
-// 檔案檔頭型別(共 14 bytes)
-struct FileHeader {
-    unsigned char type[2]= {'B', 'M'};
-    byte4_t size;
-    byte2_t reserved1=0;
-    byte2_t reserved2=0;
-    byte4_t headSize=54;
-    friend std::ostream & operator<<(
-        std::ostream & os, FileHeader const & rhs);
-    friend std::fstream& operator>>(
-        std::fstream& is, FileHeader & rhs);
+// 檔案檔頭 (BITMAPFILEHEADER)
+#pragma pack(2) // 調整對齊
+struct BmpFileHeader{
+    uint16_t bfTybe=0x4d42;
+    uint32_t bfSize;
+    uint16_t bfReserved1=0;
+    uint16_t bfReserved2=0;
+    uint32_t bfOffBits=54;
+    void pri(){
+        using namespace std;
+        cout << "BmpFileHeader" << endl;
+        cout << "  bfTybe=" << bfTybe << endl;
+        cout << "  bfSize=" << bfSize << endl;
+        cout << "  bfReserved1=" << bfReserved1 << endl;
+        cout << "  bfReserved2=" << bfReserved2 << endl;
+        cout << "  bfOffBits=" << bfOffBits << endl;
+    }
+    // fstream
+    friend std::ofstream& operator>>(
+        std::ofstream& is, BmpFileHeader& obj);
+    friend std::ifstream& operator<<(
+        std::ifstream& os, const BmpFileHeader& obj);
+    // ostream
+    friend std::ostream& operator<<(
+        std::ostream& os, const BmpFileHeader& obj);
 };
-inline std::ostream & operator<<(
-    std::ostream & os, FileHeader const & rhs)
-{
-    os << rhs.type[0] << rhs.type[1];
-    os << rhs.size;
-    os << rhs.reserved1 << rhs.reserved2;
-    os << rhs.headSize;
+#pragma pack() // 恢復對齊為預設
+inline std::ofstream& operator<<(
+    std::ofstream& os, const BmpFileHeader& obj){
+    os.write((char*)&obj, sizeof(obj));
     return os;
 }
-inline std::fstream& operator>>(
-    std::fstream& is, FileHeader & rhs)
-{
-    is >> rhs.type[0] >> rhs.type[1];
-    is >> rhs.size;
-    is >> rhs.reserved1 >> rhs.reserved2;
-    is >> rhs.headSize;
+inline std::ifstream& operator>>(
+    std::ifstream& is, BmpFileHeader& obj){
+    is.read((char*)&obj, sizeof(obj));
     return is;
+}
+inline std::ostream& operator<<(
+    std::ostream& os, const BmpFileHeader& obj){
+	using std::cout;
+	using std::endl;
+    cout << "# BmpFileHeader" << endl;
+    cout << "    bfTybe      = " << obj.bfTybe << endl;
+    cout << "    bfSize      = " << obj.bfSize << endl;
+    cout << "    bfReserved1 = " << obj.bfReserved1 << endl;
+    cout << "    bfReserved2 = " << obj.bfReserved2 << endl;
+    cout << "    bfOffBits   = " << obj.bfOffBits;
+    return os;
 }
 /*
     #### ##    ## ########  #######          ##     ##
@@ -182,45 +94,55 @@ inline std::fstream& operator>>(
     #### ##    ## ##        #######  ####### ##     ##
 */
 
-// 資訊檔頭型別 (共 40 byte)
-struct InfoHeader {
-    byte4_t size=40;
-    byte4_t width;
-    byte4_t height;
-    byte2_t planes=1;
-    byte2_t bits;
-    byte4_t compression=0;
-    byte4_t imagesize;
-    // 72dpi=2835, 96dpi=3780, 120dpi=4724, 300dpi=11811
-    byte4_t xresolution=0;
-    byte4_t yresolution=0;
-    byte4_t ncolours=0;
-    byte4_t importantcolours=0;
+// 圖片資訊 (BITMAPINFOHEADER)
+#pragma pack(2) // 調整對齊
+struct BmpInfoHeader{
+    uint32_t biSize=40;
+    uint32_t biWidth;
+    uint32_t biHeight;
+    uint16_t biPlanes=1; // 1=defeaul, 0=custom
+    uint16_t biBitCount;
+    uint32_t biCompression=0;
+    uint32_t biSizeImage;
+    uint32_t biXPelsPerMeter=0; // 72dpi=2835, 96dpi=3780
+    uint32_t biYPelsPerMeter=0; // 120dpi=4724, 300dpi=11811
+    uint32_t biClrUsed=0;
+    uint32_t biClrImportant=0;
+    // fstream
+    friend std::ofstream& operator>>(
+        std::ofstream& is, BmpInfoHeader& obj);
+    friend std::ifstream& operator<<(
+        std::ifstream& os, const BmpInfoHeader& obj);
+    // ostream
     friend std::ostream& operator<<(
-        std::ostream& os, InfoHeader const & rhs);
-    friend std::fstream& operator>>(
-        std::fstream& is, InfoHeader & rhs);
+        std::ostream& os, const BmpInfoHeader& obj);
 };
-
-inline std::ostream& operator<<(
-    std::ostream& os, InfoHeader const & rhs)
-{
-    os << rhs.size;
-    os << rhs.width << rhs.height;
-    os << rhs.planes << rhs.bits;
-    os << rhs.compression << rhs.imagesize;
-    os << rhs.xresolution << rhs.yresolution;
-    os << rhs.ncolours << rhs.importantcolours;
+#pragma pack() // 恢復對齊為預設
+inline std::ofstream& operator<<(
+    std::ofstream& os, const BmpInfoHeader& obj){
+    os.write((char*)&obj, sizeof(obj));
     return os;
 }
-inline std::fstream& operator>>(
-    std::fstream& is, InfoHeader & rhs)
-{
-    is >> rhs.size;
-    is >> rhs.width >> rhs.height;
-    is >> rhs.planes >> rhs.bits;
-    is >> rhs.compression >> rhs.imagesize;
-    is >> rhs.xresolution >> rhs.yresolution;
-    is >> rhs.ncolours >> rhs.importantcolours;
+inline std::ifstream& operator>>(
+    std::ifstream& is, BmpInfoHeader& obj){
+    is.read((char*)&obj, sizeof(obj));
     return is;
+}
+inline std::ostream& operator<<(
+    std::ostream& os, const BmpInfoHeader& obj){
+	using std::cout;
+	using std::endl;
+    cout << "# BmpInfoHeader" << endl;
+    cout << "    biSize          = " << obj.biSize << endl;
+    cout << "    biWidth         = " << obj.biWidth << endl;
+    cout << "    biHeight        = " << obj.biHeight << endl;
+    cout << "    biPlanes        = " << obj.biPlanes << endl;
+    cout << "    biBitCount      = " << obj.biBitCount << endl;
+    cout << "    biCompression   = " << obj.biCompression << endl;
+    cout << "    biSizeImage     = " << obj.biSizeImage << endl;
+    cout << "    biXPelsPerMeter = " << obj.biXPelsPerMeter << endl;
+    cout << "    biYPelsPerMeter = " << obj.biYPelsPerMeter << endl;
+    cout << "    biClrUsed       = " << obj.biClrUsed << endl;
+    cout << "    biClrImportant  = " << obj.biClrImportant;
+    return os;
 }
