@@ -42,3 +42,9 @@
 *.vcxproj
 *.vcxproj.filters
 *.log
+resource.h
+*.png
+*.jpg
+*.aps
+*.rc
+*.res
