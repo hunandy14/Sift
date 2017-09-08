@@ -22,7 +22,7 @@ class Size_error : public std::runtime_error {
 public:
     Size_error(const std::string& str): std::runtime_error(str) {}
 };
-
+//----------------------------------------------------------------
 class ImgRaw {
 private:
     using types = float;
@@ -107,7 +107,6 @@ public:
     size_t width;
     size_t height;
 };
-
 // 大小是否相等
 inline bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs) {
     return !(lhs == rhs);
@@ -118,7 +117,6 @@ inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
     } return 0;
 }
 //----------------------------------------------------------------
-
 class Sift {
 private:
     using types = float;
@@ -130,6 +128,7 @@ public:
     void pyramid(size_t s = 3);
     void comp(vector<ImgRaw>& pyrs, string name="");
     vector<ImgRaw> dog_gau(ImgRaw& img, size_t s);
+	
 private:
     ImgRaw raw_img;
     vector<vector<ImgRaw>> pyrs;

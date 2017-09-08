@@ -86,7 +86,7 @@ void Raw::read_bmp(vector<uch>& raw, string name,
                 bmp.read(p + j*info_h.biWidth+i, 1);
             }
         }
-        bmp.seekg(alig * (info_h.biBitCount/8), ios::cur); // 跳開 4bite 對齊的空格
+        bmp.seekg(alig, ios::cur); // 跳開 4bite 對齊的空格
     }
 }
 // 讀 Raw 檔
