@@ -66,4 +66,8 @@ private:
     }
 };
 // 角點偵測
-
+class Corner {
+public:
+	static bool harris(const vector<float>& p,
+		size_t w, size_t y, size_t x);
+};

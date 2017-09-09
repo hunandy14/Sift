@@ -1,4 +1,4 @@
-/*****************************************************************
+ï»¿/*****************************************************************
 Name :
 Date : 2017/07/04
 By   : CharlotteHonG
@@ -14,23 +14,23 @@ using namespace std;
 #include "imglib.hpp"
 constexpr auto M_PI = 3.14159265358979323846;
 
-// °ª´µ¼Ò½k
+// é«˜æ–¯æ¨¡ç³Š
 void GauBlur::raw2GauBlur(vector<types>& img_gau,
     vector<types>& img_ori,
     size_t width, size_t height, float p)
 {
-    // ¨Ó·½¬Û¦P¨Ò¥~
+    // ä¾†æºç›¸åŒä¾‹å¤–
     if (&img_gau == &img_ori) {
         throw file_same("## Erroe! in and out is same.");
     }
-    // ³]©w¥¿½Tªº¤j¤p
+    // è¨­å®šæ­£ç¢ºçš„å¤§å°
     img_gau.resize(img_ori.size());
-    // ½w¦s
+    // ç·©å­˜
     vector<types> img_gauX(img_ori.size());
-    // °ª´µ¯x°}»P¥b®|
+    // é«˜æ–¯çŸ©é™£èˆ‡åŠå¾‘
     vector<types> gau_mat = gau_matrix(p);
     const size_t r = gau_mat.size() / 2;
-    // °ª´µ¼Ò½k X ¶b
+    // é«˜æ–¯æ¨¡ç³Š X è»¸
     for (unsigned j = 0; j < height; ++j) {
         for (unsigned i = 0; i < width; ++i) {
             double sum = 0;
@@ -43,7 +43,7 @@ void GauBlur::raw2GauBlur(vector<types>& img_gau,
             img_gauX[j*width + i] = sum;
         }
     }
-    // °ª´µ¼Ò½k Y ¶b
+    // é«˜æ–¯æ¨¡ç³Š Y è»¸
     for (unsigned j = 0; j < height; ++j) {
         for (unsigned i = 0; i < width; ++i) {
             double sum = 0;
@@ -57,20 +57,20 @@ void GauBlur::raw2GauBlur(vector<types>& img_gau,
         }
     }
 }
-// °ª´µ¤½¦¡
+// é«˜æ–¯å…¬å¼
 float GauBlur::gau_meth(size_t r, float p) {
     float two = 2.0;
     float num = exp(-pow(r, two) / (two*pow(p, two)));
     num /= sqrt(two*M_PI)*p;
     return num;
 }
-// °ª´µ¯x°}
+// é«˜æ–¯çŸ©é™£
 vector<float> GauBlur::gau_matrix(float p) {
     vector<float> gau_mat;
-    // ­pºâ¯x°}ªø«×
+    // è¨ˆç®—çŸ©é™£é•·åº¦
     int mat_len = (int)(((p - 0.8) / 0.3 + 1.0) * 2.0);
     if (mat_len % 2 == 0) { ++mat_len; }
-    // ¤@ºû°ª´µ¯x°}
+    // ä¸€ç¶­é«˜æ–¯çŸ©é™£
     gau_mat.resize(mat_len);
     float sum = 0;
     for (int i = 0, j = mat_len / 2; j < mat_len; ++i, ++j) {
@@ -86,12 +86,12 @@ vector<float> GauBlur::gau_matrix(float p) {
             sum += gau_mat[j];
         }
     }
-    // Âk¤@¤Æ
+    // æ­¸ä¸€åŒ–
     for (auto&& i : gau_mat) { i /= sum; }
     return gau_mat;
 }
 //----------------------------------------------------------------
-// ZroOrder½Õ¾ã¤j¤p
+// ZroOrderèª¿æ•´å¤§å°
 void Scaling::zero(vector<types>& img,
     vector<types>& img_ori, size_t width,
     size_t height, float Ratio)
@@ -106,7 +106,7 @@ void Scaling::zero(vector<types>& img,
         }
     }
 }
-// FisrtOrder½Õ¾ã¤j¤p
+// FisrtOrderèª¿æ•´å¤§å°
 void Scaling::first(vector<types>& img,
     vector<types>& img_ori, size_t width,
     size_t height, float Ratio)
@@ -116,17 +116,17 @@ void Scaling::first(vector<types>& img,
     img.resize(h*w);
     for (int j = 0; j < h; ++j) {
         for (int i = 0; i < w; ++i) {
-            // ¹ïÀ³¨ì­ì¹Ïªº®y¼Ğ
+            // å°æ‡‰åˆ°åŸåœ–çš„åº§æ¨™
             int oy = (int)floor(j / Ratio);
             int ox = (int)floor(i / Ratio);
-            // ªşªñªº¥|­ÓÂI
+            // é™„è¿‘çš„å››å€‹é»
             size_t xp = (ox+1) > (int)(width-1)? width-1: (ox+1);
             size_t yp = (oy+1) > (int)(height-1)? height-1: (oy+1);
             types A = img_ori[oy*width + ox];
             types B = img_ori[oy*width + xp];
             types C = img_ori[yp*width + ox];
             types D = img_ori[yp*width + xp];
-            // ¤½¦¡ªº a »P b
+            // å…¬å¼çš„ a èˆ‡ b
             float a = (i - ox*Ratio) / (Ratio);
             float b = (j - oy*Ratio) / (Ratio);
             types AB = (A*(1.0 - a)) + (B*a);
@@ -136,31 +136,31 @@ void Scaling::first(vector<types>& img,
         }
     }
 }
-// Bicubic½Õ¾ã¤j¤p
+// Bicubicèª¿æ•´å¤§å°
 void Scaling::cubic(vector<types>& img,
     vector<types>& img_ori, size_t width,
     size_t height, float Ratio)
 {
     /*
     using uch = types;
-    // Bicubic ¨ú±o©P³ò16ÂI
+    // Bicubic å–å¾—å‘¨åœ16é»
     auto getMask = [&](uch* mask, size_t oy, size_t ox) {
-        // ¨ú±o©P³ò16ÂI
-        int foy, fox; // ­×´_«áªº­ì©l®y¼Ğ
+        // å–å¾—å‘¨åœ16é»
+        int foy, fox; // ä¿®å¾©å¾Œçš„åŸå§‹åº§æ¨™
         for (int j = 0, idx = 0; j < 4; ++j) {
             for (int i = 0; i < 4; ++i, ++idx) {
                 foy = (int)(oy+(j-1)), fox = (int)(ox+(i-1));
-                // ¶W¹L¥ªÃä¬É­×´_
+                // è¶…éå·¦é‚Šç•Œä¿®å¾©
                 if (foy<0) { foy = 1; }
-                // ¶W¹L¤WÃä¬É­×´_
+                // è¶…éä¸Šé‚Šç•Œä¿®å¾©
                 if (fox<0) { fox = 1; }
-                // ¶W¹L¤UÃä¬É­×´_
+                // è¶…éä¸‹é‚Šç•Œä¿®å¾©
                 if (foy == (int)height) { foy -= 2; }
                 if (foy == (int)height - 1) { foy -= 1; }
-                // ¶W¹L¥kÃä¬É­×´_
+                // è¶…éå³é‚Šç•Œä¿®å¾©
                 if (fox == (int)width) { fox -= 2; }
                 if (fox == (int)width - 1) { fox -= 1; }
-                // ¬ö¿ı¹ïÀ³ªº«ü¼Ğ
+                // ç´€éŒ„å°æ‡‰çš„æŒ‡æ¨™
                 mask[idx] = img_ori[foy*width + fox];
             }
         }
@@ -171,21 +171,43 @@ void Scaling::cubic(vector<types>& img,
     img.resize(h*w);
     for (int j = 0; j < h; ++j) {
         for (int i = 0; i < w; ++i) {
-            // ¹ïÀ³¨ì­ì¹Ïªº®y¼Ğ
+            // å°æ‡‰åˆ°åŸåœ–çš„åº§æ¨™
             int oy = (int)floor(j / Ratio);
             int ox = (int)floor(i / Ratio);
             double a = (i - ox*Ratio) / (Ratio);
             double b = (j - oy*Ratio) / (Ratio);
-            // ¨ú±o©P³ò16ÂI
+            // å–å¾—å‘¨åœ16é»
             uch mask[16];
             // getMask(mask, oy, ox);
-            // ¾É¤J©P³ò16ÂI»P´¡¤Jªº¤ñ¨Ò¦ì¸m
+            // å°å…¥å‘¨åœ16é»èˆ‡æ’å…¥çš„æ¯”ä¾‹ä½ç½®
             // uch X = bicubicInterpolate(mask, b, a);
             // cout << "X=" << X << endl;
-            // ¼g¤J¼È¦s¤º
+            // å¯«å…¥æš«å­˜å…§
             img[j*w + i] = 100;
         }
     }
     */
 }
 //----------------------------------------------------------------
+bool Corner::harris(const vector<float>& p,
+    size_t w, size_t y, size_t x)
+{
+    // é–¥å€¼
+    constexpr float r = 10;
+    constexpr float thre = ((r + 1)*(r + 1)) / r;
+    // äºŒç¶­è®€å–
+    auto at2d = [&](int y, int x) {return p[y*w + x]; };
+    // å…¬å¼
+    float Dxx = 2 * at2d(y, x) - at2d(y, x - 1) - at2d(y, x + 1);
+    float Dyy = 2 * at2d(y, x) - at2d(y - 1, x) - at2d(y + 1, x);
+    float Dxy = at2d(y + 1, x + 1) + at2d(y - 1, x - 1)
+        - at2d(y - 1, x + 1) - at2d(y + 1, x - 1);
+    Dxy /= 4;
+    float Tr = Dxx + Dyy;
+    float Det = Dxx * Dyy - Dxy*Dxy;
+    // åˆ¤æ–·é–¥å€¼
+    if ((Tr*Tr / Det) < thre) {
+        return 1;
+    } return 0;
+
+}
