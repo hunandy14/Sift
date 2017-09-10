@@ -68,6 +68,10 @@ void Raw::read_bmp(vector<uch>& raw, string name,
     bmp >> file_h;
     BmpInfoHeader info_h;
     bmp >> info_h;
+	// 回傳資訊
+	if (width != nullptr) *width = info_h.biWidth;
+	if (height != nullptr) *height = info_h.biHeight;
+	if (bits != nullptr) *bits = info_h.biBitCount;
     // 讀 Raw
     bmp.seekg(file_h.bfOffBits, ios::beg);
     raw.resize(info_h.biWidth * info_h.biHeight * (info_h.biBitCount/8));
