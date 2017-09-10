@@ -31,11 +31,7 @@ public:
         raw_img(img), width(width), height(height) {}
     ImgRaw(size_t width, size_t height) :
         raw_img(width*height), width(width), height(height) {}
-	ImgRaw(string bmpname){
-		vector<unsigned char> img;
-		Raw::read_bmp(img, bmpname);
-
-	}
+	ImgRaw(string bmpname, bool gray_tran=1);
     // Áô¦¡Âà´«
     operator vector<types>&() {
         return raw_img;

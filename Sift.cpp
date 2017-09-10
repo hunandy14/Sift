@@ -13,6 +13,22 @@ Final: 2017/07/05
 #include "Sift.hpp"
 using namespace std;
 
+// 初始化
+ImgRaw::ImgRaw(string bmpname, bool gray_tran){
+	vector<unsigned char> img;
+	uint32_t width, height;
+	uint16_t bits;
+	// 讀取圖片
+	Raw::read_bmp(img, bmpname, &width, &height, &bits);
+	if (gray_tran == 1 and bits == 24)
+		Raw::raw2gray(img);
+	// 初始化
+	raw_img.resize(img.size());
+	for (size_t i = 0; i < img.size(); i++)
+		raw_img[i] = (float)img[i] / 255.0;
+	this->width = width;
+	this->height = height;
+}
 // 合成圖片
 void Sift::comp(vector<ImgRaw>& pyrs, string name) {
     // 合成圖片
@@ -33,7 +49,6 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name) {
         // system(name.c_str());
     }
 };
-
 // 高斯模糊
 vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s) {
     size_t w = img.width, h = img.height;
@@ -51,7 +66,6 @@ vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s) {
     }
     return pyrs;
 }
-
 // 高斯金字塔
 void Sift::pyramid(size_t s) {
     s += 3;
@@ -97,7 +111,6 @@ void Sift::pyramid(size_t s) {
         mask[7] = img.at2d(y + 1, x + 0);
         mask[8] = img.at2d(y + 1, x + 1);
     };
-
     // 尋找 cubic 極值
     vector<types> mask; // 臨時方塊27點找極值
     for (unsigned py = 0; py < pyrs.size() - 1; ++py) { // 
@@ -106,7 +119,7 @@ void Sift::pyramid(size_t s) {
                                                                  // 選定層級找極值(#沒邊緣防呆)
             for (unsigned j = 1; j < pyrs[py][px].height - 2; ++j) { // j = 圖片 Y
                 for (unsigned i = 1; i < pyrs[py][px].width - 2; ++i) { // i = 圖片 X
-                                                                        // 取得上下層的九宮格
+                    // 取得上下層的九宮格
                     getMask(mask, pyrs[py][px - 1], j, i);
                     getMask(mask, pyrs[py][px], j, i);
                     getMask(mask, pyrs[py][px + 1], j, i);
@@ -118,7 +131,7 @@ void Sift::pyramid(size_t s) {
                     if (mask[mid] == max or mask[mid] == min) { // 保留極值
                         constexpr float thre = 0.03 / 2;
                         if (mask[mid] > thre or mask[mid] < -thre) { // 保留保留變動大於 0.03
-                                                                     // 保留角點偵測(#沒邊緣防呆)
+                            // 保留角點偵測(#沒邊緣防呆)
                             if (Corner::harris(pyrs[py][px], pyrs[py][px].width, j, i) == 1)
                                 fea.at2d(j, i) = 1;
 
@@ -130,8 +143,6 @@ void Sift::pyramid(size_t s) {
             fea.bmp("fea/fea" + to_string(py) + "-" + to_string(px) + ".bmp", 8);
         }
     }
-
-
 
     cout << "end" << endl;
 }

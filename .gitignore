@@ -48,3 +48,4 @@ resource.h
 *.aps
 *.rc
 *.res
+*.obj.enc

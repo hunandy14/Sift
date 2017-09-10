@@ -196,6 +196,26 @@ void Scaling::cubic(vector<types>& img,
     }
     */
 }
+// Bicubic 插值核心運算
+float Scaling::cubicInterpolate (
+	float* p, float x)
+{
+	float temp = (float)(p[1] + 0.5 * 
+		x*(p[2] - p[0] +x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - 
+		p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0]))));
+	if (temp > 255) { temp = 255; }
+	else if (temp < 0) { temp = 0; }
+	return temp;
+}
+// Bicubic 輸入16點與插入位置，取得目標值
+float Scaling::bicubicInterpolate (
+	float* p, float y, float x)
+{
+	float arr[4];
+	for (int i = 0; i < 4; ++i){
+		arr[i] = cubicInterpolate((i*4 + p), x);
+	} return cubicInterpolate(arr, y);
+}
 //----------------------------------------------------------------
 bool Corner::harris(const vector<float>& p,
     size_t w, size_t y, size_t x)
