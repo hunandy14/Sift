@@ -35,9 +35,13 @@ void GauBlur::raw2GauBlur(vector<types>& img_gau,
         for (unsigned i = 0; i < width; ++i) {
             double sum = 0;
             for (unsigned k = 0; k < gau_mat.size(); ++k) {
-                int idx = (i - r + k);
-                if (idx < 0) { idx = 0; }
-                else if (idx >(int)(width - 1)) { idx = (width-1); }
+                int idx = i-r + k;
+				// idx超出邊緣處理
+                if (idx < 0) {
+					idx = 0;
+				} else if (idx >(int)(width-1)) {
+					idx = (width-1);
+				}
                 sum += img_ori[j*width + idx] * gau_mat[k];
             }
             img_gauX[j*width + i] = sum;
@@ -48,9 +52,13 @@ void GauBlur::raw2GauBlur(vector<types>& img_gau,
         for (unsigned i = 0; i < width; ++i) {
             double sum = 0;
             for (unsigned k = 0; k < gau_mat.size(); ++k) {
-                int idx = (int)(j-r+k);
-                if (idx < 0) { idx = 0; }
-                else if (idx > (int)(width-1)) { idx = (width-1); }
+                int idx = j-r + k;
+				// idx超出邊緣處理
+                if (idx < 0) {
+					idx = 0;
+				} else if (idx > (int)(height-1)) {
+					idx = (height-1);
+				}
                 sum += img_gauX[i*height + idx] * gau_mat[k];
             }
             img_gau[i*height + j] = sum;
