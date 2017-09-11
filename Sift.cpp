@@ -14,6 +14,13 @@ Final: 2017/07/05
 using namespace std;
 
 // 初始化
+ImgRaw::ImgRaw(size_t width, size_t height, float val) :
+	raw_img(width*height), width(width), height(height)
+{
+	if (val) {
+		std::fill_n (raw_img.begin(), raw_img.size(),val/255.0);
+	}
+}
 ImgRaw::ImgRaw(string bmpname, bool gray_tran){
 	vector<unsigned char> img;
 	uint32_t width, height;
@@ -49,42 +56,44 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name) {
         // system(name.c_str());
     }
 };
-// 高斯模糊
+// 高斯模糊(原圖, 模糊幾次) / 回傳整個度(octvs)回去
 vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s) {
-    size_t w = img.width, h = img.height;
     // 初始化
     vector<ImgRaw> pyrs;
     for (unsigned i = 0; i < s; ++i) {
-        pyrs.emplace_back(w, h);
+        pyrs.emplace_back(img.width, img.height);
     }
     // 高斯模糊
-    float p = float(1.6);
+    float p = SIFT_gauP;
     ImgRaw::gauBlur(pyrs[0], img, p);
     for (unsigned i = 1; i < s; ++i) {
-        p *= (float)pow(2.0, 1.0 / s);
+        p *= (float)pow(2.f, 1.f / s);
         ImgRaw::gauBlur(pyrs[i], pyrs[i - 1], p);
     }
     return pyrs;
 }
 // 高斯金字塔
 void Sift::pyramid(size_t s) {
-    s += 3;
-    size_t octvs = 3;
+    s += SIFT_Sacle; // 相同大小不同模糊 +3 是因為找方塊時捨去前後-2和相減時-1
+    size_t octvs = 3; // 不同大小圖片(自訂)
     //octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
     pyrs.resize(octvs);
+
     // 輸入圖
-    ImgRaw temp(raw_img, raw_img.width, raw_img.height);
+    ImgRaw temp(raw_img.width, raw_img.height);
+	ImgRaw::first(temp, raw_img, 0.5);
     // 高斯金字塔
     pyrs[0] = dog_gau(temp, s);
     comp(pyrs[0], "Sift-gau_" + to_string(0));
     for (unsigned i = 1; i < octvs; ++i) {
-        // 縮小一張圖
+        // 縮小一張圖(中間那張的p倍率正好會是下一排的第一張)
         ImgRaw::first(temp, pyrs[i - 1][s / 2], 0.5);
         // 回傳 s 張模糊圖
         pyrs[i] = dog_gau(temp, s);
-        // 合成圖片
+        // 輸出合成圖片
         comp(pyrs[i], "Sift-gau_" + to_string(i));
     }
+
     // 高斯金字塔差分圖
     for (unsigned j = 0; j < octvs; ++j) {
         // 高斯差分
@@ -113,28 +122,32 @@ void Sift::pyramid(size_t s) {
     };
     // 尋找 cubic 極值
     vector<types> mask; // 臨時方塊27點找極值
-    for (unsigned py = 0; py < pyrs.size() - 1; ++py) { // 
+	vector<Fea_point> feap;
+    for (unsigned py = 0; py < pyrs.size(); ++py) { // 
         for (unsigned px = 1; px < pyrs[py].size() - 1; ++px) { // 
             ImgRaw fea(pyrs[py][px].width, pyrs[py][px].height); // 暫存畫布
-                                                                 // 選定層級找極值(#沒邊緣防呆)
+			// 選定層級找極值(#沒邊緣防呆)
             for (unsigned j = 1; j < pyrs[py][px].height - 2; ++j) { // j = 圖片 Y
                 for (unsigned i = 1; i < pyrs[py][px].width - 2; ++i) { // i = 圖片 X
                     // 取得上下層的九宮格
                     getMask(mask, pyrs[py][px - 1], j, i);
                     getMask(mask, pyrs[py][px], j, i);
                     getMask(mask, pyrs[py][px + 1], j, i);
-
+					// 找兩極值
                     float max = *std::max_element(mask.begin(), mask.end());
                     float min = *std::min_element(mask.begin(), mask.end());
 
                     size_t mid = (mask.size() - 1) / 2;
                     if (mask[mid] == max or mask[mid] == min) { // 保留極值
-                        constexpr float thre = 0.03 / 2;
-                        if (mask[mid] > thre or mask[mid] < -thre) { // 保留保留變動大於 0.03
-                            // 保留角點偵測(#沒邊緣防呆)
-                            if (Corner::harris(pyrs[py][px], pyrs[py][px].width, j, i) == 1)
+                        constexpr float thre = SIFT_Dx / 2.f;
+						if (mask[mid] > thre or mask[mid] < -thre) { // 保留保留變動大於 0.03
+							// 只保留角點偵測(#沒邊緣防呆)
+							if (Corner::harris(pyrs[py][px],
+								pyrs[py][px].width, j, i, SIFT_HarrisR) == 1)
+							{
+								feap.emplace_back(py, px, j, i);
                                 fea.at2d(j, i) = 1;
-
+							}
                         }
                     }
                 }
@@ -144,7 +157,6 @@ void Sift::pyramid(size_t s) {
         }
     }
 
-    cout << "end" << endl;
 }
 
 

@@ -17,6 +17,15 @@ Final: 2017/07/05
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 
+// 找極值捨去前後兩張 + 差分圖少1張
+#define SIFT_Sacle 3
+// 高斯模糊的初始係數
+#define SIFT_gauP 1.6f
+// 去除不穩定特徵點
+#define SIFT_Dx 0.03f
+// 角點偵測 r = 10
+#define SIFT_HarrisR 10 
+
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
 public:
@@ -29,8 +38,7 @@ private:
 public:
     ImgRaw(vector<types> img, size_t width, size_t height) :
         raw_img(img), width(width), height(height) {}
-    ImgRaw(size_t width, size_t height) :
-        raw_img(width*height), width(width), height(height) {}
+    ImgRaw(size_t width, size_t height, float val=0);
 	ImgRaw(string bmpname, bool gray_tran=1);
     // 隱式轉換
     operator vector<types>&() {
@@ -126,11 +134,23 @@ public:
     Sift(vector<float> raw_img, size_t width, size_t height):
         raw_img(raw_img, width, height) {}
 public:
-    void pyramid(size_t s = 3);
+    void pyramid(size_t s = 3); // 3 為論文中所給的
     void comp(vector<ImgRaw>& pyrs, string name="");
     vector<ImgRaw> dog_gau(ImgRaw& img, size_t s);
 	
 private:
     ImgRaw raw_img;
     vector<vector<ImgRaw>> pyrs;
+};
+//----------------------------------------------------------------
+struct Fea_point {
+	Fea_point(size_t o, size_t s, size_t y, size_t x, 
+		float m=0.f, float sida=0.f):
+		o(o), s(s), y(y), x(x), m(m), sida(sida){}
+	size_t o;
+	size_t s;
+	size_t y;
+	size_t x;
+	float m;
+	float sida;
 };
