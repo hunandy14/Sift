@@ -55,5 +55,5 @@ private:
 class Corner {
 public:
 	static bool harris(const vector<float>& p,
-		size_t w, size_t y, size_t x);
+		size_t w, size_t y, size_t x, float r);
 };
