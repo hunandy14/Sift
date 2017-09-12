@@ -67,14 +67,14 @@ vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s, size_t o) {
 	float p = SIFT_GauSigma;
 	float k = pow(2.f, 1.f / SIFT_Sacle);
 	pyrs[0].sigma = p*o;
-	cout << pyrs[0].sigma << ", ";
+	//cout << pyrs[0].sigma << ", ";
 	ImgRaw::gauBlur(pyrs[0], img, p);
 	for (unsigned i = 1; i < s; ++i) {
 		p *= k;
 		pyrs[i].sigma = p * o; // 儲存kp多*o
-		cout << pyrs[i].sigma << ", ";
+		//cout << pyrs[i].sigma << ", ";
 		ImgRaw::gauBlur(pyrs[i], pyrs[i - 1], p); // 圖片是取上一層的，不用再*o
-	} cout << endl;
+	} //cout << endl;
 	return pyrs;
 }
 // 高斯金字塔
@@ -153,7 +153,7 @@ void Sift::pyramid(size_t s) {
 								pyrs[py][px].width, j, i, SIFT_HarrisR) == 1)
 							{
 								feap.emplace_back(py, px, j, i);
-                                //fea.at2d(j, i) = 1;
+                                fea.at2d(j, i) = 1;
 							}
                         }
                     }
