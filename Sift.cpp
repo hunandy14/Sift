@@ -56,41 +56,47 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name) {
         // system(name.c_str());
     }
 };
-// 高斯模糊(原圖, 模糊幾次) / 回傳整個度(octvs)回去
-vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s) {
-    // 初始化
-    vector<ImgRaw> pyrs;
-    for (unsigned i = 0; i < s; ++i) {
-        pyrs.emplace_back(img.width, img.height);
-    }
-    // 高斯模糊
-    float p = SIFT_gauP;
-    ImgRaw::gauBlur(pyrs[0], img, p);
-    for (unsigned i = 1; i < s; ++i) {
-        p *= (float)pow(2.f, 1.f / s);
-        ImgRaw::gauBlur(pyrs[i], pyrs[i - 1], p);
-    }
-    return pyrs;
+// 高斯模糊(第一圖, 模糊幾次) / 回傳整個度(octvs)回去
+vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s, size_t o) {
+	// 初始化
+	vector<ImgRaw> pyrs;
+	for (unsigned i = 0; i < s; ++i) {
+		pyrs.emplace_back(img.width, img.height);
+	}
+	// 高斯模糊
+	float p = SIFT_GauSigma;
+	float k = pow(2.f, 1.f / SIFT_Sacle);
+	pyrs[0].sigma = p*o;
+	cout << pyrs[0].sigma << ", ";
+	ImgRaw::gauBlur(pyrs[0], img, p);
+	for (unsigned i = 1; i < s; ++i) {
+		p *= k;
+		pyrs[i].sigma = p * o; // 儲存kp多*o
+		cout << pyrs[i].sigma << ", ";
+		ImgRaw::gauBlur(pyrs[i], pyrs[i - 1], p); // 圖片是取上一層的，不用再*o
+	} cout << endl;
+	return pyrs;
 }
 // 高斯金字塔
 void Sift::pyramid(size_t s) {
-    s += SIFT_Sacle; // 相同大小不同模糊 +3 是因為找方塊時捨去前後-2和相減時-1
+	size_t sacle = s+SIFT_SacleDiff; // 找極值捨去前後兩張 + 差分圖少1張
     size_t octvs = 3; // 不同大小圖片(自訂)
     //octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
     pyrs.resize(octvs);
 
     // 輸入圖
     ImgRaw temp(raw_img.width, raw_img.height);
-	ImgRaw::first(temp, raw_img, 0.5);
+	ImgRaw::first(temp, raw_img, 2);
+	temp.sigma = SIFT_GauSigma;
     // 高斯金字塔
-    pyrs[0] = dog_gau(temp, s);
+    pyrs[0] = dog_gau(temp, sacle);
     comp(pyrs[0], "Sift-gau_" + to_string(0));
     for (unsigned i = 1; i < octvs; ++i) {
         // 縮小一張圖(中間那張的p倍率正好會是下一排的第一張)
-        ImgRaw::first(temp, pyrs[i - 1][s / 2], 0.5);
+        ImgRaw::first(temp, pyrs[i - 1][s], 0.5);
         // 回傳 s 張模糊圖
-        pyrs[i] = dog_gau(temp, s);
-        // 輸出合成圖片
+        pyrs[i] = dog_gau(temp, sacle, i*2);
+        // 輸出高斯模糊圖
         comp(pyrs[i], "Sift-gau_" + to_string(i));
     }
 
@@ -100,6 +106,7 @@ void Sift::pyramid(size_t s) {
         for (unsigned i = 0; i < pyrs[j].size() - 1; ++i) {
             pyrs[j][i] = pyrs[j][i + 1] - pyrs[j][i];
         } pyrs[j].erase(--(pyrs[j].end()));
+		// 輸出差分圖
         comp(pyrs[j], "Sift-diff_" + to_string(j));
     }
     // 取得遮罩(沒有邊緣防呆)
@@ -146,7 +153,7 @@ void Sift::pyramid(size_t s) {
 								pyrs[py][px].width, j, i, SIFT_HarrisR) == 1)
 							{
 								feap.emplace_back(py, px, j, i);
-                                fea.at2d(j, i) = 1;
+                                //fea.at2d(j, i) = 1;
 							}
                         }
                     }
@@ -156,6 +163,9 @@ void Sift::pyramid(size_t s) {
             fea.bmp("fea/fea" + to_string(py) + "-" + to_string(px) + ".bmp", 8);
         }
     }
+
+	// pyrs到這裡已經是特徵點圖
+	// feap存了各階層的特徵點
 
 }
 

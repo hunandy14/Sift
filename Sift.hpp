@@ -17,14 +17,16 @@ Final: 2017/07/05
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 
-// 找極值捨去前後兩張 + 差分圖少1張
+// 論文中的s
 #define SIFT_Sacle 3
+// 找極值捨去前後兩張 + 差分圖少1張
+#define SIFT_SacleDiff 3
 // 高斯模糊的初始係數
-#define SIFT_gauP 1.6f
+#define SIFT_GauSigma 1.6f
 // 去除不穩定特徵點
 #define SIFT_Dx 0.03f
 // 角點偵測 r = 10
-#define SIFT_HarrisR 10 
+#define SIFT_HarrisR 10
 
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
@@ -115,6 +117,7 @@ public:
     vector<types> raw_img;
     size_t width;
     size_t height;
+	float sigma = 0;
 };
 // 大小是否相等
 inline bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs) {
@@ -136,7 +139,7 @@ public:
 public:
     void pyramid(size_t s = 3); // 3 為論文中所給的
     void comp(vector<ImgRaw>& pyrs, string name="");
-    vector<ImgRaw> dog_gau(ImgRaw& img, size_t s);
+    vector<ImgRaw> dog_gau(ImgRaw& img, size_t s, size_t o=1);
 	
 private:
     ImgRaw raw_img;
