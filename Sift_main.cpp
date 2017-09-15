@@ -27,12 +27,14 @@ int main(int argc, char const *argv[]){
 #define testpoint1
 #ifdef testpoint1
 	// 讀取圖片
+	// ImgRaw temp("en.bmp");
+	// ImgRaw temp("ball_01.bmp");
 	ImgRaw temp("kanna.bmp");
     ImgRaw input_img(0, 0);
     ImgRaw::first(input_img, temp, 1);
     // 金字塔
     Sift img(input_img);
-	img.pyramid(1);
+	img.pyramid();
 
 #endif // testpoint1
 

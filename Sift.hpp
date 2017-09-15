@@ -33,6 +33,11 @@ class Size_error : public std::runtime_error {
 public:
     Size_error(const std::string& str): std::runtime_error(str) {}
 };
+// 超出圖片邊界
+class Out_of_imgRange : public std::runtime_error {
+public:
+	Out_of_imgRange(const std::string& str): std::runtime_error(str) {}
+};
 //----------------------------------------------------------------
 class ImgRaw {
 private:
@@ -40,7 +45,7 @@ private:
 public:
     ImgRaw(vector<types> img, size_t width, size_t height) :
         raw_img(img), width(width), height(height) {}
-    ImgRaw(size_t width, size_t height, float val=0);
+    ImgRaw(size_t width=0, size_t height=0, float val=0);
 	ImgRaw(string bmpname, bool gray_tran=1);
     // 隱式轉換
     operator vector<types>&() {
@@ -140,20 +145,28 @@ public:
     void pyramid(size_t s = 3); // 3 為論文中所給的
     void comp(vector<ImgRaw>& pyrs, string name="");
     vector<ImgRaw> dog_gau(ImgRaw& img, size_t s, size_t o=1);
-	
+	auto getFea(ImgRaw& img, size_t y, size_t x, size_t r) {
+
+	}
+private:	
+	float fea_m(ImgRaw& img, size_t y, size_t x);
+	float fea_sida(ImgRaw& img, size_t y, size_t x);
 private:
     ImgRaw raw_img;
     vector<vector<ImgRaw>> pyrs;
+	vector<vector<ImgRaw>> pyrs_dog;
 };
 //----------------------------------------------------------------
 struct Fea_point {
 	Fea_point(size_t o, size_t s, size_t y, size_t x, 
-		float m=0.f, float sida=0.f):
-		o(o), s(s), y(y), x(x), m(m), sida(sida){}
+		float gau_r ,float sigma, float m=0.f, float sida=0.f):
+		o(o), s(s), y(y), x(x), gau_r(gau_r), sigma(sigma), m(m), sida(sida){}
 	size_t o;
 	size_t s;
 	size_t y;
 	size_t x;
+	size_t gau_r;
+	float sigma;
 	float m;
 	float sida;
 };

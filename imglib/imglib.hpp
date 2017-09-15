@@ -22,8 +22,9 @@ public:
     static void raw2GauBlur(vector<types>& img_gau,
         vector<types>& img_ori,
         size_t width, size_t height, float p);
+    static vector<types> gau_matrix(float p, size_t mat_len=0);
+	static vector<types> gau_matrix2d(vector<float>& gau_mat2d, float p, size_t mat_len=0);
 private:
-    static vector<types> gau_matrix(float p);
     static types gau_meth(size_t r, float p);
 };
 // 圖像縮放

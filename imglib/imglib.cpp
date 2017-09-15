@@ -73,10 +73,13 @@ float GauBlur::gau_meth(size_t r, float p) {
     return num;
 }
 // 高斯矩陣
-vector<float> GauBlur::gau_matrix(float p) {
+vector<float> GauBlur::gau_matrix(float p, size_t mat_len) {
     vector<float> gau_mat;
-    // 計算矩陣長度
-    int mat_len = (int)(((p - 0.8) / 0.3 + 1.0) * 2.0);
+    // 計算矩陣長度 (顏瑞穎給的公式)
+	if (mat_len == 0) {
+		mat_len = (int)(((p - 0.8) / 0.3 + 1.0) * 2.0);
+	}
+	// 奇數修正
     if (mat_len % 2 == 0) { ++mat_len; }
     // 一維高斯矩陣
     gau_mat.resize(mat_len);
@@ -97,6 +100,37 @@ vector<float> GauBlur::gau_matrix(float p) {
     // 歸一化
     for (auto&& i : gau_mat) { i /= sum; }
     return gau_mat;
+}
+vector<float> GauBlur::gau_matrix2d(vector<float>& gau_mat2d, float p, size_t mat_len) {
+	// 高斯2d矩陣
+	gau_mat2d.resize(mat_len*mat_len);
+	// 二維讀取
+	auto at2d = [&](int y, int x)->float& {
+		return gau_mat2d[y*mat_len + x];
+	};
+
+	vector<float> gau_mat1d = GauBlur::gau_matrix(p, mat_len);
+	// 做 X
+	for (size_t j = 0; j < mat_len; j++) {
+		for (size_t i = 0; i < mat_len; i++) {
+			at2d(j, i) = gau_mat1d[i];
+		}
+	}
+	// 做 Y
+	for (size_t j = 0; j < mat_len; j++) {
+		for (size_t i = 0; i < mat_len; i++) {
+			at2d(i, j) *= gau_mat1d[i];
+		}
+	}
+	// 檢查
+/*
+float sum=0;
+for (size_t j = 0; j < mat_len; j++)
+	for (size_t i = 0; i < mat_len; i++)
+		sum+=at2d(i, j);
+if (sum == 1) cout << "gau_matrix2d -> check ok" << endl;
+*/
+	return gau_mat2d;
 }
 //----------------------------------------------------------------
 // ZroOrder調整大小
