@@ -145,7 +145,7 @@ public:
     void pyramid(size_t s = 3); // 3 為論文中所給的
     void comp(vector<ImgRaw>& pyrs, string name="");
     vector<ImgRaw> dog_gau(ImgRaw& img, size_t s, size_t o=1);
-	void getFea(ImgRaw& img, size_t y, size_t x, size_t r);
+	float* getFea(ImgRaw& img, size_t y, size_t x, float sigma, size_t r);
 private:	
 	float fea_m(ImgRaw& img, size_t y, size_t x);
 	float fea_sida(ImgRaw& img, size_t y, size_t x);
@@ -167,4 +167,10 @@ struct Fea_point {
 	float sigma;
 	float m;
 	float sida;
+};
+//-----------------------------------------------------------------
+// 畫線
+class Draw {
+public:
+	static void draw_line(ImgRaw& img, float x, float y, float line_len, float sg);
 };

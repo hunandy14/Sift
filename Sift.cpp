@@ -9,6 +9,7 @@ Final: 2017/07/05
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <map>
 #include <cmath>
 
 #include "Sift.hpp"
@@ -154,8 +155,8 @@ void Sift::pyramid(size_t s) {
 	vector<Fea_point> feap;
     for (unsigned py = 0; py < pyrs_dog.size(); ++py) {
         for (unsigned px = 1; px < pyrs_dog[py].size() - 1; ++px) { // 捨棄前後兩張
-			float gau_r;// 當前這張圖的高斯半徑
-			gau_r =  2.f*1.f/powf(2.f, py) * (px+1) * 1.5f * 3.f;
+			size_t gau_r;// 當前這張圖的高斯半徑
+			gau_r = (size_t)(2.f*1.f/powf(2.f, py) * (px+1) * 1.5f * 3.f);
 //cout << 2.f*1.f/powf(2.f, py) << ", " << (px+1) << "----";
 //cout << gau_r << ", ";
             ImgRaw fea(pyrs_dog[py][px].width, pyrs_dog[py][px].height); // 暫存畫布
@@ -183,9 +184,9 @@ void Sift::pyramid(size_t s) {
 									// 計算特徵點的統計方向與強度
 									float fea_m = 0.f;
 									float fea_sida = 0.f;
-									getFea(pyrs[py][px], j, i, gau_r);
+									float* fea_p = getFea(pyrs[py][px], j, i, pyrs_dog[py][px].sigma, gau_r);
 									// 建立特徵點的統計方向與強度
-									feap.emplace_back(py, px, j, i, gau_r, pyrs_dog[py][px].sigma);
+									feap.emplace_back(py, px, j, i, gau_r, pyrs_dog[py][px].sigma, fea_p[0], fea_p[1]);
 									fea.at2d(j, i) = 1;
 							}
                         }
@@ -266,45 +267,84 @@ float Sift::fea_sida(ImgRaw& img, size_t y, size_t x) {
 		Out_of_imgRange("超出圖片邊界");
 	}
 	// 公式
-	float valY=img.at2d(y+1, x)-img.at2d(y-1, x);
-	float valX=img.at2d(y, x+1)-img.at2d(y, x-1);
-	float sida = valY/valX;
-	// 修正分母為零
-//cout << valY <<", "<<valX << "	|==|	";
-	if (valX != 0) {
-		sida = atanf(sida) * (180/M_PI);
-	} else if(valY > 0 and valX == 0) {
-		sida = 90.f;
-	} else if(valY < 0 and valX == 0) {
-		sida = 270.f;
-	} else {
-		sida = 0.f;
-	}
-	// 轉回正確的角度
-	if (valX < 0) {
-		sida += 180.f;
-	}
-	// 正規化角度
-	if (sida > 360) {
-		sida -= 360.f;
-	} else if (sida < 0) {
+	float valY = img.at2d(y+1, x)-img.at2d(y-1, x);
+	float valX = img.at2d(y, x+1)-img.at2d(y, x-1);
+	float sida = atan2(valY, valX) * (180/M_PI);
+	// 修正負號
+	if (sida < 0) {
 		sida += 360.f;
 	}
 	return sida;
 }
 // 輸入原圖與點，計算強度與角度
-void Sift::getFea(ImgRaw& img, size_t y, size_t x, size_t r) {
+float* Sift::getFea(ImgRaw& img, size_t y, size_t x, float sigma, size_t r) {
+	size_t diam = r*2;
+	// 高斯矩陣
+	vector<float> gau_2dmat;
+	GauBlur::gau_matrix2d(gau_2dmat, sigma, diam+1);
 	// 獲取特徵點計算半徑內的所有 s, m
-	for (size_t j = 0; j < r*2+1; j++) {
-		for (size_t i = 0; i < r*2+1; i++) {
+	map<int, float> fea_hist;
+	for (size_t j = 0; j < diam+1; j++) {
+		for (size_t i = 0; i < diam+1; i++) {
 			// 當前點
-			float m = fea_m(img, y-r+j, x-r+i);
+			float m = fea_m(img, y-r+j, x-r+i) * gau_2dmat[j*diam + i];
 			float s = fea_sida(img, y-r+j, x-r+i);
+			fea_hist[floor(s/10)] += m;
 //cout << m << ",	" << s << endl;
 		}
 	}
 
-	// return 0;
+// 找出主方向
+//cout << "*********" << endl;
+	float value = fea_hist[0];
+	size_t idx = 0;
+	for (size_t i = 1; i < 36; i++) {
+//cout << fea_hist[i] << endl;
+		if (value < fea_hist[i]) {
+			value = fea_hist[i];
+			idx = i;
+		}
+	}
+
+
+	//system("pause");
+	float fea_point[2] = {value, idx*10};
+	return fea_point;
 }
 
-
+// 畫線
+void Draw::draw_line(ImgRaw& img, float x, float y, float line_len, float sg) {
+	if (sg > 180) {
+		sg -= 360.f;
+	}
+	sg*=-1; // 轉正圖片上下顛倒
+	float x2 = x+line_len*cos(sg*M_PI/180);
+	float y2 = y+line_len*sin(sg*M_PI/180);
+	float m = tan(sg*M_PI/180);
+	for (size_t i = 0; i < fabs(x- x2); i++) {
+		if (sg > 0 && abs(sg>90.f)) {
+			img.at2d(i*m + std::max(y, y2), i+ std::min(x, x2)) = 0;
+		} 
+		else if (sg < 0 && abs(sg<-90.f)){
+			img.at2d(i*m + std::min(y, y2), i+ std::min(x, x2)) = 0;
+		} 
+		else if (sg > 0 && abs(sg<90.f)) {
+			img.at2d(i*m + std::min(y, y2), i+ std::min(x, x2)) = 0;
+		}
+		else if (sg < 0 && abs(sg>-90.f)) {
+			img.at2d(i*m + std::max(y, y2), i+ std::min(x, x2)) = 0;
+		}
+		else if (sg==0) {
+			img.at2d(y, i+ std::min(x, x2)) = 0;
+		}
+	}
+	// 垂直處理
+	if (sg == 90 || sg == -90) {
+		for (size_t i = 0; i < abs(y-y2); i++) {
+			img.at2d(i+std::min(y, y2), x) = 0;
+		}
+	}
+	// 頭尾
+	img.at2d(y, x) = 0/255.0;
+	img.at2d(y2, x2) = 128/255.0;
+}
