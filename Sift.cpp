@@ -6,12 +6,15 @@ Final: 2017/07/05
 *****************************************************************/
 #pragma warning(disable : 4819)
 #include <iostream>
-#include <vector>
-#include <cmath>
 #include <string>
 #include <algorithm>
+#include <vector>
+#include <cmath>
+
 #include "Sift.hpp"
 using namespace std;
+
+#define M_PI 3.14159265358979323846
 
 // 初始化
 ImgRaw::ImgRaw(size_t width, size_t height, float val) :
@@ -156,9 +159,9 @@ void Sift::pyramid(size_t s) {
 //cout << 2.f*1.f/powf(2.f, py) << ", " << (px+1) << "----";
 //cout << gau_r << ", ";
             ImgRaw fea(pyrs_dog[py][px].width, pyrs_dog[py][px].height); // 暫存畫布
-			// 選定層級找極值(#防呆去除邊緣)
-            for (unsigned j = 1; j < pyrs_dog[py][px].height - 2; ++j) {
-                for (unsigned i = 1; i < pyrs_dog[py][px].width - 2; ++i) {
+			// 選定層級找極值(#防呆去除邊緣)(移除半徑會超出邊緣的點)
+            for (unsigned j = 1+gau_r; j < pyrs_dog[py][px].height - 2 - gau_r; ++j) {
+                for (unsigned i = 1+gau_r; i < pyrs_dog[py][px].width - 2 - gau_r; ++i) {
                     // 取得上下層的九宮格
                     getMask(mask, pyrs_dog[py][px - 1], j, i);
                     getMask(mask, pyrs_dog[py][px], j, i);
@@ -177,19 +180,13 @@ void Sift::pyramid(size_t s) {
 							if (Corner::harris(pyrs_dog[py][px],
 								pyrs_dog[py][px].width, j, i, SIFT_HarrisR) == 1)
 							{
-								// 移除半徑會超出邊緣的點
-								if (j>=gau_r and j<=pyrs_dog[py][px].height-gau_r-1
-									and i>=gau_r and i<=pyrs_dog[py][px].width-gau_r-1)
-								{
 									// 計算特徵點的統計方向與強度
 									float fea_m = 0.f;
 									float fea_sida = 0.f;
-									
+									getFea(pyrs[py][px], j, i, gau_r);
 									// 建立特徵點的統計方向與強度
 									feap.emplace_back(py, px, j, i, gau_r, pyrs_dog[py][px].sigma);
 									fea.at2d(j, i) = 1;
-								}
-								
 							}
                         }
                     }
@@ -223,6 +220,9 @@ void Sift::pyramid(size_t s) {
 //	} cout << endl;
 //}
 
+
+
+/* 錯誤待刪除代碼
 	ImgRaw gau_2dmat(0, 0); // 高斯矩陣
 	ImgRaw fea_Mmat(0, 0);
 	ImgRaw fea_Smat(0, 0);
@@ -241,6 +241,7 @@ void Sift::pyramid(size_t s) {
 			}
 		}
 	//}
+*/
 
 	
 } // 高斯金字塔
@@ -252,9 +253,9 @@ float Sift::fea_m(ImgRaw& img, size_t y, size_t x) {
 		Out_of_imgRange("超出圖片邊界");
 	}
 	// 公式
-	float m = sqrt(
-		pow(img.at2d(x+1, y)-img.at2d(x-1, y), 2)+
-		pow(img.at2d(x, y+1)-img.at2d(x, y-1), 2)
+	float m = sqrtf(
+		powf(img.at2d(y, x+1)-img.at2d(y, x-1), 2)+
+		powf(img.at2d(y+1, x)-img.at2d(y-1, x), 2)
 	);
 	return m;
 }
@@ -265,11 +266,45 @@ float Sift::fea_sida(ImgRaw& img, size_t y, size_t x) {
 		Out_of_imgRange("超出圖片邊界");
 	}
 	// 公式
-	float sida = 
-		(float)(img.at2d(x, y+1)-img.at2d(x, y-1))/
-		(float)(img.at2d(x+1, y)-img.at2d(x-1, y));
+	float valY=img.at2d(y+1, x)-img.at2d(y-1, x);
+	float valX=img.at2d(y, x+1)-img.at2d(y, x-1);
+	float sida = valY/valX;
+	// 修正分母為零
+//cout << valY <<", "<<valX << "	|==|	";
+	if (valX != 0) {
+		sida = atanf(sida) * (180/M_PI);
+	} else if(valY > 0 and valX == 0) {
+		sida = 90.f;
+	} else if(valY < 0 and valX == 0) {
+		sida = 270.f;
+	} else {
+		sida = 0.f;
+	}
+	// 轉回正確的角度
+	if (valX < 0) {
+		sida += 180.f;
+	}
+	// 正規化角度
+	if (sida > 360) {
+		sida -= 360.f;
+	} else if (sida < 0) {
+		sida += 360.f;
+	}
 	return sida;
 }
+// 輸入原圖與點，計算強度與角度
+void Sift::getFea(ImgRaw& img, size_t y, size_t x, size_t r) {
+	// 獲取特徵點計算半徑內的所有 s, m
+	for (size_t j = 0; j < r*2+1; j++) {
+		for (size_t i = 0; i < r*2+1; i++) {
+			// 當前點
+			float m = fea_m(img, y-r+j, x-r+i);
+			float s = fea_sida(img, y-r+j, x-r+i);
+//cout << m << ",	" << s << endl;
+		}
+	}
 
+	// return 0;
+}
 
 

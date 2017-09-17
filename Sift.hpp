@@ -145,9 +145,7 @@ public:
     void pyramid(size_t s = 3); // 3 為論文中所給的
     void comp(vector<ImgRaw>& pyrs, string name="");
     vector<ImgRaw> dog_gau(ImgRaw& img, size_t s, size_t o=1);
-	auto getFea(ImgRaw& img, size_t y, size_t x, size_t r) {
-
-	}
+	void getFea(ImgRaw& img, size_t y, size_t x, size_t r);
 private:	
 	float fea_m(ImgRaw& img, size_t y, size_t x);
 	float fea_sida(ImgRaw& img, size_t y, size_t x);
