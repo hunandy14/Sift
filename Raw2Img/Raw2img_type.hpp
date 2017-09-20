@@ -74,8 +74,8 @@ inline std::ifstream& operator>>(
 }
 inline std::ostream& operator<<(
     std::ostream& os, const BmpFileHeader& obj){
-	using std::cout;
-	using std::endl;
+    using std::cout;
+    using std::endl;
     cout << "# BmpFileHeader" << endl;
     cout << "    bfTybe      = " << obj.bfTybe << endl;
     cout << "    bfSize      = " << obj.bfSize << endl;
@@ -130,8 +130,8 @@ inline std::ifstream& operator>>(
 }
 inline std::ostream& operator<<(
     std::ostream& os, const BmpInfoHeader& obj){
-	using std::cout;
-	using std::endl;
+    using std::cout;
+    using std::endl;
     cout << "# BmpInfoHeader" << endl;
     cout << "    biSize          = " << obj.biSize << endl;
     cout << "    biWidth         = " << obj.biWidth << endl;

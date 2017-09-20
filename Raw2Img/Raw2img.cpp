@@ -33,7 +33,7 @@ void Raw::raw2bmp(
         }
     }
     // 寫入圖片資訊
-    size_t alig = (4 - width%4)%4;
+    size_t alig = (width*3) % 4;
     for(int j = height-1; j >= 0; --j) {
         for(unsigned i = 0; i < width; ++i) {
             if(bits==24) {
@@ -45,9 +45,9 @@ void Raw::raw2bmp(
             }
         }
         // 對齊4byte
-		for(unsigned i = 0; i < alig * (bits / 8); ++i) {
-			bmp << uch(0);
-		}
+        for(unsigned i = 0; i < alig; ++i) {
+            bmp << uch(0);
+        }
     }
 }
 // 寫 Raw 檔
@@ -68,14 +68,19 @@ void Raw::read_bmp(vector<uch>& raw, string name,
     bmp >> file_h;
     BmpInfoHeader info_h;
     bmp >> info_h;
-	// 回傳資訊
-	if (width != nullptr) *width = info_h.biWidth;
-	if (height != nullptr) *height = info_h.biHeight;
-	if (bits != nullptr) *bits = info_h.biBitCount;
+    // 回傳資訊
+    if (width  != nullptr && 
+        height != nullptr && 
+        bits   != nullptr)
+    {
+        *width  = info_h.biWidth;
+        *height = info_h.biHeight;
+        *bits   = info_h.biBitCount;
+    }
     // 讀 Raw
     bmp.seekg(file_h.bfOffBits, ios::beg);
     raw.resize(info_h.biWidth * info_h.biHeight * (info_h.biBitCount/8));
-    size_t alig = (4 - info_h.biWidth%4) % 4;
+    size_t alig = (info_h.biWidth*3) % 4;
     char* p = reinterpret_cast<char*>(raw.data());
     for(int j = info_h.biHeight-1; j >= 0; --j) {
         for(unsigned i = 0; i < info_h.biWidth; ++i) {
