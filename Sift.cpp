@@ -181,13 +181,19 @@ void Sift::pyramid(size_t s) {
 							if (Corner::harris(pyrs_dog[py][px],
 								pyrs_dog[py][px].width, j, i, SIFT_HarrisR) == 1)
 							{
-									// 計算特徵點的統計方向與強度
-									float fea_m = 0.f;
-									float fea_sida = 0.f;
-									float* fea_p = getFea(pyrs[py][px], j, i, pyrs_dog[py][px].sigma, gau_r);
-									// 建立特徵點的統計方向與強度
-									feap.emplace_back(py, px, j, i, gau_r, pyrs_dog[py][px].sigma, fea_p[0], fea_p[1]);
-									fea.at2d(j, i) = 1;
+								// 計算特徵點的統計方向與強度
+								float fea_m = 0.f;
+								float fea_sida = 0.f;
+								float* fea_p = getFea(pyrs[py][px], j, i, pyrs_dog[py][px].sigma, gau_r);
+								// 建立特徵點的統計方向與強度
+								// feap.emplace_back(py, px, j, i, gau_r, pyrs_dog[py][px].sigma, fea_p[0], fea_p[1]);
+								float rate=1.0;
+								//cout << fea_p[0]*rate << ", " << fea_p[1] << endl;
+								delete fea_p;
+								//Draw::draw_line(fea, j, i, fea_p[0]*rate, fea_p[1]);
+								//Draw::draw_line(fea, j, i, 10, fea_p[1]);
+
+								fea.at2d(j, i) = 1; // 畫點
 							}
                         }
                     }
@@ -199,6 +205,9 @@ void Sift::pyramid(size_t s) {
         }
 //cout << endl;
     }
+
+
+
 	/* pyrs到這裡已經是特徵點圖 */
 
 	/*
@@ -210,41 +219,11 @@ void Sift::pyramid(size_t s) {
 		mask.resize();
 	};*/
 
-	
 	// feap存了各階層的特徵點
 
 
-// 測試矩陣
-//for (size_t j = 0; j < gr; j++) {
-//	for (size_t i = 0; i < gr; i++) {
-//		cout << gau_mat.at2d(j, i);
-//	} cout << endl;
-//}
 
 
-
-/* 錯誤待刪除代碼
-	ImgRaw gau_2dmat(0, 0); // 高斯矩陣
-	ImgRaw fea_Mmat(0, 0);
-	ImgRaw fea_Smat(0, 0);
-	//for (size_t i = 0; i < feap.size(); i++) {
-		int i=0;
-		size_t gr = feap[i].gau_r;
-		float gs = feap[i].sigma;
-		GauBlur::gau_matrix2d(gau_2dmat, gs, gr*2+1);
-		auto& cur_img = pyrs_dog[feap[i].o][feap[i].s];
-
-		for (size_t j = 0; j < gr*2+1; j++) {
-			for (size_t i = 0; i < gr*2+1; i++) {
-				float temp = cur_img.at2d(j, i);
-				float m = fea_m(cur_img, );
-				float s = fea_m(temp);
-			}
-		}
-	//}
-*/
-
-	
 } // 高斯金字塔
 
 // 計算特徵描述長度
@@ -290,61 +269,94 @@ float* Sift::getFea(ImgRaw& img, size_t y, size_t x, float sigma, size_t r) {
 			float m = fea_m(img, y-r+j, x-r+i) * gau_2dmat[j*diam + i];
 			float s = fea_sida(img, y-r+j, x-r+i);
 			fea_hist[floor(s/10)] += m;
-//cout << m << ",	" << s << endl;
+//cout << m << ",	" << floor(s/10) << endl;
 		}
 	}
 
 // 找出主方向
 //cout << "*********" << endl;
 	float value = fea_hist[0];
-	size_t idx = 0;
+	float mapidx = 0;
 	for (size_t i = 1; i < 36; i++) {
 //cout << fea_hist[i] << endl;
 		if (value < fea_hist[i]) {
 			value = fea_hist[i];
-			idx = i;
+			mapidx = i;
 		}
 	}
-
-
-	//system("pause");
-	float fea_point[2] = {value, idx*10};
-	return fea_point;
+	float* fea_value = new float[2]{value, mapidx*10};
+	return fea_value;
 }
 
 // 畫線
-void Draw::draw_line(ImgRaw& img, float x, float y, float line_len, float sg) {
+void Draw::draw_line(ImgRaw& img, size_t y, size_t x, float line_len, float sg) {
+	float value = 200 /255.0;
+	float endvalue = 255 /255.0;
+
+	if (line_len==1) {
+		img.at2d(x, y) = value;
+		return;
+	}
+
+
 	if (sg > 180) {
 		sg -= 360.f;
 	}
 	sg*=-1; // 轉正圖片上下顛倒
-	float x2 = x+line_len*cos(sg*M_PI/180);
-	float y2 = y+line_len*sin(sg*M_PI/180);
-	float m = tan(sg*M_PI/180);
-	for (size_t i = 0; i < fabs(x- x2); i++) {
+	size_t x2 = x + line_len*cos(sg * M_PI/180);
+	size_t y2 = y + line_len*sin(sg * M_PI/180);
+	float m = tan(sg * M_PI/180);
+
+
+	auto draw_line = [&](size_t yValue, size_t xValue) {
+		if (yValue) {
+
+		}
+		//img.at2d(yValue, xValue) = value;
+		if (yValue > 0 and xValue > 0 and 
+			xValue < img.width-1 and yValue < img.height-1)
+		{
+			img.raw_img[yValue*img.width + xValue] = value;
+		}
+	};
+
+	for (int i = 0; i < abs((int)(x-x2)); i++) {
 		if (sg > 0 && abs(sg>90.f)) {
-			img.at2d(i*m + std::max(y, y2), i+ std::min(x, x2)) = 0;
-		} 
-		else if (sg < 0 && abs(sg<-90.f)){
-			img.at2d(i*m + std::min(y, y2), i+ std::min(x, x2)) = 0;
-		} 
+			int yValue = i*m + std::max(y, y2);
+			int xValue = i+ std::min(x, x2);
+			//img.at2d(yValue, xValue) = value;
+			draw_line(yValue, xValue);
+		}
+		else if (sg < 0 && abs(sg<-90.f)) {
+			int yValue = i*m + std::min(y, y2);
+			int xValue = i+ std::min(x, x2);
+			draw_line(yValue, xValue);
+		}
 		else if (sg > 0 && abs(sg<90.f)) {
-			img.at2d(i*m + std::min(y, y2), i+ std::min(x, x2)) = 0;
+			int yValue = i*m + std::min(y, y2);
+			int xValue = i+ std::min(x, x2);
+			draw_line(yValue, xValue);
 		}
 		else if (sg < 0 && abs(sg>-90.f)) {
-			img.at2d(i*m + std::max(y, y2), i+ std::min(x, x2)) = 0;
+			int yValue = i*m + std::max(y, y2);
+			int xValue = i+ std::min(x, x2);
+			draw_line(yValue, xValue);
 		}
 		else if (sg==0) {
-			img.at2d(y, i+ std::min(x, x2)) = 0;
+			int yValue = y;
+			int xValue = i+x;
+			draw_line(yValue, xValue);
 		}
 	}
 	// 垂直處理
 	if (sg == 90 || sg == -90) {
-		for (size_t i = 0; i < abs(y-y2); i++) {
-			img.at2d(i+std::min(y, y2), x) = 0;
+		for (size_t i = 0; i < abs((int)(y-y2)); i++) {
+			size_t yValue = i+std::min(y, y2);
+			size_t xValue = x;
+			draw_line(yValue, xValue);
 		}
 	}
 	// 頭尾
-	img.at2d(y, x) = 0/255.0;
-	img.at2d(y2, x2) = 128/255.0;
+	draw_line(y, x);
+	draw_line(y2, x2);
 }

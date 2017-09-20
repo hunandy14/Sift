@@ -172,5 +172,5 @@ struct Fea_point {
 // µe½u
 class Draw {
 public:
-	static void draw_line(ImgRaw& img, float x, float y, float line_len, float sg);
+	static void draw_line(ImgRaw& img, size_t y, size_t x, float line_len, float sg);
 };
