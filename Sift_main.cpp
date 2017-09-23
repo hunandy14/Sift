@@ -20,34 +20,32 @@ using namespace cv;
 
 //================================================================
 int main(int argc, char const *argv[]){
-	// 轉浮點數+正規化
-    auto raw2f = [](vector<unsigned char>& img) {
-        vector<float> temp(size(img));
-        for(unsigned i = 0; i < temp.size(); ++i)
-            temp[i] = (float)img[i] / 255.0;
-        return temp;
-    };
-
-//#define testpoint1
+#define testpoint1
 #ifdef testpoint1
 	// 讀取圖片
-	// ImgRaw temp("en.bmp");
-	// ImgRaw temp("ball_01.bmp");
-	ImgRaw temp("kanna.bmp");
-    ImgRaw input_img(0, 0);
-    ImgRaw::first(input_img, temp, 1);
+	// ImgRaw img("en.bmp");
+	// ImgRaw img("ball_01.bmp");
+	ImgRaw img("kanna.bmp", 1);
+    //ImgRaw input_img(0, 0);
+    //ImgRaw::first(input_img, img, 1);
     // 金字塔
-    Sift img(input_img);
-	img.pyramid();
+    Sift fea(img);
+	fea.pyramid2();
+	//fea.pyramid(2);
 
 #endif // testpoint1
 	
-	ImgRaw img_line("kanna.bmp", 1);
+	/*ImgRaw img_line("kanna.bmp", 1);
 	for (size_t i = 0; i < 36; i++) {
 		Draw::draw_line(img_line, 400, 300, 100.f*sqrt(2), i*10);
 	}
 
+	ImgRaw img_t(720, 480);
+	Draw::draw_line(img_t, 40, 30, 100, 10);
+	img_t.bmp("line2.bmp", 8);
+
 	img_line.bmp("line.bmp", 8);
+	*/
 	return 0;
 
 }

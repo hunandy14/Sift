@@ -20,10 +20,15 @@ private:
     using types = float;
 public:
     static void raw2GauBlur(vector<types>& img_gau,
-        vector<types>& img_ori,
+		const vector<types>& img_ori,
         size_t width, size_t height, float p);
-    static vector<types> gau_matrix(float p, size_t mat_len=0);
-	static vector<types> gau_matrix2d(vector<float>& gau_mat2d, float p, size_t mat_len=0);
+	static void GauDog(vector<types>& img_dog,
+		vector<types>& img_gau, size_t width, size_t height);
+    static vector<types> gau_matrix(float p, size_t mat_len = 3);
+	static vector<types> gau_matrix2d(vector<types>& gau_mat2d, types p, size_t mat_len=0);
+public:
+	static void regularization(vector<types>& img, vector<unsigned char>& img_ori);
+	static void unregularization(vector<unsigned char>& img, vector<types>& img_ori);
 private:
     static types gau_meth(size_t r, float p);
 };

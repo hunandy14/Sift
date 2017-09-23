@@ -3,6 +3,32 @@ Name :
 Date : 2017/07/05
 By   : CharlotteHonG
 Final: 2017/07/05
+
+
+                       _oo0oo_
+                      o8888888o
+                      88" . "88
+                      (| -_- |)
+                      0\  =  /0
+                    ___/`---'\___
+                  .' \\|     |// '.
+                 / \\|||  :  |||// \
+                / _||||| -:- |||||- \
+               |   | \\\  -  /// |   |
+               | \_|  ''\---/''  |_/ |
+               \  .-\__  '-'  ___/-. /
+             ___'. .'  /--.--\  `. .'___
+          ."" '<  `.___\_<|>_/___.' >' "".
+         | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+         \  \ `_.   \_ __\ /__ _/   .-` /  /
+     =====`-.____`.___ \_____/___.-`___.-'=====
+                       `=---='
+
+
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+               佛祖保佑         永無BUG
+
 *****************************************************************/
 #pragma warning(disable : 4819)
 #pragma once
@@ -46,7 +72,7 @@ public:
     ImgRaw(vector<types> img, size_t width, size_t height) :
         raw_img(img), width(width), height(height) {}
     ImgRaw(size_t width=0, size_t height=0, float val=0);
-	ImgRaw(string bmpname, bool gray_tran=1);
+	ImgRaw(string bmpname, bool gray_tran);
     // 隱式轉換
     operator vector<types>&() {
         return raw_img;
@@ -91,7 +117,11 @@ public:
         return lhs -= rhs;
     }
     // 寫 BMP 檔
-    ImgRaw& bmp(string name, size_t bits) {
+    ImgRaw& bmp(string name, size_t bits=0) {
+		if (bits == 0) {
+			bits = this->bitCount;
+		}
+		// 有重載轉換函式(感覺不是很好，有空修掉)
         vector<unsigned char> img = (*this);
         Raw::raw2bmp(name, img, width, height, bits);
         return (*this);
@@ -120,8 +150,9 @@ public:
     }
 public:
     vector<types> raw_img;
-    size_t width;
-    size_t height;
+    uint32_t width;
+	uint32_t height;
+	uint16_t bitCount = 0;
 	float sigma = 0;
 };
 // 大小是否相等
@@ -138,19 +169,26 @@ class Sift {
 private:
     using types = float;
 public:
-    Sift(ImgRaw img): raw_img(img) {}
-    Sift(vector<float> raw_img, size_t width, size_t height):
+    Sift(ImgRaw img);
+    Sift(vector<types> raw_img, size_t width, size_t height):
         raw_img(raw_img, width, height) {}
 public:
     void pyramid(size_t s = 3); // 3 為論文中所給的
+	void pyramid2(); // 3 為論文中所給的
     void comp(vector<ImgRaw>& pyrs, string name="");
     vector<ImgRaw> dog_gau(ImgRaw& img, size_t s, size_t o=1);
 	float* getFea(ImgRaw& img, size_t y, size_t x, float sigma, size_t r);
 private:	
 	float fea_m(ImgRaw& img, size_t y, size_t x);
 	float fea_sida(ImgRaw& img, size_t y, size_t x);
+	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
+	void Gusto(ImgRaw& doImage, ImgRaw& doImage_ori, int InWidth, int InHeight, float sigma);
+	void GusB(vector<ImgRaw>& doImage,int inz, int InWidth, int InHeight, float sigma);
+	void ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight);
 private:
-    ImgRaw raw_img;
+    ImgRaw raw_img;  //原圖
+	size_t pyWidth=5;  //塔高(放大縮小)
+	size_t pyheight=5; //塔寬(模糊幾次)
     vector<vector<ImgRaw>> pyrs;
 	vector<vector<ImgRaw>> pyrs_dog;
 };

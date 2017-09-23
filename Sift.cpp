@@ -25,20 +25,29 @@ ImgRaw::ImgRaw(size_t width, size_t height, float val) :
 		std::fill_n (raw_img.begin(), raw_img.size(),val/255.0);
 	}
 }
+// (多一個 gray_tran 參數判定感覺不是很好有機會修掉)
 ImgRaw::ImgRaw(string bmpname, bool gray_tran){
 	vector<unsigned char> img;
 	uint32_t width, height;
 	uint16_t bits;
 	// 讀取圖片
 	Raw::read_bmp(img, bmpname, &width, &height, &bits);
-	if (gray_tran == 1 and bits == 24)
+	this->width    = width;
+	this->height   = height;
+	this->bitCount = bits;
+	// 轉換灰階
+	if (gray_tran == 1 and bits == 24) {
 		Raw::raw2gray(img);
-	// 初始化
+		this->bitCount = 8;
+	}
+	// 初始化(含正規化)
 	raw_img.resize(img.size());
-	for (size_t i = 0; i < img.size(); i++)
+	for (size_t i = 0; i < img.size(); i++) {
 		raw_img[i] = (float)img[i] / 255.0;
-	this->width = width;
-	this->height = height;
+	}
+}
+Sift::Sift(ImgRaw img): raw_img(img) {
+
 }
 // 合成圖片
 void Sift::comp(vector<ImgRaw>& pyrs, string name) {
@@ -81,7 +90,309 @@ vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s, size_t o) {
 	} //cout << endl;
 	return pyrs;
 }
+
+bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
+	const float& Val = gauDog_imgs[scale_idx][y*curr_Width + x];
+
+	bool maxc, minc;
+	maxc = minc = true;
+	for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++)
+	{
+		for (int j = (y - 1); j <= (y + 1); j++)
+		{
+			for (int i = (x - 1); i < (x + 1); i++)
+			{
+				if (gauDog_imgs[k][j*curr_Width + i] > Val)
+					maxc = false;
+				if (gauDog_imgs[k][j*curr_Width + i] < Val)
+					minc = false;
+				if (!(maxc | minc))
+					return false;
+			}
+		}
+	}
+
+	if (abs(Val) < 0.015)
+		return false;
+	else
+		return true;
+
+
+	/*for (int i = -1; i < 2; i++) {
+		if (fabs(Val) > SIFT_Dx/2.f) {
+			if (
+			(Val>0 and
+			Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x-1] and
+			Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x+0] and
+			Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x+1] and
+			Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x-1] and
+			Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x+0] and
+			Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x+1] and
+			Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x-1] and
+			Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x+0] and
+			Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x+1])
+			){
+				return true;
+			}
+		}
+	}
+	return false;*/
+};
+
+void Sift::ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight)
+{
+	// 原圖資訊(取自資料成員)
+	const size_t Height=raw_img.height;
+	const size_t Width=raw_img.width;
+	const vector<float>& gray=raw_img;
+
+	float XX1, XX2, XXYY;
+	float dx, dy;
+	float Io, Jo;
+	for (int j = 0; j < InHeight - 1; ++j)
+	{
+		Jo = j * (Height - 1) / (InHeight - 1);
+		dy = 1 - ((j * (Height - 1) / (InHeight - 1)) - Jo);
+		for (int i = 0; i < InWidth - 1; ++i)
+		{
+			Io = i * (Width - 1) / (InWidth - 1);
+			dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
+			XX1 = gray[(int)((Io + 0) + (Jo + 0)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 0)*Width)] * (1 - dx);
+			XX2 = gray[(int)((Io + 0) + (Jo + 1)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 1)*Width)] * (1 - dx);
+			XXYY = XX1*dy + XX2*(1 - dy);
+			doImage[j*InWidth + i] = XXYY;
+		}
+		XX1 = gray[(int)((Jo + 1)*Width - 1)];
+		XX2 = gray[(int)((Jo + 2)*Width - 1)];
+		XXYY = XX1*dy + XX2*(1 - dy);
+		doImage[(j + 1)*InWidth - 1] = XXYY;
+	}
+	for (int i = 0; i < InWidth - 1; i++)
+	{
+		Io = i * (Width - 1) / (InWidth - 1);
+		dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
+		XX1 = gray[(int)((Height - 1)*Width + (Io + 0))];
+		XX2 = gray[(int)((Height - 1)*Width + (Io + 1))];
+		XXYY = XX1*dx + XX2*(1 - dx);
+		doImage[(InHeight - 1)*InWidth + i] = XXYY;
+	}
+	doImage[InHeight*InWidth - 1] = gray[Height*Width - 1];
+}
+
+void Sift::Gusto(ImgRaw& doImage, ImgRaw& doImage_ori, int InWidth, int InHeight, float sigma)
+{
+	vector<float> musk = GauBlur::gau_matrix(sigma, 3);
+	float block[3];
+	float total;
+
+	doImage.raw_img.reserve(InWidth*InHeight);
+	float* gau_temp = new float[InWidth*InHeight];
+	//做橫向的高斯矩陣
+	for (int j = 0; j < InHeight; j++)
+	{
+		for (int i = 0; i < InWidth; i++)
+		{
+			if (i == 0)
+			{
+				block[0] = doImage_ori[j*InWidth + i + 0];
+				block[1] = doImage_ori[j*InWidth + i + 0];
+				block[2] = doImage_ori[j*InWidth + i + 1];
+			}
+			else if (i == (InWidth - 1))
+			{
+				block[0] = doImage_ori[j*InWidth + i - 1];
+				block[1] = doImage_ori[j*InWidth + i + 0];
+				block[2] = doImage_ori[j*InWidth + i + 0];
+			}
+			else
+			{
+				block[0] = doImage_ori[j*InWidth + i - 1];
+				block[1] = doImage_ori[j*InWidth + i + 0];
+				block[2] = doImage_ori[j*InWidth + i + 1];
+			}
+			total = 0;
+			for (int v = 0; v < 3; v++)
+			{
+				total += block[v] * musk[v];
+			}
+			gau_temp[j*InWidth + i] = total;
+		}
+	}
+	//做縱向的高斯矩陣
+	for (int j = 0; j < InHeight; j++)
+	{
+		for (int i = 0; i < InWidth; i++)
+		{
+			if (j == 0)
+			{
+				block[0] = gau_temp[(j + 0)*InWidth + i];
+				block[1] = gau_temp[(j + 0)*InWidth + i];
+				block[2] = gau_temp[(j + 1)*InWidth + i];
+			}
+			else if (j == (InHeight - 1))
+			{
+				block[0] = gau_temp[(j - 1)*InWidth + i];
+				block[1] = gau_temp[(j + 0)*InWidth + i];
+				block[2] = gau_temp[(j + 0)*InWidth + i];
+			}
+			else
+			{
+				block[0] = gau_temp[(j - 1)*InWidth + i];
+				block[1] = gau_temp[(j + 0)*InWidth + i];
+				block[2] = gau_temp[(j + 1)*InWidth + i];
+			}
+			total = 0;
+			for (int v = 0; v < 3; v++)
+			{
+				total += block[v] * musk[v];
+			}
+			doImage[j*InWidth + i] = total;
+		}
+	}
+	delete[] gau_temp;
+}
+void Sift::GusB(vector<ImgRaw>& doImage,int inz, int InWidth, int InHeight, float sigma)
+{
+	vector<float> musk = GauBlur::gau_matrix(sigma, 3);
+	float block[3];
+	float total;
+	float* gau_temp = new float[InWidth*InHeight];
+	//做橫向的高斯模糊
+	for (int j = 0; j < InHeight; j++)
+	{
+		for (int i = 0; i < InWidth; i++)
+		{
+			if (i == 0)
+			{
+				block[0] = doImage[inz - 1][j*InWidth + i + 0];
+				block[1] = doImage[inz - 1][j*InWidth + i + 0];
+				block[2] = doImage[inz - 1][j*InWidth + i + 1];
+			}
+			else if (i == (InWidth - 1))
+			{
+				block[0] = doImage[inz - 1][j*InWidth + i - 1];
+				block[1] = doImage[inz - 1][j*InWidth + i + 0];
+				block[2] = doImage[inz - 1][j*InWidth + i + 0];
+			}
+			else
+			{
+				block[0] = doImage[inz - 1][j*InWidth + i - 1];
+				block[1] = doImage[inz - 1][j*InWidth + i + 0];
+				block[2] = doImage[inz - 1][j*InWidth + i + 1];
+			}
+			total = 0;
+			for (int v = 0; v < 3; v++)
+			{
+				total += block[v]*musk[v];
+			}
+			gau_temp[j*InWidth + i] = total;
+		}
+	}
+
+	//做縱向的高斯模糊
+	for (int j = 0; j < InHeight; j++)
+	{
+		for (int i = 0; i < InWidth; i++)
+		{
+			if (j == 0)
+			{
+				block[0] = gau_temp[(j + 0)*InWidth + i];
+				block[1] = gau_temp[(j + 0)*InWidth + i];
+				block[2] = gau_temp[(j + 1)*InWidth + i];
+			}
+			else if (j == (InHeight - 1))
+			{
+				block[0] = gau_temp[(j - 1)*InWidth + i];
+				block[1] = gau_temp[(j + 0)*InWidth + i];
+				block[2] = gau_temp[(j + 0)*InWidth + i];
+			}
+			else
+			{
+				block[0] = gau_temp[(j - 1)*InWidth + i];
+				block[1] = gau_temp[(j + 0)*InWidth + i];
+				block[2] = gau_temp[(j + 1)*InWidth + i];
+			}
+			total = 0;
+			for (int v = 0; v < 3; v++)
+			{
+				total += block[v] * musk[v];
+			}
+			doImage[inz][j*InWidth + i] = total;
+		}
+	}
+
+}
 // 高斯金字塔
+void Sift::pyramid2() {
+	ImgRaw first_img;
+	float Limit;
+	/*金字塔高*/
+	int n = 1;
+	for (Limit = 1.0;Limit < first_img.width || Limit < first_img.height; ++n){
+		Limit = powf(2.0, n);
+	}
+	if (n < 7) {
+		n = 1;
+	} else {
+		n -= 6;
+	}
+	Limit = pow(0.5, n);
+	/*做金字塔*/
+	float curr_size=2;
+	for (size_t ph = 0; ph < 1; ph++) {
+		//ImgRaw::first(currSize_img, raw_img, curr_size);
+		const size_t curr_Width = raw_img.width*curr_size;
+		const size_t curr_Height = raw_img.height*curr_size;
+		ImgRaw currSize_img(curr_Width ,curr_Height);
+		ZoomInOut(currSize_img, curr_Width, curr_Height);
+
+		// 高斯模糊
+		vector<ImgRaw> gau_imgs(pyWidth);
+		ImgRaw::gauBlur(gau_imgs[0], currSize_img, SIFT_GauSigma);
+		//Gusto(gau_imgs[0], currSize_img, curr_Width, curr_Height, SIFT_GauSigma);
+		for (size_t i = 1; i < pyWidth; i++) {
+			const float curr_Sigma = SIFT_GauSigma*pow(sqrt(2.0),i);
+			gau_imgs[i].raw_img.resize(curr_Width*curr_Height);
+			GauBlur::raw2GauBlur(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
+			//Gusto(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
+			//gau_imgs[i].bmp("_gau.bmp", 8);
+		}
+		// 高斯差分
+		vector<ImgRaw> gauDog_imgs(pyWidth-1);
+		for (size_t i = 0; i < pyWidth-1; i++) {
+			ImgRaw img(curr_Width, curr_Height);
+			for (size_t idx = 0; idx < curr_Width*curr_Height; idx++) {
+				img[idx] = gau_imgs[i][idx] - gau_imgs[i+1][idx];
+			}
+			gauDog_imgs[i]=img;
+			gauDog_imgs[i].bmp("gauc/gauDog"+to_string(i)+".bmp", 8);
+		}
+		// 尋找特徵點並累加直方圖
+		for (size_t scale_idx = 1; scale_idx < pyWidth-1-1; scale_idx++) {
+			ImgRaw teest_img(curr_Width, curr_Height);
+			// 特徵直方圖累加半徑
+			const size_t r = curr_size * 3. * 1.5 * (scale_idx+1);
+			for (size_t j = r+1; j < curr_Height-r-1; j++) {
+				for (size_t i = r+1; i < curr_Width-r-1; i++) {
+					// 尋找極值點
+					const float& Val = gauDog_imgs[scale_idx][j*curr_Width + i];
+					if (findMaxMin(gauDog_imgs, scale_idx, curr_Width, j, i)) {
+						teest_img[j*curr_Width + i] = 255 /255.0;
+					}
+				}
+			}
+			teest_img.bmp("MaxMin/MaxMin"+to_string(scale_idx)+".bmp", 8);
+		}
+
+
+
+
+		curr_size /= 2; // 每次遞減
+		cout << endl;
+	}
+	return;
+}
+
 void Sift::pyramid(size_t s) {
 	size_t sacle = s+SIFT_SacleDiff; // 找極值捨去前後兩張 + 差分圖少1張
     size_t octvs = 2; // 不同大小圖片(自訂)
@@ -90,7 +401,7 @@ void Sift::pyramid(size_t s) {
 
     // 輸入圖
     ImgRaw temp(raw_img.width, raw_img.height);
-	ImgRaw::first(temp, raw_img, 1);
+	ImgRaw::first(temp, raw_img, 2);
 	temp.sigma = SIFT_GauSigma;
     // 高斯金字塔
     pyrs[0] = dog_gau(temp, sacle);
@@ -117,7 +428,7 @@ void Sift::pyramid(size_t s) {
     for (unsigned j = 0; j < octvs; ++j) {
         // 高斯差分
         for (unsigned i = 0; i < pyrs[j].size() - 1; ++i) {
-			pyrs_dog[j][i] = pyrs[j][i + 1] - pyrs[j][i];
+			pyrs_dog[j][i] = pyrs[j][i] - pyrs[j][i+1];
         }
 		// 移除最後一張
 		pyrs_dog[j].erase(--(pyrs_dog[j].end()));
