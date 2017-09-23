@@ -181,7 +181,7 @@ void Sift::ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight)
 
 void Sift::Gusto(ImgRaw& doImage, ImgRaw& doImage_ori, int InWidth, int InHeight, float sigma)
 {
-	vector<float> musk = GauBlur::gau_matrix(sigma, 3);
+	vector<float> musk = Gaus::gau_matrix(sigma, 3);
 	float block[3];
 	float total;
 
@@ -253,7 +253,7 @@ void Sift::Gusto(ImgRaw& doImage, ImgRaw& doImage_ori, int InWidth, int InHeight
 }
 void Sift::GusB(vector<ImgRaw>& doImage,int inz, int InWidth, int InHeight, float sigma)
 {
-	vector<float> musk = GauBlur::gau_matrix(sigma, 3);
+	vector<float> musk = Gaus::gau_matrix(sigma, 3);
 	float block[3];
 	float total;
 	float* gau_temp = new float[InWidth*InHeight];
@@ -353,7 +353,7 @@ void Sift::pyramid2() {
 		for (size_t i = 1; i < pyWidth; i++) {
 			const float curr_Sigma = SIFT_GauSigma*pow(sqrt(2.0),i);
 			gau_imgs[i].raw_img.resize(curr_Width*curr_Height);
-			GauBlur::raw2GauBlur(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
+			Gaus::raw2GauBlur(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
 			//Gusto(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
 			//gau_imgs[i].bmp("_gau.bmp", 8);
 		}
@@ -571,7 +571,7 @@ float* Sift::getFea(ImgRaw& img, size_t y, size_t x, float sigma, size_t r) {
 	size_t diam = r*2;
 	// 高斯矩陣
 	vector<float> gau_2dmat;
-	GauBlur::gau_matrix2d(gau_2dmat, sigma, diam+1);
+	Gaus::gau_matrix2d(gau_2dmat, sigma, diam+1);
 	// 獲取特徵點計算半徑內的所有 s, m
 	map<int, float> fea_hist;
 	for (size_t j = 0; j < diam+1; j++) {

@@ -144,7 +144,7 @@ public:
         tar.height = (size_t)(sou.height*z);
     }
     static void gauBlur(ImgRaw& tar, ImgRaw& sou, float p) {
-        GauBlur::raw2GauBlur(tar, sou, sou.width, sou.height, p);
+        Gaus::raw2GauBlur(tar, sou, sou.width, sou.height, p);
         tar.width = (size_t)(sou.width);
         tar.height = (size_t)(sou.height);
     }

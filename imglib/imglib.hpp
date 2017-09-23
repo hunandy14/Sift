@@ -15,7 +15,7 @@ public:
     file_same(const string& str): std::runtime_error(str) {}
 };
 // 高斯模糊
-class GauBlur{
+class Gaus{
 private:
     using types = float;
 public:

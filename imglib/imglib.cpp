@@ -15,7 +15,7 @@ using namespace std;
 constexpr auto M_PI = 3.14159265358979323846;
 
 // 高斯模糊(3x3)
-void GauBlur::raw2GauBlur(vector<types>& img_gau,
+void Gaus::raw2GauBlur(vector<types>& img_gau,
     const vector<types>& img_ori,
     size_t width, size_t height, float p)
 {
@@ -26,7 +26,6 @@ void GauBlur::raw2GauBlur(vector<types>& img_gau,
     constexpr size_t GauMat_R = 3;
     // 設定正確的大小
     img_gau.resize(img_ori.size());
-	cout << img_ori.size();
     // 高斯矩陣
     vector<types> gau_mat = gau_matrix(p, GauMat_R);
     // 高斯橫向
@@ -111,21 +110,21 @@ void GauBlur::raw2GauBlur(vector<types>& img_gau,
     }*/
 }
 // 高斯公式
-float GauBlur::gau_meth(size_t r, float p) {
+float Gaus::gau_meth(size_t r, float p) {
     float two = 2.0;
     float num = exp(-pow(r, two) / (two*pow(p, two)));
     num /= sqrt(two*M_PI)*p;
     return num;
 }
 // 高斯差分
-void GauBlur::GauDog(vector<types>& img_dog,
+void Gaus::GauDog(vector<types>& img_dog,
 	vector<types>& img_gau, size_t width, size_t height)
 {
 	
 }
 
 // 高斯矩陣 (mat_len defa=3)
-vector<float> GauBlur::gau_matrix(float p, size_t mat_len) {
+vector<float> Gaus::gau_matrix(float p, size_t mat_len) {
     vector<float> gau_mat;
     // 計算矩陣長度
     if (mat_len == 0) {
@@ -154,7 +153,7 @@ vector<float> GauBlur::gau_matrix(float p, size_t mat_len) {
     for (auto&& i : gau_mat) { i /= sum; }
     return gau_mat;
 }
-vector<GauBlur::types> GauBlur::gau_matrix2d(vector<types>& gau_mat2d, types p, size_t mat_len) {
+vector<Gaus::types> Gaus::gau_matrix2d(vector<types>& gau_mat2d, types p, size_t mat_len) {
     // 高斯2d矩陣
     gau_mat2d.resize(mat_len*mat_len);
     // 二維讀取
@@ -162,7 +161,7 @@ vector<GauBlur::types> GauBlur::gau_matrix2d(vector<types>& gau_mat2d, types p, 
         return gau_mat2d[y*mat_len + x];
     };
 
-    vector<float> gau_mat1d = GauBlur::gau_matrix(p, mat_len);
+    vector<float> gau_mat1d = Gaus::gau_matrix(p, mat_len);
     // 做 X
     for (size_t j = 0; j < mat_len; j++) {
         for (size_t i = 0; i < mat_len; i++) {
@@ -187,13 +186,13 @@ if (sum == 1) cout << "gau_matrix2d -> check ok" << endl;
 }
 
 // 正規化
-void GauBlur::regularization(vector<types>& img, vector<unsigned char>& img_ori) {
+void Gaus::regularization(vector<types>& img, vector<unsigned char>& img_ori) {
 	img.resize(img_ori.size());
 	for (size_t i = 0; i < img_ori.size(); i++) {
 		img[i] = img_ori[i]/255.0;
 	}
 }
-void GauBlur::unregularization(vector<unsigned char>& img, vector<types>& img_ori) {
+void Gaus::unregularization(vector<unsigned char>& img, vector<types>& img_ori) {
 	img.resize(img_ori.size());
 	for (size_t i = 0; i < img_ori.size(); i++) {
 		img[i] = img_ori[i]*255.0;
