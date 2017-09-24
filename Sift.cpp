@@ -137,13 +137,22 @@ void Sift::getHistogramMS(const ImgRaw& doImage, size_t Iny, size_t Inx, size_t 
 		}
 	}
 	//計算矩陣內各方向的加總
-	float magSum[36] = {}; // 強度累加陣列
+	vector<float> magSum(36); // 強度累加陣列
 	for (size_t j = 0, idx = 0; j < matLen; j++) {
 		for (size_t i = 0; i < matLen; i++, idx++) {
-			const int usesita = sita[idx]/10.0;
+			int usesita = sita[idx]/10;
 			magSum[usesita] += mag[idx];
 		}
 	}
+	
+	float maxMag = *max_element(magSum.begin(), magSum.end());
+	for (size_t i = 0; i < 36; i++) {
+		if (magSum[i] >= maxMag*0.8) {
+			AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[i], i*10);
+		}
+	}
+	/*
+	
 	//將各角度內各大小地值做排序
 	int sitafoam[36];
 	int changesita;
@@ -165,13 +174,14 @@ void Sift::getHistogramMS(const ImgRaw& doImage, size_t Iny, size_t Inx, size_t 
 		}
 	}
 	// 主方向
-	AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[0], sitafoam[0]);
+	//AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[0], sitafoam[0]);
 	// 副方向
 	int add = 1;
 	while (magSum[add] >= 0.8*magSum[0]) {
-		AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[add], sitafoam[add]);
+		//AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[add], sitafoam[add]);
 		++add;
-	}
+	}*/
+	//system("pause");
 }
 // 高斯金字塔
 void Sift::pyramid2() {
@@ -243,7 +253,6 @@ void Sift::pyramid2() {
 		curr_size /= 2; // 每次遞減
 		cout << endl;
 	}
-	return;
 }
 
 void Sift::pyramid(size_t s) {
