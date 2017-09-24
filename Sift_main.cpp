@@ -32,6 +32,7 @@ int main(int argc, char const *argv[]){
     Sift fea(img);
 	fea.pyramid2();
 	//fea.pyramid(2);
+	fea.display();
 
 #endif // testpoint1
 	

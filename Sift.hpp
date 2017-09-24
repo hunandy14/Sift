@@ -54,6 +54,20 @@ Final: 2017/07/05
 // 角點偵測 r = 10
 #define SIFT_HarrisR 10
 
+// 特徵點結構
+struct Feature
+{
+	int x, y;//各所在階層的座標
+	float mm;//強度
+	int sita;//包含主方向與負方向的角度
+	float size;//階
+	int kai;//層
+	float sigmaOCT;
+	vector <vector <vector <float>>> descrip;
+	Feature *nextptr = nullptr;
+};
+typedef struct Feature* Featureptr;
+
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
 public:
@@ -71,12 +85,18 @@ private:
 public:
     ImgRaw(vector<types> img, size_t width, size_t height) :
         raw_img(img), width(width), height(height) {}
-    ImgRaw(size_t width=0, size_t height=0, float val=0);
+    ImgRaw(size_t width, size_t height, float val=0);
+	ImgRaw(size_t size = 0) {
+		raw_img.resize(size);
+	}
 	ImgRaw(string bmpname, bool gray_tran);
     // 隱式轉換
     operator vector<types>&() {
         return raw_img;
     }
+	operator const vector<types>&() const {
+		return raw_img;
+	}
     operator vector<unsigned char>() {
         vector<unsigned char> img(raw_img.size());
         for(unsigned i = 0; i < raw_img.size(); ++i) {
@@ -98,6 +118,12 @@ public:
     const types & at2d(size_t y, size_t x) const {
         return raw_img[y*width + x];
     }
+	// 重設大小
+	void resize(size_t width, size_t height) {
+		raw_img.resize(width*height);
+		this->width=width;
+		this->height=height;
+	}
 public:
     // 大小是否相等
     friend bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs);
@@ -144,7 +170,7 @@ public:
         tar.height = (size_t)(sou.height*z);
     }
     static void gauBlur(ImgRaw& tar, ImgRaw& sou, float p) {
-        Gaus::raw2GauBlur(tar, sou, sou.width, sou.height, p);
+        Gaus::GauBlur(tar, sou, sou.width, sou.height, p);
         tar.width = (size_t)(sou.width);
         tar.height = (size_t)(sou.height);
     }
@@ -178,19 +204,21 @@ public:
     void comp(vector<ImgRaw>& pyrs, string name="");
     vector<ImgRaw> dog_gau(ImgRaw& img, size_t s, size_t o=1);
 	float* getFea(ImgRaw& img, size_t y, size_t x, float sigma, size_t r);
+	void display();
 private:	
 	float fea_m(ImgRaw& img, size_t y, size_t x);
 	float fea_sida(ImgRaw& img, size_t y, size_t x);
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
-	void Gusto(ImgRaw& doImage, ImgRaw& doImage_ori, int InWidth, int InHeight, float sigma);
-	void GusB(vector<ImgRaw>& doImage,int inz, int InWidth, int InHeight, float sigma);
 	void ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight);
+	void getHistogramMS(const ImgRaw& doImage, size_t Iny, size_t Inx,size_t Inr,float Insize, size_t InWidth, float sigma, int scale);
+	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
 private:
     ImgRaw raw_img;  //原圖
 	size_t pyWidth=5;  //塔高(放大縮小)
 	size_t pyheight=5; //塔寬(模糊幾次)
     vector<vector<ImgRaw>> pyrs;
 	vector<vector<ImgRaw>> pyrs_dog;
+	Featureptr FeatureStart, FeatureEnd, FeatureNow; // 特徵點
 };
 //----------------------------------------------------------------
 struct Fea_point {

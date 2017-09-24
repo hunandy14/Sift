@@ -16,6 +16,9 @@ Final: 2017/07/05
 using namespace std;
 
 #define M_PI 3.14159265358979323846
+#define PI 3.14159265358979323846
+
+
 
 // 初始化
 ImgRaw::ImgRaw(size_t width, size_t height, float val) :
@@ -46,8 +49,10 @@ ImgRaw::ImgRaw(string bmpname, bool gray_tran){
 		raw_img[i] = (float)img[i] / 255.0;
 	}
 }
+// Sift建構子
 Sift::Sift(ImgRaw img): raw_img(img) {
-
+	FeatureStart = new Feature;
+	FeatureEnd = FeatureStart;
 }
 // 合成圖片
 void Sift::comp(vector<ImgRaw>& pyrs, string name) {
@@ -91,240 +96,149 @@ vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s, size_t o) {
 	return pyrs;
 }
 
-bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
-	const float& Val = gauDog_imgs[scale_idx][y*curr_Width + x];
 
-	bool maxc, minc;
-	maxc = minc = true;
-	for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++)
+// 獲得特徵點直方圖統計
+//*** 求m(強度)值 ***//
+float getM(float x0, float x1, float y0, float y1)
+{
+	float mm;
+	mm = (x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0);
+	mm = sqrt(mm);
+	return mm;
+}
+//*** 求sita值(徑度) ***//
+float getSita(float x0, float x1, float y0, float y1)
+{
+	float sita;
+	if (x0 == x1)
 	{
-		for (int j = (y - 1); j <= (y + 1); j++)
-		{
-			for (int i = (x - 1); i < (x + 1); i++)
-			{
-				if (gauDog_imgs[k][j*curr_Width + i] > Val)
-					maxc = false;
-				if (gauDog_imgs[k][j*curr_Width + i] < Val)
-					minc = false;
-				if (!(maxc | minc))
-					return false;
-			}
-		}
+		if (y1 > y0) sita = PI / 2;
+		else sita = PI * 3 / 2;
 	}
-
-	if (abs(Val) < 0.015)
-		return false;
 	else
-		return true;
-
-
-	/*for (int i = -1; i < 2; i++) {
-		if (fabs(Val) > SIFT_Dx/2.f) {
-			if (
-			(Val>0 and
-			Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x-1] and
-			Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x+0] and
-			Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x+1] and
-			Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x-1] and
-			Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x+0] and
-			Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x+1] and
-			Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x-1] and
-			Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x+0] and
-			Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x+1])
-			){
-				return true;
-			}
-		}
+	{
+		sita = atanf((y1 - y0) / (x1 - x0));
+		if (x1 < x0) sita += PI;
+		if (sita < 0) sita = 2 * PI + sita;
+		if (sita >= 2 * PI) sita -= 2 * PI;
 	}
-	return false;*/
-};
 
-void Sift::ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight)
+
+
+	return sita;
+}
+void Sift::AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita)
 {
-	// 原圖資訊(取自資料成員)
-	const size_t Height=raw_img.height;
-	const size_t Width=raw_img.width;
-	const vector<float>& gray=raw_img;
-
-	float XX1, XX2, XXYY;
-	float dx, dy;
-	float Io, Jo;
-	for (int j = 0; j < InHeight - 1; ++j)
-	{
-		Jo = j * (Height - 1) / (InHeight - 1);
-		dy = 1 - ((j * (Height - 1) / (InHeight - 1)) - Jo);
-		for (int i = 0; i < InWidth - 1; ++i)
-		{
-			Io = i * (Width - 1) / (InWidth - 1);
-			dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
-			XX1 = gray[(int)((Io + 0) + (Jo + 0)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 0)*Width)] * (1 - dx);
-			XX2 = gray[(int)((Io + 0) + (Jo + 1)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 1)*Width)] * (1 - dx);
-			XXYY = XX1*dy + XX2*(1 - dy);
-			doImage[j*InWidth + i] = XXYY;
-		}
-		XX1 = gray[(int)((Jo + 1)*Width - 1)];
-		XX2 = gray[(int)((Jo + 2)*Width - 1)];
-		XXYY = XX1*dy + XX2*(1 - dy);
-		doImage[(j + 1)*InWidth - 1] = XXYY;
-	}
-	for (int i = 0; i < InWidth - 1; i++)
-	{
-		Io = i * (Width - 1) / (InWidth - 1);
-		dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
-		XX1 = gray[(int)((Height - 1)*Width + (Io + 0))];
-		XX2 = gray[(int)((Height - 1)*Width + (Io + 1))];
-		XXYY = XX1*dx + XX2*(1 - dx);
-		doImage[(InHeight - 1)*InWidth + i] = XXYY;
-	}
-	doImage[InHeight*InWidth - 1] = gray[Height*Width - 1];
+	Featureptr newnode = new Feature;
+	newnode->x = Inx;
+	newnode->y = Iny;
+	newnode->mm = Inm;
+	newnode->sita = Insita;
+	newnode->size = Insize;
+	newnode->kai = kai;
+	newnode->sigmaOCT = sigmaOCT;
+	newnode->nextptr = NULL;
+	FeatureEnd->nextptr = newnode;
+	FeatureEnd = newnode;
 }
 
-void Sift::Gusto(ImgRaw& doImage, ImgRaw& doImage_ori, int InWidth, int InHeight, float sigma)
+
+void Sift::getHistogramMS(const ImgRaw& doImage, size_t Iny, size_t Inx, size_t Inr, 
+	float Insize, size_t InWidth, float sigma, int scale)
 {
-	vector<float> musk = Gaus::gau_matrix(sigma, 3);
-	float block[3];
-	float total;
+	//cout << doImage[Iny*InWidth+Inx] << endl;
+	int newLength = Inr * 2 + 1;
+	//float *musk = new float[newLength];//高斯分布的機率大小
+	//GusPersent(musk, (Inr * 2 + 1), sigma);
+	vector<types> musk = Gaus::gau_matrix(sigma, (Inr * 2 + 1));
+	//vector<types> gau_mat = Gaus::gau_matrix(sigma, 3);
+	/*for (size_t i = 0; i < musk.size(); i++) {
+		cout << musk[i] << ", ";
+	} cout << endl;*/
 
-	doImage.raw_img.reserve(InWidth*InHeight);
-	float* gau_temp = new float[InWidth*InHeight];
-	//做橫向的高斯矩陣
-	for (int j = 0; j < InHeight; j++)
-	{
-		for (int i = 0; i < InWidth; i++)
-		{
-			if (i == 0)
-			{
-				block[0] = doImage_ori[j*InWidth + i + 0];
-				block[1] = doImage_ori[j*InWidth + i + 0];
-				block[2] = doImage_ori[j*InWidth + i + 1];
-			}
-			else if (i == (InWidth - 1))
-			{
-				block[0] = doImage_ori[j*InWidth + i - 1];
-				block[1] = doImage_ori[j*InWidth + i + 0];
-				block[2] = doImage_ori[j*InWidth + i + 0];
-			}
-			else
-			{
-				block[0] = doImage_ori[j*InWidth + i - 1];
-				block[1] = doImage_ori[j*InWidth + i + 0];
-				block[2] = doImage_ori[j*InWidth + i + 1];
-			}
-			total = 0;
-			for (int v = 0; v < 3; v++)
-			{
-				total += block[v] * musk[v];
-			}
-			gau_temp[j*InWidth + i] = total;
-		}
-	}
-	//做縱向的高斯矩陣
-	for (int j = 0; j < InHeight; j++)
-	{
-		for (int i = 0; i < InWidth; i++)
-		{
-			if (j == 0)
-			{
-				block[0] = gau_temp[(j + 0)*InWidth + i];
-				block[1] = gau_temp[(j + 0)*InWidth + i];
-				block[2] = gau_temp[(j + 1)*InWidth + i];
-			}
-			else if (j == (InHeight - 1))
-			{
-				block[0] = gau_temp[(j - 1)*InWidth + i];
-				block[1] = gau_temp[(j + 0)*InWidth + i];
-				block[2] = gau_temp[(j + 0)*InWidth + i];
-			}
-			else
-			{
-				block[0] = gau_temp[(j - 1)*InWidth + i];
-				block[1] = gau_temp[(j + 0)*InWidth + i];
-				block[2] = gau_temp[(j + 1)*InWidth + i];
-			}
-			total = 0;
-			for (int v = 0; v < 3; v++)
-			{
-				total += block[v] * musk[v];
-			}
-			doImage[j*InWidth + i] = total;
-		}
-	}
-	delete[] gau_temp;
-}
-void Sift::GusB(vector<ImgRaw>& doImage,int inz, int InWidth, int InHeight, float sigma)
-{
-	vector<float> musk = Gaus::gau_matrix(sigma, 3);
-	float block[3];
-	float total;
-	float* gau_temp = new float[InWidth*InHeight];
-	//做橫向的高斯模糊
-	for (int j = 0; j < InHeight; j++)
-	{
-		for (int i = 0; i < InWidth; i++)
-		{
-			if (i == 0)
-			{
-				block[0] = doImage[inz - 1][j*InWidth + i + 0];
-				block[1] = doImage[inz - 1][j*InWidth + i + 0];
-				block[2] = doImage[inz - 1][j*InWidth + i + 1];
-			}
-			else if (i == (InWidth - 1))
-			{
-				block[0] = doImage[inz - 1][j*InWidth + i - 1];
-				block[1] = doImage[inz - 1][j*InWidth + i + 0];
-				block[2] = doImage[inz - 1][j*InWidth + i + 0];
-			}
-			else
-			{
-				block[0] = doImage[inz - 1][j*InWidth + i - 1];
-				block[1] = doImage[inz - 1][j*InWidth + i + 0];
-				block[2] = doImage[inz - 1][j*InWidth + i + 1];
-			}
-			total = 0;
-			for (int v = 0; v < 3; v++)
-			{
-				total += block[v]*musk[v];
-			}
-			gau_temp[j*InWidth + i] = total;
-		}
-	}
+	float direction[36] = {0};//儲存36個方向的加總值
+	float *mm, *sita;//建構出遮罩大小的m矩陣與sita矩陣
+	mm = new float[newLength * newLength];
+	sita = new float[newLength * newLength];
+	int starty, endy;
+	int startx, endx;
+	starty = Iny - Inr; endy = Iny + Inr;
+	startx = Inx - Inr; endx = Inx + Inr;
+	//做m、sita計算
+	for (int j = starty; j <= endy; j++) {
+		for (int i = startx; i <= endx; i++) {
+			volatile const float cu = doImage[(j + 0)*InWidth + (i + 0)];
+			volatile const float x0 = doImage[(j + 0)*InWidth + (i - 1)];
+			volatile const float x1 = doImage[(j + 0)*InWidth + (i + 1)];
+			volatile const float y0 = doImage[(j - 1)*InWidth + (i + 0)];
+			volatile const float y1 = doImage[(j + 1)*InWidth + (i + 0)];
 
-	//做縱向的高斯模糊
-	for (int j = 0; j < InHeight; j++)
-	{
-		for (int i = 0; i < InWidth; i++)
-		{
-			if (j == 0)
-			{
-				block[0] = gau_temp[(j + 0)*InWidth + i];
-				block[1] = gau_temp[(j + 0)*InWidth + i];
-				block[2] = gau_temp[(j + 1)*InWidth + i];
-			}
-			else if (j == (InHeight - 1))
-			{
-				block[0] = gau_temp[(j - 1)*InWidth + i];
-				block[1] = gau_temp[(j + 0)*InWidth + i];
-				block[2] = gau_temp[(j + 0)*InWidth + i];
-			}
-			else
-			{
-				block[0] = gau_temp[(j - 1)*InWidth + i];
-				block[1] = gau_temp[(j + 0)*InWidth + i];
-				block[2] = gau_temp[(j + 1)*InWidth + i];
-			}
-			total = 0;
-			for (int v = 0; v < 3; v++)
-			{
-				total += block[v] * musk[v];
-			}
-			doImage[inz][j*InWidth + i] = total;
+			//cout << cu << ", " << x0 << endl;
+			//cout << getSita(x0, x1, y0, y1)*180/PI << endl;
+			
+			mm[(j - starty)*newLength + (i - startx)] = getM(x0, x1, y0, y1);
+			sita[(j - starty)*newLength + (i - startx)] = getSita(x0, x1, y0, y1);
+			sita[(j - starty)*newLength + (i - startx)] = 
+				sita[(j - starty)*newLength + (i - startx)] * 180.0 / PI;
 		}
 	}
+	//做橫向高斯
+	for (int j = 0; j < newLength; j++) {
+		for (int i = 0; i < newLength; i++) {
+			mm[j * newLength + i] *= musk[i];
+			//cout << mm[j * newLength + i] << endl;
+			//cout << musk[i] << endl;
+		}
+	}
+	//做縱向高斯
+	for (int j = 0; j < newLength; j++) {
+		for (int i = 0; i < newLength; i++) {
+			mm[j * newLength + i] *= musk[j];
+		}
+	}
+	//計算矩陣內各方向的加總
+	for (int j = 0; j < newLength; j++) {
+		for (int i = 0; i < newLength; i++) {
+			int usesita = (sita[j * newLength + i]) / 10;
+			direction[usesita] += mm[j * newLength + i];
+			//cout << mm[j * newLength + i] << endl;
+		}
+	}
+	int sitafoam[36];
+	int changesita;
+	float changedirection;
+	for (int i = 0; i < 36; i++) {
+		sitafoam[i] = i * 10;
+	}
+	//將個角度內各大小地值做排序
+	for (int j = 0; j < 35; j++) {
+		for (int i = 0; i < 35-j; i++) {
+			if (direction[i] <= direction[i+1]) {
+				changesita = sitafoam[i];
+				sitafoam[i] = sitafoam[i + 1];
+				sitafoam[i + 1] = changesita;
 
+				changedirection = direction[i];
+				direction[i] = direction[i + 1];
+				direction[i + 1] = changedirection;
+			}
+		}
+	}
+	//找出主副方向並加入特徵點結構裡面
+	//cout << direction[0] << " , "<< sitafoam[0] << endl;
+	//cout << Insize << " , "<< scale << endl;
+	AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, direction[0], sitafoam[0]);
+	int add = 1;
+	while (direction[add] >= 0.8*direction[0]) {
+		AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, direction[add], sitafoam[add]);
+		++add;
+	}
+	delete[] mm;
+	delete[] sita;
 }
 // 高斯金字塔
 void Sift::pyramid2() {
-	ImgRaw first_img;
+	ImgRaw first_img(raw_img.width, raw_img.height);
 	float Limit;
 	/*金字塔高*/
 	int n = 1;
@@ -339,7 +253,7 @@ void Sift::pyramid2() {
 	Limit = pow(0.5, n);
 	/*做金字塔*/
 	float curr_size=2;
-	for (size_t ph = 0; ph < 1; ph++) {
+	for (size_t ph = 0; ph < 1; ph++) { // 金字塔的sigma還沒修復第二層沒*2
 		//ImgRaw::first(currSize_img, raw_img, curr_size);
 		const size_t curr_Width = raw_img.width*curr_size;
 		const size_t curr_Height = raw_img.height*curr_size;
@@ -351,9 +265,9 @@ void Sift::pyramid2() {
 		ImgRaw::gauBlur(gau_imgs[0], currSize_img, SIFT_GauSigma);
 		//Gusto(gau_imgs[0], currSize_img, curr_Width, curr_Height, SIFT_GauSigma);
 		for (size_t i = 1; i < pyWidth; i++) {
-			const float curr_Sigma = SIFT_GauSigma*pow(sqrt(2.0),i);
+			const float curr_Sigma = SIFT_GauSigma*pow(sqrt(2.0),i); // 這裡的2是 S+3 的 S
 			gau_imgs[i].raw_img.resize(curr_Width*curr_Height);
-			Gaus::raw2GauBlur(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
+			Gaus::GauBlur(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
 			//Gusto(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
 			//gau_imgs[i].bmp("_gau.bmp", 8);
 		}
@@ -365,28 +279,33 @@ void Sift::pyramid2() {
 				img[idx] = gau_imgs[i][idx] - gau_imgs[i+1][idx];
 			}
 			gauDog_imgs[i]=img;
-			gauDog_imgs[i].bmp("gauc/gauDog"+to_string(i)+".bmp", 8);
+			//gauDog_imgs[i].bmp("gauc/gauDog"+to_string(i)+".bmp", 8);
 		}
 		// 尋找特徵點並累加直方圖
+		FeatureNow = FeatureEnd;
 		for (size_t scale_idx = 1; scale_idx < pyWidth-1-1; scale_idx++) {
-			ImgRaw teest_img(curr_Width, curr_Height);
+			ImgRaw MaxMin_img(curr_Width, curr_Height);
+			ImgRaw Herris_img(curr_Width, curr_Height);
 			// 特徵直方圖累加半徑
 			const size_t r = curr_size * 3. * 1.5 * (scale_idx+1);
 			for (size_t j = r+1; j < curr_Height-r-1; j++) {
 				for (size_t i = r+1; i < curr_Width-r-1; i++) {
 					// 尋找極值點
-					const float& Val = gauDog_imgs[scale_idx][j*curr_Width + i];
 					if (findMaxMin(gauDog_imgs, scale_idx, curr_Width, j, i)) {
-						teest_img[j*curr_Width + i] = 255 /255.0;
+						const ImgRaw& currImg = gauDog_imgs[scale_idx];
+						const float currSigma = SIFT_GauSigma*powf(sqrt(2.0),scale_idx); // 這裡的2是 S+3 的 S
+						if (Corner::harris(currImg, curr_Width, j, i, r)) {
+							getHistogramMS(currImg, j, i, r, curr_size, curr_Width, currSigma, scale_idx);
+							//kaidanImage[k], i, j, r, insize, InWidth, pow(sqrt(2), k)*sigma,k
+							Herris_img[j*curr_Width + i] = 255 /255.0;
+						}
+						MaxMin_img[j*curr_Width + i] = 255 /255.0;
 					}
 				}
 			}
-			teest_img.bmp("MaxMin/MaxMin"+to_string(scale_idx)+".bmp", 8);
+			MaxMin_img.bmp("MaxMin/MaxMin_"+to_string(scale_idx)+".bmp", 8);
+			Herris_img.bmp("Herris/Herris_"+to_string(scale_idx)+".bmp", 8);
 		}
-
-
-
-
 		curr_size /= 2; // 每次遞減
 		cout << endl;
 	}
@@ -670,4 +589,278 @@ void Draw::draw_line(ImgRaw& img, size_t y, size_t x, float line_len, float sg) 
 	// 頭尾
 	draw_line(y, x);
 	draw_line(y2, x2);
+}
+
+
+
+bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
+	const float& Val = gauDog_imgs[scale_idx][y*curr_Width + x];
+
+	bool maxc, minc;
+	maxc = minc = true;
+	for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++)
+	{
+		for (int j = (y - 1); j <= (y + 1); j++)
+		{
+			for (int i = (x - 1); i < (x + 1); i++)
+			{
+				if (gauDog_imgs[k][j*curr_Width + i] > Val)
+					maxc = false;
+				if (gauDog_imgs[k][j*curr_Width + i] < Val)
+					minc = false;
+				if (!(maxc | minc))
+					return false;
+			}
+		}
+	}
+
+	if (abs(Val) < 0.015)
+		return false;
+	else
+		return true;
+
+
+	/*for (int i = -1; i < 2; i++) {
+	if (fabs(Val) > SIFT_Dx/2.f) {
+	if (
+	(Val>0 and
+	Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x-1] and
+	Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x+0] and
+	Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x+1] and
+	Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x-1] and
+	Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x+0] and
+	Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x+1] and
+	Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x-1] and
+	Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x+0] and
+	Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x+1])
+	){
+	return true;
+	}
+	}
+	}
+	return false;*/
+};
+void Sift::ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight)
+{
+	// 原圖資訊(取自資料成員)
+	const size_t Height=raw_img.height;
+	const size_t Width=raw_img.width;
+	const vector<float>& gray=raw_img;
+
+	float XX1, XX2, XXYY;
+	float dx, dy;
+	float Io, Jo;
+	for (int j = 0; j < InHeight - 1; ++j)
+	{
+		Jo = j * (Height - 1) / (InHeight - 1);
+		dy = 1 - ((j * (Height - 1) / (InHeight - 1)) - Jo);
+		for (int i = 0; i < InWidth - 1; ++i)
+		{
+			Io = i * (Width - 1) / (InWidth - 1);
+			dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
+			XX1 = gray[(int)((Io + 0) + (Jo + 0)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 0)*Width)] * (1 - dx);
+			XX2 = gray[(int)((Io + 0) + (Jo + 1)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 1)*Width)] * (1 - dx);
+			XXYY = XX1*dy + XX2*(1 - dy);
+			doImage[j*InWidth + i] = XXYY;
+		}
+		XX1 = gray[(int)((Jo + 1)*Width - 1)];
+		XX2 = gray[(int)((Jo + 2)*Width - 1)];
+		XXYY = XX1*dy + XX2*(1 - dy);
+		doImage[(j + 1)*InWidth - 1] = XXYY;
+	}
+	for (int i = 0; i < InWidth - 1; i++)
+	{
+		Io = i * (Width - 1) / (InWidth - 1);
+		dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
+		XX1 = gray[(int)((Height - 1)*Width + (Io + 0))];
+		XX2 = gray[(int)((Height - 1)*Width + (Io + 1))];
+		XXYY = XX1*dx + XX2*(1 - dx);
+		doImage[(InHeight - 1)*InWidth + i] = XXYY;
+	}
+	doImage[InHeight*InWidth - 1] = gray[Height*Width - 1];
+}
+
+//*** 印出箭頭 ***//
+void Sift::display()
+{
+	
+	//箭頭倍率
+	int mag = 100000.0;
+
+	Featureptr pictureS = FeatureStart;
+	size_t Height=raw_img.height;
+	size_t Width=raw_img.width;
+
+	
+	
+	// 臨時圖庫
+	/*ImgRaw img(Width*3 * Height);
+	img.width=Width;
+	img.height=Height;*/
+
+	ImgRaw img("kanna.bmp", 0);
+
+	ImgRaw img_gray(Width, Height);
+
+	//for (size_t j = 0; j < Height; j++) {
+	//	for (size_t i = 0; i < Width; i++) {
+	//		//img[(j*Width+i) + 0]=0.5;
+	//		img[(j*Width+i)*3 + 0] = 0.5;
+	//		img[(j*Width+i)*3 + 1] = 0;
+	//		img[(j*Width+i)*3 + 2] = 0;
+	//	}
+	//}
+	//img.bmp("feaArrow.bmp", 24);
+
+
+	while (pictureS->nextptr != NULL)
+	{
+		//cout << pictureS->x  << ", "<< pictureS->y  << ", "<< pictureS->mm << ", " << pictureS->sita << endl;
+
+
+		pictureS = pictureS->nextptr;
+		int x, y;
+		float roominout = pictureS->size;
+		x = 1;
+
+		/*
+		//cout<< roominout << endl;
+		x=pictureS->x/roominout;
+		y=pictureS->y/roominout;
+		//cout << x  << ", "<< y  << ", "<< roominout << ", " << pictureS->sita << endl;
+		Draw::draw_line(img, y, x, 10, -pictureS->sita);
+		*/
+
+		
+		//劃出箭頭的直線
+		while (true)
+		{
+			
+			if (pictureS->sita == 90 || pictureS->sita == 270) y = 0;
+			else y = x * tan((pictureS->sita)*PI / 180.0);
+
+			if ((x*x + y*y) <= (pictureS->mm)*mag)
+			{
+				int dx, dy;
+				if (pictureS->sita > 90 && pictureS->sita <= 270)
+				{
+					dx = (int)(pictureS->x / roominout) - x;
+					dy = (int)(pictureS->y / roominout) - y;
+				}
+				else
+				{
+					dx = (int)(pictureS->x / roominout) + x;
+					dy = (int)(pictureS->y / roominout) + y;
+				}
+
+				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height)
+				{
+					//cout << "123" << endl;
+					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
+					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
+					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
+					//color[dy][dx].rgbtBlue = 255.0;
+					//color[dy][dx].rgbtGreen = 0.0;
+					//color[dy][dx].rgbtRed = 0.0;
+				}
+			}
+			else
+			{
+				break;
+			}
+			++x;
+		}
+		if (pictureS->sita > 90 && pictureS->sita <= 270)
+		{
+			x = -x;
+			y = -y;
+		}
+		//畫出箭頭的兩條斜線
+		int xR, yR;
+		int xL, yL;
+		xR = xL = 1;
+		int sitaR = pictureS->sita - 150;
+		int sitaL = pictureS->sita + 150;
+		if (sitaR < 0) sitaR = 360 + sitaR;
+		if (sitaL >= 360) sitaL = sitaL - 360;
+		while (true)//右下線
+		{
+			if (sitaR == 90 || sitaR == 270) yR = 0;
+			else yR = xR * tan((sitaR)*PI / 180.0);
+
+			if ((xR*xR + yR*yR) <= (pictureS->mm)*mag / 4.0)
+			{
+				int dx, dy;
+				if (sitaR > 90 && sitaR <= 270)
+				{
+					dx = pictureS->x / roominout + x - xR;
+					dy = pictureS->y / roominout + y - yR;
+				}
+				else
+				{
+					dx = pictureS->x / roominout + x + xR;
+					dy = pictureS->y / roominout + y + yR;
+				}
+
+				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height)
+				{
+					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
+					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
+					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
+					
+					//color[dy][dx].rgbtBlue = 255.0;
+					//color[dy][dx].rgbtGreen = 0.0;
+					//color[dy][dx].rgbtRed = 0.0;
+					
+				}
+			}
+			else
+			{
+				break;
+			}
+			++xR;
+		}
+
+		while (true)//左下線
+		{
+			if (sitaL == 90 || sitaL == 270) yL = 0;
+			else yL = xL * tan((sitaL)*PI / 180.0);
+
+			if ((xL*xL + yL*yL) <= (pictureS->mm)*mag / 4.0)
+			{
+				int dx, dy;
+				if (sitaL > 90 && sitaL <= 270)
+				{
+					dx = pictureS->x / roominout + x - xL;
+					dy = pictureS->y / roominout + y - yL;
+				}
+				else
+				{
+					dx = pictureS->x / roominout + x + xL;
+					dy = pictureS->y / roominout + y + yL;
+				}
+
+				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height)
+				{
+					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
+					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
+					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
+					
+					//color[dy][dx].rgbtBlue = 255.0;
+					//color[dy][dx].rgbtGreen = 0.0;
+					//color[dy][dx].rgbtRed = 0.0;
+					
+				}
+			}
+			else
+			{
+				break;
+			}
+			++xL;
+		}
+	}
+
+	/*輸出圖片*/
+	img.bmp("feaArrow.bmp", 24);
+	//img_gray.bmp("feaArrow.bmp", 24);
 }

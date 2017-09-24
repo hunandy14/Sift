@@ -15,7 +15,7 @@ using namespace std;
 constexpr auto M_PI = 3.14159265358979323846;
 
 // 高斯模糊(3x3)
-void Gaus::raw2GauBlur(vector<types>& img_gau,
+void Gaus::GauBlur(vector<types>& img_gau,
     const vector<types>& img_ori,
     size_t width, size_t height, float p)
 {

@@ -19,7 +19,7 @@ class Gaus{
 private:
     using types = float;
 public:
-    static void raw2GauBlur(vector<types>& img_gau,
+    static void GauBlur(vector<types>& img_gau,
 		const vector<types>& img_ori,
         size_t width, size_t height, float p);
 	static void GauDog(vector<types>& img_dog,
