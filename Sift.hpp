@@ -124,29 +124,11 @@ public:
     // 大小是否相等
     friend bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs);
     friend bool operator==(const ImgRaw& lhs, const ImgRaw& rhs);
-    // 差分圖
-    ImgRaw& operator-=(const ImgRaw& rhs) {
-        // 尺寸不同
-        if ((*this) != rhs) {
-            throw Size_error("Error size is diff.");
-        }
-        for (unsigned i = 0; i < width*height; ++i) {
-            raw_img[i] -= rhs.raw_img[i];
-        }
-        return (*this);
-    }
-    friend ImgRaw operator-(ImgRaw lhs, const ImgRaw& rhs) {
-        return lhs -= rhs;
-    }
     // 寫 BMP 檔
-    ImgRaw& bmp(string name, size_t bits=0) {
-		if (bits == 0) {
-			bits = this->bitCount;
-		}
-		// 有重載轉換函式(感覺不是很好，有空修掉)
-        vector<unsigned char> img = (*this);
+    void bmp(string name, size_t bits=0) {
+		if (bits == 0) { bits = this->bitCount; }
+        vector<unsigned char> img = (*this);// // 有重載轉換函式
         Raw::raw2bmp(name, img, width, height, bits);
-        return (*this);
     }
 
 public:
@@ -175,7 +157,6 @@ public:
     uint32_t width;
 	uint32_t height;
 	uint16_t bitCount = 0;
-	float sigma = 0;
 };
 // 大小是否相等
 inline bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs) {
@@ -195,18 +176,14 @@ public:
     Sift(vector<types> raw_img, size_t width, size_t height):
         raw_img(raw_img, width, height) {}
 public:
-    void pyramid(size_t s = 3); // 3 為論文中所給的
-	void pyramid2(); // 3 為論文中所給的
+	void pyramid2();
     void comp(vector<ImgRaw>& pyrs, string name="");
-    vector<ImgRaw> dog_gau(ImgRaw& img, size_t s, size_t o=1);
-	float* getFea(ImgRaw& img, size_t y, size_t x, float sigma, size_t r);
-	void display();
-private:	
-	float fea_m(ImgRaw& img, size_t y, size_t x);
-	float fea_sida(ImgRaw& img, size_t y, size_t x);
+	void addArrow();
+private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
 	void ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight);
-	void getHistogramMS(const ImgRaw& doImage, size_t Iny, size_t Inx,size_t Inr,float Insize, size_t InWidth, float sigma, int scale);
+	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
+		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
 	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
 private:
     ImgRaw raw_img;  //原圖

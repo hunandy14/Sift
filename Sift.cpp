@@ -63,28 +63,6 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name) {
         // system(name.c_str());
     }
 };
-// 高斯模糊(第一圖, 模糊幾次) / 回傳整個度(octvs)回去
-vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s, size_t o) {
-	// 初始化
-	vector<ImgRaw> pyrs;
-	for (unsigned i = 0; i < s; ++i) {
-		pyrs.emplace_back(img.width, img.height);
-	}
-	// 高斯模糊
-	float p = SIFT_GauSigma;
-	float k = pow(2.f, 1.f / SIFT_Sacle);
-	pyrs[0].sigma = p*o;
-	//cout << pyrs[0].sigma << ", ";
-	ImgRaw::gauBlur(pyrs[0], img, p);
-	for (unsigned i = 1; i < s; ++i) {
-		p *= k;
-		pyrs[i].sigma = p * o; // 儲存kp多*o
-		//cout << pyrs[i].sigma << ", ";
-		ImgRaw::gauBlur(pyrs[i], pyrs[i - 1], p); // 圖片是取上一層的，不用再*o
-	} //cout << endl;
-	return pyrs;
-}
-
 // 獲得特徵點直方圖統計
 static inline float getMag(float dx, float dy){
 	// 獲得強度
@@ -109,8 +87,8 @@ void Sift::AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigm
 	FeatureEnd->nextptr = newnode;
 	FeatureEnd = newnode;
 }
-void Sift::getHistogramMS(const ImgRaw& doImage, size_t Iny, size_t Inx, size_t Inr, 
-	float Insize, size_t InWidth, float sigma, int scale)
+void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
+	size_t Iny, size_t Inx, size_t InWidth, size_t Inr)
 {
 	const size_t matLen = Inr*2 + 1; // 遮罩長度
 	vector<float> mag(matLen * matLen);  // 儲存強度
@@ -136,71 +114,35 @@ void Sift::getHistogramMS(const ImgRaw& doImage, size_t Iny, size_t Inx, size_t 
 			mag[j*matLen + i] *= gauMat [j];
 		}
 	}
-	//計算矩陣內各方向的加總
+	// 遮罩內的強度依照角度分類累加
 	vector<float> magSum(36); // 強度累加陣列
-	for (size_t j = 0, idx = 0; j < matLen; j++) {
-		for (size_t i = 0; i < matLen; i++, idx++) {
-			int usesita = sita[idx]/10;
-			magSum[usesita] += mag[idx];
-		}
+	for (size_t i = 0; i < mag.size(); i++) {
+		magSum[(sita[i]/10.0)] += mag[i];
 	}
-	
+	// 新增主方向與副方向
 	float maxMag = *max_element(magSum.begin(), magSum.end());
 	for (size_t i = 0; i < 36; i++) {
 		if (magSum[i] >= maxMag*0.8) {
 			AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[i], i*10);
 		}
 	}
-	/*
-	
-	//將各角度內各大小地值做排序
-	int sitafoam[36];
-	int changesita;
-	float changedirection;
-	for (int i = 0; i < 36; i++) {
-		sitafoam[i] = i * 10;
-	}
-	for (int j = 0; j < 35; j++) {
-		for (int i = 0; i < 35-j; i++) {
-			if (magSum[i] <= magSum[i+1]) {
-				changesita = sitafoam[i];
-				sitafoam[i] = sitafoam[i + 1];
-				sitafoam[i + 1] = changesita;
-
-				changedirection = magSum[i];
-				magSum[i] = magSum[i + 1];
-				magSum[i + 1] = changedirection;
-			}
-		}
-	}
-	// 主方向
-	//AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[0], sitafoam[0]);
-	// 副方向
-	int add = 1;
-	while (magSum[add] >= 0.8*magSum[0]) {
-		//AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[add], sitafoam[add]);
-		++add;
-	}*/
-	//system("pause");
 }
 // 高斯金字塔
-void Sift::pyramid2() {
-	ImgRaw first_img(raw_img.width, raw_img.height);
-	float Limit;
-	/*金字塔高*/
+static inline size_t getPyramidOctv(size_t width, size_t height) {
+	// 獲得金字塔八度的長
 	int n = 1;
-	for (Limit = 1.0;Limit < first_img.width || Limit < first_img.height; ++n){
+	for (float Limit = 1.0; Limit < width || Limit < height; ++n){
 		Limit = powf(2.0, n);
 	}
-	if (n < 7) {
-		n = 1;
-	} else {
-		n -= 6;
-	}
-	Limit = pow(0.5, n);
-	/*做金字塔*/
+	if (n < 7) {n = 1;}
+	else {n -= 6;}
+	return n;
+}
+void Sift::pyramid2() {
+	ImgRaw first_img(raw_img.width, raw_img.height);
+	size_t octv = getPyramidOctv(raw_img.width, raw_img.height);
 	float curr_size=2;
-	for (size_t ph = 0; ph < n; ph++) { // 金字塔的sigma還沒修復第二層沒*2
+	for (size_t ph = 0; ph < octv; ph++, curr_size /= 2) { // 金字塔的sigma還沒修復第二層沒*2
 		const size_t curr_Width = raw_img.width*curr_size;
 		const size_t curr_Height = raw_img.height*curr_size;
 		ImgRaw currSize_img(curr_Width ,curr_Height);
@@ -219,11 +161,10 @@ void Sift::pyramid2() {
 		// 高斯差分
 		vector<ImgRaw> gauDog_imgs(pyWidth-1);
 		for (size_t i = 0; i < pyWidth-1; i++) {
-			ImgRaw img(curr_Width, curr_Height);
+			gauDog_imgs[i].resize(curr_Width, curr_Height);
 			for (size_t idx = 0; idx < curr_Width*curr_Height; idx++) {
-				img[idx] = gau_imgs[i][idx] - gau_imgs[i+1][idx];
+				gauDog_imgs[i][idx] = gau_imgs[i][idx] - gau_imgs[i+1][idx];
 			}
-			gauDog_imgs[i]=img;
 		}
 		// 尋找特徵點並累加直方圖
 		FeatureNow = FeatureEnd;
@@ -237,230 +178,20 @@ void Sift::pyramid2() {
 					// 尋找極值點
 					if (findMaxMin(gauDog_imgs, scale_idx, curr_Width, j, i)) {
 						const ImgRaw& currImg = gauDog_imgs[scale_idx];
-						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (ph+1); // 這裡的2是 S+3 的 S
+						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (ph+1);
 						if (Corner::harris(currImg, curr_Width, j, i, r)) {
-							getHistogramMS(currImg, j, i, r, curr_size, curr_Width, currSigma, scale_idx);
-							//kaidanImage[k], i, j, r, insize, InWidth, pow(sqrt(2), k)*sigma,k
-							Herris_img[j*curr_Width + i] = 255 /255.0;
+							getHistogramMS(currImg, curr_size, scale_idx, currSigma, j, i, curr_Width, r);
+							//Herris_img[j*curr_Width + i] = 255 /255.0;
 						}
-						MaxMin_img[j*curr_Width + i] = 255 /255.0;
+						//MaxMin_img[j*curr_Width + i] = 255 /255.0;
 					}
 				}
 			}
-			MaxMin_img.bmp("MaxMin/MaxMin_"+to_string(scale_idx)+".bmp", 8);
-			Herris_img.bmp("Herris/Herris_"+to_string(scale_idx)+".bmp", 8);
-		}
-		curr_size /= 2; // 每次遞減
-		cout << endl;
-	}
-}
-
-void Sift::pyramid(size_t s) {
-	size_t sacle = s+SIFT_SacleDiff; // 找極值捨去前後兩張 + 差分圖少1張
-    size_t octvs = 2; // 不同大小圖片(自訂)
-    //octvs = (size_t)(log(min(raw_img.width, raw_img.height)) / log(2.0)-2);
-    pyrs.resize(octvs);
-
-    // 輸入圖
-    ImgRaw temp(raw_img.width, raw_img.height);
-	ImgRaw::first(temp, raw_img, 2);
-	temp.sigma = SIFT_GauSigma;
-    // 高斯金字塔
-    pyrs[0] = dog_gau(temp, sacle);
-    comp(pyrs[0], "Sift-gau_" + to_string(0));
-    for (unsigned i = 1; i < octvs; ++i) {
-        // 縮小一張圖(中間那張的p倍率正好會是下一排的第一張)
-        ImgRaw::first(temp, pyrs[i - 1][SIFT_SacleDiff], 0.5);
-        // 回傳 s 張模糊圖
-        pyrs[i] = dog_gau(temp, sacle, i*2);
-        // 輸出高斯模糊圖
-        comp(pyrs[i], "Sift-gau_" + to_string(i));
-    }
-
-// 測試 sigma 數值
-//for (size_t o = 0; o < pyrs.size(); o++) {
-//	for (size_t s = 0; s < pyrs[0].size(); s++) {
-//		cout << pyrs[o][s].sigma << ", ";
-//	} cout << endl;
-//} cout << "==================================" << endl;
-
-	// 差分圖金字塔
-	pyrs_dog = pyrs;
-    // 高斯金字塔差分圖
-    for (unsigned j = 0; j < octvs; ++j) {
-        // 高斯差分
-        for (unsigned i = 0; i < pyrs[j].size() - 1; ++i) {
-			pyrs_dog[j][i] = pyrs[j][i] - pyrs[j][i+1];
-        }
-		// 移除最後一張
-		pyrs_dog[j].erase(--(pyrs_dog[j].end()));
-		// 輸出差分圖
-        comp(pyrs_dog[j], "Sift-diff_" + to_string(j));
-    }
-
-// 測試 sigma 數值
-//for (size_t o = 0; o < pyrs.size(); o++) {
-//	for (size_t s = 0; s < pyrs[0].size(); s++) {
-//		cout << pyrs[o][s].sigma << ", ";
-//	} cout << endl;
-//}
-
-    // 取得遮罩(沒有邊緣防呆)
-    auto getMask = [](vector<types>& mask,
-        ImgRaw& img, size_t y, size_t x)
-    {
-        // 複製遮罩
-        mask.resize(9);
-        mask[0] = img.at2d(y - 1, x - 1);
-        mask[1] = img.at2d(y - 1, x + 0);
-        mask[2] = img.at2d(y - 1, x - 1);
-
-        mask[3] = img.at2d(y + 0, x - 1);
-        mask[4] = img.at2d(y + 0, x + 0);
-        mask[5] = img.at2d(y + 0, x - 1);
-
-        mask[6] = img.at2d(y + 1, x - 1);
-        mask[7] = img.at2d(y + 1, x + 0);
-        mask[8] = img.at2d(y + 1, x + 1);
-    };
-    // 尋找 cubic 極值
-    vector<types> mask; // 臨時方塊27點找極值
-	vector<Fea_point> feap;
-    for (unsigned py = 0; py < pyrs_dog.size(); ++py) {
-        for (unsigned px = 1; px < pyrs_dog[py].size() - 1; ++px) { // 捨棄前後兩張
-			size_t gau_r;// 當前這張圖的高斯半徑
-			gau_r = (size_t)(2.f*1.f/powf(2.f, py) * (px+1) * 1.5f * 3.f);
-//cout << 2.f*1.f/powf(2.f, py) << ", " << (px+1) << "----";
-//cout << gau_r << ", ";
-            ImgRaw fea(pyrs_dog[py][px].width, pyrs_dog[py][px].height); // 暫存畫布
-			// 選定層級找極值(#防呆去除邊緣)(移除半徑會超出邊緣的點)
-            for (unsigned j = 1+gau_r; j < pyrs_dog[py][px].height - 2 - gau_r; ++j) {
-                for (unsigned i = 1+gau_r; i < pyrs_dog[py][px].width - 2 - gau_r; ++i) {
-                    // 取得上下層的九宮格
-                    getMask(mask, pyrs_dog[py][px - 1], j, i);
-                    getMask(mask, pyrs_dog[py][px], j, i);
-                    getMask(mask, pyrs_dog[py][px + 1], j, i);
-					// 找兩極值
-                    float max = *std::max_element(mask.begin(), mask.end());
-                    float min = *std::min_element(mask.begin(), mask.end());
-                    size_t mid = (mask.size() - 1) / 2;
-
-					// 保留極值
-					if (mask[mid] == max or mask[mid] == min) {
-                        constexpr float thre = SIFT_Dx / 2.f;
-						// 保留變動大於 0.03
-						if (abs(mask[mid]) > thre) { 
-							// 角點偵測
-							if (Corner::harris(pyrs_dog[py][px],
-								pyrs_dog[py][px].width, j, i, SIFT_HarrisR) == 1)
-							{
-								// 計算特徵點的統計方向與強度
-								float fea_m = 0.f;
-								float fea_sida = 0.f;
-								float* fea_p = getFea(pyrs[py][px], j, i, pyrs_dog[py][px].sigma, gau_r);
-								// 建立特徵點的統計方向與強度
-								// feap.emplace_back(py, px, j, i, gau_r, pyrs_dog[py][px].sigma, fea_p[0], fea_p[1]);
-								float rate=1.0;
-								//cout << fea_p[0]*rate << ", " << fea_p[1] << endl;
-								delete fea_p;
-								//Draw::draw_line(fea, j, i, fea_p[0]*rate, fea_p[1]);
-								//Draw::draw_line(fea, j, i, 10, fea_p[1]);
-
-								fea.at2d(j, i) = 1; // 畫點
-							}
-                        }
-                    }
-                }
-            }
-            // 特徵點圖片預覽
-            fea.bmp("fea/fea" + to_string(py) + "-" + to_string(px) + ".bmp", 8);
-			
-        }
-//cout << endl;
-    }
-
-
-
-	/* pyrs到這裡已經是特徵點圖 */
-
-	/*
-	vector<types> getGau;
-	auto getGau = [](vector<types>& mask,
-		ImgRaw& img, size_t y, size_t x)
-	{
-		// 複製遮罩
-		mask.resize();
-	};*/
-
-	// feap存了各階層的特徵點
-
-
-
-
-} // 高斯金字塔
-
-// 計算特徵描述長度
-float Sift::fea_m(ImgRaw& img, size_t y, size_t x) {
-	// 檢查邊界
-	if (x<=0 or y<=0 or x>= img.width-2 or y>= img.height-2) {
-		Out_of_imgRange("超出圖片邊界");
-	}
-	// 公式
-	float m = sqrtf(
-		powf(img.at2d(y, x+1)-img.at2d(y, x-1), 2)+
-		powf(img.at2d(y+1, x)-img.at2d(y-1, x), 2)
-	);
-	return m;
-}
-// 計算特徵描述角度
-float Sift::fea_sida(ImgRaw& img, size_t y, size_t x) {
-	// 檢查邊界
-	if (x<=0 or y<=0 or x>= img.width-2 or y>= img.height-2) {
-		Out_of_imgRange("超出圖片邊界");
-	}
-	// 公式
-	float valY = img.at2d(y+1, x)-img.at2d(y-1, x);
-	float valX = img.at2d(y, x+1)-img.at2d(y, x-1);
-	float sida = atan2(valY, valX) * (180/M_PI);
-	// 修正負號
-	if (sida < 0) {
-		sida += 360.f;
-	}
-	return sida;
-}
-// 輸入原圖與點，計算強度與角度
-float* Sift::getFea(ImgRaw& img, size_t y, size_t x, float sigma, size_t r) {
-	size_t diam = r*2;
-	// 高斯矩陣
-	vector<float> gau_2dmat;
-	Gaus::gau_matrix2d(gau_2dmat, sigma, diam+1);
-	// 獲取特徵點計算半徑內的所有 s, m
-	map<int, float> fea_hist;
-	for (size_t j = 0; j < diam+1; j++) {
-		for (size_t i = 0; i < diam+1; i++) {
-			// 當前點
-			float m = fea_m(img, y-r+j, x-r+i) * gau_2dmat[j*diam + i];
-			float s = fea_sida(img, y-r+j, x-r+i);
-			fea_hist[floor(s/10)] += m;
-//cout << m << ",	" << floor(s/10) << endl;
+			//MaxMin_img.bmp("MaxMin/MaxMin_"+to_string(scale_idx)+".bmp", 8);
+			//Herris_img.bmp("Herris/Herris_"+to_string(scale_idx)+".bmp", 8);
 		}
 	}
-
-// 找出主方向
-//cout << "*********" << endl;
-	float value = fea_hist[0];
-	float mapidx = 0;
-	for (size_t i = 1; i < 36; i++) {
-//cout << fea_hist[i] << endl;
-		if (value < fea_hist[i]) {
-			value = fea_hist[i];
-			mapidx = i;
-		}
-	}
-	float* fea_value = new float[2]{value, mapidx*10};
-	return fea_value;
 }
-
 // 畫線
 void Draw::draw_line(ImgRaw& img, size_t y, size_t x, float line_len, float sg) {
 	float value = 200 /255.0;
@@ -533,9 +264,7 @@ void Draw::draw_line(ImgRaw& img, size_t y, size_t x, float line_len, float sg) 
 	draw_line(y, x);
 	draw_line(y2, x2);
 }
-
-
-
+// 找極值
 bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
 	const float& Val = gauDog_imgs[scale_idx][y*curr_Width + x];
 
@@ -583,6 +312,7 @@ bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr
 	}
 	return false;*/
 };
+// 放大縮小
 void Sift::ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight)
 {
 	// 原圖資訊(取自資料成員)
@@ -622,9 +352,8 @@ void Sift::ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight)
 	}
 	doImage[InHeight*InWidth - 1] = gray[Height*Width - 1];
 }
-
-//*** 印出箭頭 ***//
-void Sift::display()
+// 印出箭頭
+void Sift::addArrow()
 {
 	
 	//箭頭倍率
