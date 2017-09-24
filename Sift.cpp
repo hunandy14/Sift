@@ -16,18 +16,7 @@ Final: 2017/07/05
 using namespace std;
 
 #define M_PI 3.14159265358979323846
-#define PI 3.14159265358979323846
 
-
-
-// 初始化
-ImgRaw::ImgRaw(size_t width, size_t height, float val) :
-	raw_img(width*height), width(width), height(height)
-{
-	if (val) {
-		std::fill_n (raw_img.begin(), raw_img.size(),val/255.0);
-	}
-}
 // (多一個 gray_tran 參數判定感覺不是很好有機會修掉)
 ImgRaw::ImgRaw(string bmpname, bool gray_tran){
 	vector<unsigned char> img;
@@ -96,36 +85,15 @@ vector<ImgRaw> Sift::dog_gau(ImgRaw& img, size_t s, size_t o) {
 	return pyrs;
 }
 
-
 // 獲得特徵點直方圖統計
-//*** 求m(強度)值 ***//
-float getM(float x0, float x1, float y0, float y1)
-{
-	float mm;
-	mm = (x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0);
-	mm = sqrt(mm);
-	return mm;
+static inline float getMag(float dx, float dy){
+	// 獲得強度
+	return sqrtf(dx*dx + dy*dy);
 }
-//*** 求sita值(徑度) ***//
-float getSita(float x0, float x1, float y0, float y1)
-{
-	float sita;
-	if (x0 == x1)
-	{
-		if (y1 > y0) sita = PI / 2;
-		else sita = PI * 3 / 2;
-	}
-	else
-	{
-		sita = atanf((y1 - y0) / (x1 - x0));
-		if (x1 < x0) sita += PI;
-		if (sita < 0) sita = 2 * PI + sita;
-		if (sita >= 2 * PI) sita -= 2 * PI;
-	}
-
-
-
-	return sita;
+static inline float getSita(float dx, float dy){
+	// 獲得角度
+	float s = atan2f(dy, dx);
+	return (s > 0? s: (s+M_PI*2));
 }
 void Sift::AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita)
 {
@@ -141,100 +109,69 @@ void Sift::AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigm
 	FeatureEnd->nextptr = newnode;
 	FeatureEnd = newnode;
 }
-
-
 void Sift::getHistogramMS(const ImgRaw& doImage, size_t Iny, size_t Inx, size_t Inr, 
 	float Insize, size_t InWidth, float sigma, int scale)
 {
-	//cout << doImage[Iny*InWidth+Inx] << endl;
-	int newLength = Inr * 2 + 1;
-	//float *musk = new float[newLength];//高斯分布的機率大小
-	//GusPersent(musk, (Inr * 2 + 1), sigma);
-	vector<types> musk = Gaus::gau_matrix(sigma, (Inr * 2 + 1));
-	//vector<types> gau_mat = Gaus::gau_matrix(sigma, 3);
-	/*for (size_t i = 0; i < musk.size(); i++) {
-		cout << musk[i] << ", ";
-	} cout << endl;*/
-
-	float direction[36] = {0};//儲存36個方向的加總值
-	float *mm, *sita;//建構出遮罩大小的m矩陣與sita矩陣
-	mm = new float[newLength * newLength];
-	sita = new float[newLength * newLength];
-	int starty, endy;
-	int startx, endx;
-	starty = Iny - Inr; endy = Iny + Inr;
-	startx = Inx - Inr; endx = Inx + Inr;
+	const size_t matLen = Inr*2 + 1; // 遮罩長度
+	vector<float> mag(matLen * matLen);  // 儲存強度
+	vector<float> sita(matLen * matLen); // 儲存角度
 	//做m、sita計算
-	for (int j = starty; j <= endy; j++) {
-		for (int i = startx; i <= endx; i++) {
-			volatile const float cu = doImage[(j + 0)*InWidth + (i + 0)];
-			volatile const float x0 = doImage[(j + 0)*InWidth + (i - 1)];
-			volatile const float x1 = doImage[(j + 0)*InWidth + (i + 1)];
-			volatile const float y0 = doImage[(j - 1)*InWidth + (i + 0)];
-			volatile const float y1 = doImage[(j + 1)*InWidth + (i + 0)];
-
-			//cout << cu << ", " << x0 << endl;
-			//cout << getSita(x0, x1, y0, y1)*180/PI << endl;
-			
-			mm[(j - starty)*newLength + (i - startx)] = getM(x0, x1, y0, y1);
-			sita[(j - starty)*newLength + (i - startx)] = getSita(x0, x1, y0, y1);
-			sita[(j - starty)*newLength + (i - startx)] = 
-				sita[(j - starty)*newLength + (i - startx)] * 180.0 / PI;
+	for (int j = (Iny - Inr), idx = 0; j <= (Iny + Inr); j++) {
+		for (int i = (Inx - Inr); i <= (Inx + Inr); i++, idx++) {
+			const float& dx = doImage[(j+0)*InWidth + (i+1)] - doImage[(j+0)*InWidth + (i-1)];
+			const float& dy = doImage[(j+1)*InWidth + (i+0)] - doImage[(j-1)*InWidth + (i+0)];
+			mag[idx] = getMag(dx, dy);
+			sita[idx] = getSita(dx, dy) * 180.0/M_PI;
 		}
 	}
-	//做橫向高斯
-	for (int j = 0; j < newLength; j++) {
-		for (int i = 0; i < newLength; i++) {
-			mm[j * newLength + i] *= musk[i];
-			//cout << mm[j * newLength + i] << endl;
-			//cout << musk[i] << endl;
+	// 高斯矩陣相乘
+	vector<types> gauMat = Gaus::gau_matrix(sigma, matLen); // 一維高斯矩陣
+	for (size_t j = 0; j < matLen; j++) {
+		for (size_t i = 0; i < matLen; i++) {
+			mag[j*matLen + i] *= gauMat [i];
 		}
 	}
-	//做縱向高斯
-	for (int j = 0; j < newLength; j++) {
-		for (int i = 0; i < newLength; i++) {
-			mm[j * newLength + i] *= musk[j];
+	for (size_t j = 0; j < matLen; j++) {
+		for (size_t i = 0; i < matLen; i++) {
+			mag[j*matLen + i] *= gauMat [j];
 		}
 	}
 	//計算矩陣內各方向的加總
-	for (int j = 0; j < newLength; j++) {
-		for (int i = 0; i < newLength; i++) {
-			int usesita = (sita[j * newLength + i]) / 10;
-			direction[usesita] += mm[j * newLength + i];
-			//cout << mm[j * newLength + i] << endl;
+	float magSum[36] = {}; // 強度累加陣列
+	for (size_t j = 0, idx = 0; j < matLen; j++) {
+		for (size_t i = 0; i < matLen; i++, idx++) {
+			const int usesita = sita[idx]/10.0;
+			magSum[usesita] += mag[idx];
 		}
 	}
+	//將各角度內各大小地值做排序
 	int sitafoam[36];
 	int changesita;
 	float changedirection;
 	for (int i = 0; i < 36; i++) {
 		sitafoam[i] = i * 10;
 	}
-	//將個角度內各大小地值做排序
 	for (int j = 0; j < 35; j++) {
 		for (int i = 0; i < 35-j; i++) {
-			if (direction[i] <= direction[i+1]) {
+			if (magSum[i] <= magSum[i+1]) {
 				changesita = sitafoam[i];
 				sitafoam[i] = sitafoam[i + 1];
 				sitafoam[i + 1] = changesita;
 
-				changedirection = direction[i];
-				direction[i] = direction[i + 1];
-				direction[i + 1] = changedirection;
+				changedirection = magSum[i];
+				magSum[i] = magSum[i + 1];
+				magSum[i + 1] = changedirection;
 			}
 		}
 	}
-	//找出主副方向並加入特徵點結構裡面
-	//cout << direction[0] << " , "<< sitafoam[0] << endl;
-	//cout << Insize << " , "<< scale << endl;
-	AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, direction[0], sitafoam[0]);
+	// 主方向
+	AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[0], sitafoam[0]);
+	// 副方向
 	int add = 1;
-	while (direction[add] >= 0.8*direction[0]) {
-		AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, direction[add], sitafoam[add]);
+	while (magSum[add] >= 0.8*magSum[0]) {
+		AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[add], sitafoam[add]);
 		++add;
 	}
-	delete[] mm;
-	delete[] sita;
 }
 // 高斯金字塔
 void Sift::pyramid2() {
@@ -253,22 +190,20 @@ void Sift::pyramid2() {
 	Limit = pow(0.5, n);
 	/*做金字塔*/
 	float curr_size=2;
-	for (size_t ph = 0; ph < 1; ph++) { // 金字塔的sigma還沒修復第二層沒*2
-		//ImgRaw::first(currSize_img, raw_img, curr_size);
+	for (size_t ph = 0; ph < n; ph++) { // 金字塔的sigma還沒修復第二層沒*2
 		const size_t curr_Width = raw_img.width*curr_size;
 		const size_t curr_Height = raw_img.height*curr_size;
 		ImgRaw currSize_img(curr_Width ,curr_Height);
+		//ImgRaw::first(currSize_img, raw_img, curr_size);
 		ZoomInOut(currSize_img, curr_Width, curr_Height);
 
 		// 高斯模糊
 		vector<ImgRaw> gau_imgs(pyWidth);
-		ImgRaw::gauBlur(gau_imgs[0], currSize_img, SIFT_GauSigma);
-		//Gusto(gau_imgs[0], currSize_img, curr_Width, curr_Height, SIFT_GauSigma);
+		ImgRaw::gauBlur(gau_imgs[0], currSize_img, SIFT_GauSigma * (ph+1));
 		for (size_t i = 1; i < pyWidth; i++) {
-			const float curr_Sigma = SIFT_GauSigma*pow(sqrt(2.0),i); // 這裡的2是 S+3 的 S
+			const float curr_Sigma = SIFT_GauSigma * powf(sqrt(2.0),i) * (ph+1); // 這裡的2是 S+3 的 S
 			gau_imgs[i].raw_img.resize(curr_Width*curr_Height);
 			Gaus::GauBlur(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
-			//Gusto(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
 			//gau_imgs[i].bmp("_gau.bmp", 8);
 		}
 		// 高斯差分
@@ -279,7 +214,6 @@ void Sift::pyramid2() {
 				img[idx] = gau_imgs[i][idx] - gau_imgs[i+1][idx];
 			}
 			gauDog_imgs[i]=img;
-			//gauDog_imgs[i].bmp("gauc/gauDog"+to_string(i)+".bmp", 8);
 		}
 		// 尋找特徵點並累加直方圖
 		FeatureNow = FeatureEnd;
@@ -293,7 +227,7 @@ void Sift::pyramid2() {
 					// 尋找極值點
 					if (findMaxMin(gauDog_imgs, scale_idx, curr_Width, j, i)) {
 						const ImgRaw& currImg = gauDog_imgs[scale_idx];
-						const float currSigma = SIFT_GauSigma*powf(sqrt(2.0),scale_idx); // 這裡的2是 S+3 的 S
+						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (ph+1); // 這裡的2是 S+3 的 S
 						if (Corner::harris(currImg, curr_Width, j, i, r)) {
 							getHistogramMS(currImg, j, i, r, curr_size, curr_Width, currSigma, scale_idx);
 							//kaidanImage[k], i, j, r, insize, InWidth, pow(sqrt(2), k)*sigma,k
@@ -715,7 +649,7 @@ void Sift::display()
 
 	while (pictureS->nextptr != NULL)
 	{
-		//cout << pictureS->x  << ", "<< pictureS->y  << ", "<< pictureS->mm << ", " << pictureS->sita << endl;
+		//cout << pictureS->x  << ", "<< pictureS->y  << ", "<< pictureS->mag << ", " << pictureS->sita << endl;
 
 
 		pictureS = pictureS->nextptr;
@@ -737,7 +671,7 @@ void Sift::display()
 		{
 			
 			if (pictureS->sita == 90 || pictureS->sita == 270) y = 0;
-			else y = x * tan((pictureS->sita)*PI / 180.0);
+			else y = x * tan((pictureS->sita)*M_PI / 180.0);
 
 			if ((x*x + y*y) <= (pictureS->mm)*mag)
 			{
@@ -786,7 +720,7 @@ void Sift::display()
 		while (true)//右下線
 		{
 			if (sitaR == 90 || sitaR == 270) yR = 0;
-			else yR = xR * tan((sitaR)*PI / 180.0);
+			else yR = xR * tan((sitaR)*M_PI / 180.0);
 
 			if ((xR*xR + yR*yR) <= (pictureS->mm)*mag / 4.0)
 			{
@@ -824,7 +758,7 @@ void Sift::display()
 		while (true)//左下線
 		{
 			if (sitaL == 90 || sitaL == 270) yL = 0;
-			else yL = xL * tan((sitaL)*PI / 180.0);
+			else yL = xL * tan((sitaL)*M_PI / 180.0);
 
 			if ((xL*xL + yL*yL) <= (pictureS->mm)*mag / 4.0)
 			{

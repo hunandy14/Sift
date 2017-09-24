@@ -83,20 +83,16 @@ class ImgRaw {
 private:
     using types = float;
 public:
+	// 初始化
     ImgRaw(vector<types> img, size_t width, size_t height) :
         raw_img(img), width(width), height(height) {}
-    ImgRaw(size_t width, size_t height, float val=0);
-	ImgRaw(size_t size = 0) {
-		raw_img.resize(size);
-	}
+	ImgRaw(size_t width, size_t height) :
+		raw_img(width*height), width(width), height(height){}
+	ImgRaw(size_t size = 0) :raw_img(size){}
 	ImgRaw(string bmpname, bool gray_tran);
     // 隱式轉換
-    operator vector<types>&() {
-        return raw_img;
-    }
-	operator const vector<types>&() const {
-		return raw_img;
-	}
+    operator vector<types>&() { return raw_img; }
+	operator const vector<types>&() const { return raw_img; }
     operator vector<unsigned char>() {
         vector<unsigned char> img(raw_img.size());
         for(unsigned i = 0; i < raw_img.size(); ++i) {
