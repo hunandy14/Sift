@@ -23,22 +23,34 @@ using namespace cv;
 
 //================================================================
 int main(int argc, char const *argv[]){
-	clock_t start,end;
-	start = clock();
+
 #define testpoint1
 #ifdef testpoint1
-	// 讀取圖片
-	// ImgRaw img("en.bmp");
-	// ImgRaw img("ball_01.bmp");
-	ImgRaw img("kanna.bmp", 1);
-    //ImgRaw input_img(0, 0);
-    //ImgRaw::first(input_img, img, 1);
-    // 金字塔
-    Sift fea(img);
-	fea.pyramid2();
-	//fea.pyramid(2);
-	fea.addArrow();
+clock_t start,end;
+start = clock();
 
+
+	// 讀取圖片
+	string name1="kanna.bmp";
+	string name2="kanna.bmp";
+	ImgRaw img1(name1, 1);
+	ImgRaw img2(name2, 1);
+    // 金字塔1
+    Sift fea1(img1);
+	fea1.pyramid2();
+	fea1.addArrow("feaArrow1.bmp");
+	// 金字塔2
+	Sift fea2(img2);
+	fea2.pyramid2();
+	fea2.addArrow("feaArrow2.bmp");
+	// 匹配特徵點(兩張大小要一樣)
+	Stitching match(fea1.FeatureStart, fea2.FeatureStart, name1, name2);
+	match.Check();
+
+
+
+end = clock();
+cout << "time is:" << (end - start)/1000.0 << "s" << endl;
 #endif // testpoint1
 	
 	/*ImgRaw img_line("kanna.bmp", 1);
@@ -53,8 +65,6 @@ int main(int argc, char const *argv[]){
 	img_line.bmp("line.bmp", 8);
 	*/
 
-	end = clock();
-	cout << "time is:" << (end - start)/1000.0 << "s" << endl;
 	return 0;
 }
 

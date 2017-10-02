@@ -178,14 +178,14 @@ public:
 public:
 	void pyramid2();
     void comp(vector<ImgRaw>& pyrs, string name="");
-	void addArrow();
+	void addArrow(string name="feaArrow.bmp");
 private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
-	void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag);
+	void FeatureDescrip(vector<ImgRaw>& kaidaImag);
 	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
 	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
-private:
+public:
     ImgRaw raw_img;  //原圖
 	size_t pyWidth=5;  //塔高(放大縮小)
 	size_t pyheight=5; //塔寬(模糊幾次)
@@ -215,4 +215,36 @@ struct Fea_point {
 class Draw {
 public:
 	static void draw_line(ImgRaw& img, size_t y, size_t x, float line_len, float sg);
+};
+//-----------------------------------------------------------------
+class Stitching{
+private:
+	int Width, Height;
+	Feature *FeatureStart1, *FeatureStart2;
+	ImgRaw matchImg;
+	//RGBTRIPLE** color;
+	//BITMAPFILEHEADER FileHeader;
+	//BITMAPINFOHEADER InfoHeader;
+public:
+	//*** 前兩項參數為標頭檔，第三、四項為圖片資訊，五、六項為特徵點資訊 ***//
+	Stitching(
+		//BITMAPFILEHEADER Filedata, 
+		//BITMAPINFOHEADER Infodata, 
+		//RGBTRIPLE** image1, 
+		//RGBTRIPLE** image2, 
+		Feature* inFeatureptr1, 
+		Feature* inFeatureptr2,
+		string name1,
+		string name2
+	);
+	~Stitching();
+	void OutBMP(std::string outname);
+	void OutRAW(std::string outname);
+	//void WriteImage(RGBTRIPLE** image1, RGBTRIPLE** image2);
+	//*** 檢查是否有相同的特徵描述子 ***//
+	void Check(void);
+	//*** 將帶入的兩點相連 ***//
+	void Link(int x1, int y1, int x2, int y2);
+	//*** 計算兩個描述子之間的歐式距離 ***//
+	float EuclideanDistance(std::vector <std::vector <std::vector <float>>> point1, std::vector <std::vector <std::vector <float>>> point2);
 };
