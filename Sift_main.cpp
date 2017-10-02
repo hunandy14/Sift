@@ -11,6 +11,9 @@ Final: 2017/07/04
 #include <vector>
 #include <string>
 #include <cmath>
+#include <ctime>
+#include <memory>
+
 using namespace std;
 #include "Sift.hpp"
 #include <opencv2/opencv.hpp>
@@ -20,6 +23,8 @@ using namespace cv;
 
 //================================================================
 int main(int argc, char const *argv[]){
+	clock_t start,end;
+	start = clock();
 #define testpoint1
 #ifdef testpoint1
 	// 讀取圖片
@@ -47,8 +52,10 @@ int main(int argc, char const *argv[]){
 
 	img_line.bmp("line.bmp", 8);
 	*/
-	return 0;
 
+	end = clock();
+	cout << "time is:" << (end - start)/1000.0 << "s" << endl;
+	return 0;
 }
 
 //================================================================

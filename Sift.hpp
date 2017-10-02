@@ -40,6 +40,8 @@ Final: 2017/07/05
     #define AND &&
 #endif
 
+#include <memory>
+
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 
@@ -57,17 +59,15 @@ Final: 2017/07/05
 // 特徵點結構
 struct Feature
 {
+	float size;//階
+	int kai;//層
+	float sigmaOCT;//高斯模糊係數
 	int x, y;//各所在階層的座標
 	float mm;//強度
 	int sita;//包含主方向與負方向的角度
-	float size;//階
-	int kai;//層
-	float sigmaOCT;
-	vector <vector <vector <float>>> descrip;
-	Feature *nextptr = nullptr;
+	vector<vector<vector<float>>> descrip;// 描述子
+	Feature* nextptr = nullptr;
 };
-typedef struct Feature* Featureptr;
-
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
 public:
@@ -181,7 +181,7 @@ public:
 	void addArrow();
 private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
-	void ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight);
+	void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag);
 	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
 	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
@@ -191,7 +191,10 @@ private:
 	size_t pyheight=5; //塔寬(模糊幾次)
     vector<vector<ImgRaw>> pyrs;
 	vector<vector<ImgRaw>> pyrs_dog;
-	Featureptr FeatureStart, FeatureEnd, FeatureNow; // 特徵點
+	// 特徵點
+	Feature* FeatureStart;
+	Feature* FeatureEnd;
+	Feature* FeatureNow;
 };
 //----------------------------------------------------------------
 struct Fea_point {

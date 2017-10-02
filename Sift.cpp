@@ -11,11 +11,13 @@ Final: 2017/07/05
 #include <vector>
 #include <map>
 #include <cmath>
+#include <memory>
 
 #include "Sift.hpp"
 using namespace std;
 
 #define M_PI 3.14159265358979323846
+
 
 // (多一個 gray_tran 參數判定感覺不是很好有機會修掉)
 ImgRaw::ImgRaw(string bmpname, bool gray_tran){
@@ -63,19 +65,9 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name) {
         // system(name.c_str());
     }
 };
-// 獲得特徵點直方圖統計
-static inline float getMag(float dx, float dy){
-	// 獲得強度
-	return sqrtf(dx*dx + dy*dy);
-}
-static inline float getSita(float dx, float dy){
-	// 獲得角度
-	float s = atan2f(dy, dx);
-	return (s > 0? s: (s+M_PI*2));
-}
 void Sift::AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita)
 {
-	Featureptr newnode = new Feature;
+	Feature* newnode = new Feature;
 	newnode->x = Inx;
 	newnode->y = Iny;
 	newnode->mm = Inm;
@@ -84,8 +76,44 @@ void Sift::AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigm
 	newnode->kai = kai;
 	newnode->sigmaOCT = sigmaOCT;
 	newnode->nextptr = NULL;
-	FeatureEnd->nextptr = newnode;
-	FeatureEnd = newnode;
+	FeatureEnd->nextptr = newnode;// 加入該點
+	FeatureEnd = newnode; // 更新結尾點的標記
+}
+
+
+// 獲得特徵點直方圖統計
+static inline float fastAtan2f(float dy, float dx){
+	// 快速atan運算
+	static const float atan2_p1 = 0.9997878412794807f*(float)(180/M_PI);
+	static const float atan2_p3 = -0.3258083974640975f*(float)(180/M_PI);
+	static const float atan2_p5 = 0.1555786518463281f*(float)(180/M_PI);
+	static const float atan2_p7 = -0.04432655554792128f*(float)(180/M_PI);
+	static const float atan2_DBL_EPSILON = 2.2204460492503131e-016;
+
+	float ax = std::abs(dx), ay = std::abs(dy);
+	float a, c, c2;
+	if (ax >= ay) {
+		c = ay/(ax + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	} else {
+		c = ax/(ay + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = 90.f - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	}
+	if (dx < 0)
+		a = 180.f - a;
+	if (dy < 0)
+		a = 360.f - a;
+	return a;
+}
+static inline float getMag(float dx, float dy){
+	// 獲得強度
+	return sqrtf(dx*dx + dy*dy);
+}
+static inline float getSita(float dx, float dy){
+	// 獲得角度
+	return fastAtan2f(dy, dx);
 }
 void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 	size_t Iny, size_t Inx, size_t InWidth, size_t Inr)
@@ -99,7 +127,7 @@ void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, flo
 			const float& dx = doImage[(j+0)*InWidth + (i+1)] - doImage[(j+0)*InWidth + (i-1)];
 			const float& dy = doImage[(j+1)*InWidth + (i+0)] - doImage[(j-1)*InWidth + (i+0)];
 			mag[idx] = getMag(dx, dy);
-			sita[idx] = getSita(dx, dy) * 180.0/M_PI;
+			sita[idx] = getSita(dx, dy);
 		}
 	}
 	// 高斯矩陣相乘
@@ -127,7 +155,158 @@ void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, flo
 		}
 	}
 }
+// 產生特徵描述子
+static inline void CoordinateChange(int* deltaX, int* deltaY, float sita) {
+	int newxx, newyy;
+	newxx = cos(sita)*(*deltaX) - sin(sita)*(*deltaY);
+	newyy = sin(sita)*(*deltaX) + cos(sita)*(*deltaY);
+	(*deltaX) = newxx;
+	(*deltaY) = newyy;
+}
+void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag) {
+	//新增一個4*4*8的特徵描述空間
+	vector <vector <vector <float>>> descripgroup(4);//儲存特徵描述子
+	for (int v = 0; v < 4; v++) {
+		descripgroup[v].resize(4);
+		for (int j = 0; j < 4; j++) {
+			descripgroup[v][j].resize(8);
+		}
+	}
+	// 從當前極值產出的點開始做
+	cout;
+	for (Feature* FeatureS = FeatureNow; FeatureS->nextptr != nullptr;) {
+		FeatureS = FeatureS->nextptr;
+		// 轉制
+		int radius = (FeatureS->sigmaOCT * 3 * sqrt(2)*(5) + 1) / 2;
+		int inHeight = raw_img.height*FeatureS->size;
+		int inWidth = raw_img.width*FeatureS->size;
+		// 直徑x直徑
+		for (int j = FeatureS->y - radius; j < FeatureS->y + radius; j++) {
+			for (int i = FeatureS->x - radius; i < FeatureS->x + radius; i++) {
+				if (j < 1 || j >= inHeight - 1 || i < 1 || i >= inWidth - 1) {
+					continue; // 邊緣不算
+				}
+
+				int newx, newy;
+				newx = i - FeatureS->x;
+				newy = j - FeatureS->y;
+				CoordinateChange(&newx, &newy, (FeatureS->sita * M_PI / 180.0));
+				float blockx = newx / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
+				float blocky = newy / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
+
+				
+				float sita, mm;
+				const float* curryImg = kaidaImag[FeatureS->kai].raw_img.data();
+
+				float dx = curryImg[j*inWidth + i+1] - curryImg[j*inWidth + i-1];
+				float dy = curryImg[(j+1)*inWidth + i]- curryImg[(j-1)*inWidth + i];
+				mm = getMag(dx, dy);
+				sita = getSita(dx, dy);
+				
+				const float unit = 360.0/8.0;
+				float weix0, weix1;
+				float weiy0, weiy1;
+				weix1 = blockx - (int)blockx; weix0 = 1 - weix1;
+				weiy1 = blocky - (int)blocky; weiy0 = 1 - weiy1;
+
+				//****** 以firstorder將值分別存入descripgroup容器裡面
+				int bx0, bx1;
+				int by0, by1;
+				bx0 = blockx;
+				bx1 = bx0 + 1;
+				by0 = blocky;
+				by1 = by0 + 1;
+
+				float RU, RD, LU, LD;
+				float SitaGroup;
+
+				SitaGroup = sita / unit;
+				
+				if (bx0 >= 1 && bx0 <= 4 && by0 >= 1 && by0 <= 4)//RU
+				{
+					RU = weix0 * weiy0 * mm;
+					descripgroup[by0 - 1][bx0 - 1][SitaGroup] += RU;
+				}
+				if (bx0 >= 1 && bx0 <= 4 && by1 >= 1 && by1 <= 4)//RD
+				{
+					RD = weix0 * weiy1 * mm;
+					descripgroup[by1 - 1][bx0 - 1][SitaGroup] += RD;
+				}
+				if (bx1 >= 1 && bx1 <= 4 && by0 >= 1 && by0 <= 4)//LU
+				{
+					LU = weix1 * weiy0 * mm;
+					descripgroup[by0 - 1][bx1 - 1][SitaGroup] += LU;
+				}
+				if (bx1 >= 1 && bx1 <= 4 && by1 >= 1 && by1 <= 4)//LD
+				{
+					LD = weix1 * weiy1 * mm;
+					descripgroup[by1 - 1][bx1 - 1][SitaGroup] += LD;
+				}
+				
+			}
+		}
+		//****** 限定門檻值
+		float add = 0.0;
+		for (int j = 0; j < 4; j++) {
+			for (int i = 0; i < 4; i++) {
+				for (int v = 0; v < 8; v++) {
+					if (descripgroup[j][i][v] > 0.2) 
+						descripgroup[j][i][v] = 0.2;
+					add += descripgroup[j][i][v];
+				}
+			}
+		}
+		//****** 向量正規化
+		add = sqrt(add);
+		for (int j = 0; j < 4; j++) {
+			for (int i = 0; i < 4; i++) {
+				for (int v = 0; v < 8; v++) {
+					descripgroup[j][i][v] /= add;
+				}
+			}
+		}
+		FeatureS->descrip = descripgroup;
+	}
+}
 // 高斯金字塔
+static inline void ZoomInOut(ImgRaw& doImage, const ImgRaw& gray, int InWidth, int InHeight) {
+// 放大縮小
+	// 原圖資訊(取自資料成員)
+	const size_t Height = gray.height;
+	const size_t Width = gray.width;
+
+	float XX1, XX2, XXYY;
+	float dx, dy;
+	float Io, Jo;
+	for (int j = 0; j < InHeight - 1; ++j)
+	{
+		Jo = j * (Height - 1) / (InHeight - 1);
+		dy = 1 - ((j * (Height - 1) / (InHeight - 1)) - Jo);
+		for (int i = 0; i < InWidth - 1; ++i)
+		{
+			Io = i * (Width - 1) / (InWidth - 1);
+			dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
+			XX1 = gray[(int)((Io + 0) + (Jo + 0)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 0)*Width)] * (1 - dx);
+			XX2 = gray[(int)((Io + 0) + (Jo + 1)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 1)*Width)] * (1 - dx);
+			XXYY = XX1*dy + XX2*(1 - dy);
+			doImage[j*InWidth + i] = XXYY;
+		}
+		XX1 = gray[(int)((Jo + 1)*Width - 1)];
+		XX2 = gray[(int)((Jo + 2)*Width - 1)];
+		XXYY = XX1*dy + XX2*(1 - dy);
+		doImage[(j + 1)*InWidth - 1] = XXYY;
+	}
+	for (int i = 0; i < InWidth - 1; i++)
+	{
+		Io = i * (Width - 1) / (InWidth - 1);
+		dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
+		XX1 = gray[(int)((Height - 1)*Width + (Io + 0))];
+		XX2 = gray[(int)((Height - 1)*Width + (Io + 1))];
+		XXYY = XX1*dx + XX2*(1 - dx);
+		doImage[(InHeight - 1)*InWidth + i] = XXYY;
+	}
+	doImage[InHeight*InWidth - 1] = gray[Height*Width - 1];
+}
 static inline size_t getPyramidOctv(size_t width, size_t height) {
 	// 獲得金字塔八度的長
 	int n = 1;
@@ -141,19 +320,19 @@ static inline size_t getPyramidOctv(size_t width, size_t height) {
 void Sift::pyramid2() {
 	ImgRaw first_img(raw_img.width, raw_img.height);
 	size_t octv = getPyramidOctv(raw_img.width, raw_img.height);
-	float curr_size=2;
-	for (size_t ph = 0; ph < octv; ph++, curr_size /= 2) { // 金字塔的sigma還沒修復第二層沒*2
+	float curr_size=2.f, curr_sigmaCoef=1.f;
+	for (size_t ph = 0; ph < octv; ph++, curr_size /= 2.f, curr_sigmaCoef*=2.f) { // 金字塔的sigma還沒修復第二層沒*2
 		const size_t curr_Width = raw_img.width*curr_size;
 		const size_t curr_Height = raw_img.height*curr_size;
 		ImgRaw currSize_img(curr_Width ,curr_Height);
 		//ImgRaw::first(currSize_img, raw_img, curr_size);
-		ZoomInOut(currSize_img, curr_Width, curr_Height);
+		ZoomInOut(currSize_img, raw_img, curr_Width, curr_Height);
 
 		// 高斯模糊
 		vector<ImgRaw> gau_imgs(pyWidth);
-		ImgRaw::gauBlur(gau_imgs[0], currSize_img, SIFT_GauSigma * (ph+1));
+		ImgRaw::gauBlur(gau_imgs[0], currSize_img, SIFT_GauSigma * (curr_sigmaCoef));
 		for (size_t i = 1; i < pyWidth; i++) {
-			const float curr_Sigma = SIFT_GauSigma * powf(sqrt(2.0),i) * (ph+1); // 這裡的2是 S+3 的 S
+			const float curr_Sigma = SIFT_GauSigma * powf(sqrt(2.0),i) * (curr_sigmaCoef); // 這裡的2是 S+3 的 S
 			gau_imgs[i].raw_img.resize(curr_Width*curr_Height);
 			Gaus::GauBlur(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
 			//gau_imgs[i].bmp("_gau.bmp", 8);
@@ -166,8 +345,9 @@ void Sift::pyramid2() {
 				gauDog_imgs[i][idx] = gau_imgs[i][idx] - gau_imgs[i+1][idx];
 			}
 		}
-		// 尋找特徵點並累加直方圖
+		// 紀錄當前指針位置
 		FeatureNow = FeatureEnd;
+		// 尋找特徵點並累加直方圖
 		for (size_t scale_idx = 1; scale_idx < pyWidth-1-1; scale_idx++) {
 			ImgRaw MaxMin_img(curr_Width, curr_Height);
 			ImgRaw Herris_img(curr_Width, curr_Height);
@@ -178,18 +358,22 @@ void Sift::pyramid2() {
 					// 尋找極值點
 					if (findMaxMin(gauDog_imgs, scale_idx, curr_Width, j, i)) {
 						const ImgRaw& currImg = gauDog_imgs[scale_idx];
-						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (ph+1);
+						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (curr_sigmaCoef);
 						if (Corner::harris(currImg, curr_Width, j, i, r)) {
 							getHistogramMS(currImg, curr_size, scale_idx, currSigma, j, i, curr_Width, r);
 							//Herris_img[j*curr_Width + i] = 255 /255.0;
 						}
-						//MaxMin_img[j*curr_Width + i] = 255 /255.0;
+						MaxMin_img[j*curr_Width + i] = 255 /255.0;
 					}
 				}
 			}
-			//MaxMin_img.bmp("MaxMin/MaxMin_"+to_string(scale_idx)+".bmp", 8);
+			MaxMin_img.bmp("MaxMin/MaxMin_"+to_string(scale_idx)+".bmp", 8);
 			//Herris_img.bmp("Herris/Herris_"+to_string(scale_idx)+".bmp", 8);
+
+			//cout; //pause
 		}
+		// 描述剛剛才找到的新特徵點(尋找前先記錄位置)
+		FeatureDescrip(gau_imgs);
 	}
 }
 // 畫線
@@ -264,11 +448,10 @@ void Draw::draw_line(ImgRaw& img, size_t y, size_t x, float line_len, float sg) 
 	draw_line(y, x);
 	draw_line(y2, x2);
 }
-// 找極值
+// 過濾特徵點並找極值
 bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
 	const float& Val = gauDog_imgs[scale_idx][y*curr_Width + x];
-
-	bool maxc, minc;
+	/*bool maxc, minc;
 	maxc = minc = true;
 	for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++)
 	{
@@ -289,77 +472,34 @@ bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr
 	if (abs(Val) < 0.015)
 		return false;
 	else
-		return true;
+		return true;*/
 
-
-	/*for (int i = -1; i < 2; i++) {
-	if (fabs(Val) > SIFT_Dx/2.f) {
-	if (
-	(Val>0 and
-	Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x-1] and
-	Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x+0] and
-	Val>=gauDog_imgs[scale_idx+i][(y-1)*curr_Width+x+1] and
-	Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x-1] and
-	Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x+0] and
-	Val>=gauDog_imgs[scale_idx+i][(y+0)*curr_Width+x+1] and
-	Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x-1] and
-	Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x+0] and
-	Val>=gauDog_imgs[scale_idx+i][(y+1)*curr_Width+x+1])
-	){
-	return true;
-	}
-	}
-	}
-	return false;*/
+	// 過濾變化率過小的特徵點
+	if (abs(Val) > SIFT_Dx/2.0) {
+		// 找極值
+		for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++) {
+			const ImgRaw& currImg = gauDog_imgs[k];
+			for (int j = (y - 1); j <= (y + 1); j++) {
+				size_t currIdx = j*curr_Width+x;
+				for (int i = - 1; i < 1; i++) {
+					if ((Val>0 and Val<currImg[currIdx +i]) or (Val<0 and Val>currImg[currIdx +i])) {return false;}
+				}
+				//if ((Val>0 and Val<currImg[currIdx -1]) or (Val<0 and Val>currImg[currIdx -1])) {return false;}
+				//if ((Val>0 and Val<currImg[currIdx +0]) or (Val<0 and Val>currImg[currIdx +0])) {return false;}
+				//if ((Val>0 and Val<currImg[currIdx +1]) or (Val<0 and Val>currImg[currIdx +1])) {return false;}
+			}
+		} return true;
+	} 
+	return false;
 };
-// 放大縮小
-void Sift::ZoomInOut(ImgRaw& doImage, int InWidth, int InHeight)
-{
-	// 原圖資訊(取自資料成員)
-	const size_t Height=raw_img.height;
-	const size_t Width=raw_img.width;
-	const vector<float>& gray=raw_img;
-
-	float XX1, XX2, XXYY;
-	float dx, dy;
-	float Io, Jo;
-	for (int j = 0; j < InHeight - 1; ++j)
-	{
-		Jo = j * (Height - 1) / (InHeight - 1);
-		dy = 1 - ((j * (Height - 1) / (InHeight - 1)) - Jo);
-		for (int i = 0; i < InWidth - 1; ++i)
-		{
-			Io = i * (Width - 1) / (InWidth - 1);
-			dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
-			XX1 = gray[(int)((Io + 0) + (Jo + 0)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 0)*Width)] * (1 - dx);
-			XX2 = gray[(int)((Io + 0) + (Jo + 1)*Width)] * dx + gray[(int)((Io + 1) + (Jo + 1)*Width)] * (1 - dx);
-			XXYY = XX1*dy + XX2*(1 - dy);
-			doImage[j*InWidth + i] = XXYY;
-		}
-		XX1 = gray[(int)((Jo + 1)*Width - 1)];
-		XX2 = gray[(int)((Jo + 2)*Width - 1)];
-		XXYY = XX1*dy + XX2*(1 - dy);
-		doImage[(j + 1)*InWidth - 1] = XXYY;
-	}
-	for (int i = 0; i < InWidth - 1; i++)
-	{
-		Io = i * (Width - 1) / (InWidth - 1);
-		dx = 1 - ((i * (Width - 1) / (InWidth - 1)) - Io);
-		XX1 = gray[(int)((Height - 1)*Width + (Io + 0))];
-		XX2 = gray[(int)((Height - 1)*Width + (Io + 1))];
-		XXYY = XX1*dx + XX2*(1 - dx);
-		doImage[(InHeight - 1)*InWidth + i] = XXYY;
-	}
-	doImage[InHeight*InWidth - 1] = gray[Height*Width - 1];
-}
 // 印出箭頭
 void Sift::addArrow()
 {
 	
 	//箭頭倍率
-	int mag = 100000.0;
+	float mag = 100000.f;
 
-	Featureptr pictureS = FeatureStart;
+	Feature* pictureS = FeatureStart;
 	size_t Height=raw_img.height;
 	size_t Width=raw_img.width;
 
