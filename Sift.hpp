@@ -87,11 +87,12 @@ public:
     ImgRaw(vector<types> img, size_t width, size_t height) :
         raw_img(img), width(width), height(height) {}
 	ImgRaw(size_t width, size_t height, size_t bits) :
-		raw_img(width*height * (bits/8)), width(width), height(height){}
+		raw_img(width*height * (bits/8)), 
+		width(width), height(height), bitCount(bits){}
 	ImgRaw(size_t width, size_t height) :
 		raw_img(width*height), width(width), height(height){}
 	ImgRaw(size_t size = 0) :raw_img(size){}
-	ImgRaw(string bmpname, bool gray_tran);
+	ImgRaw(string bmpname);
     // 隱式轉換
     operator vector<types>&() { return raw_img; }
 	operator const vector<types>&() const { return raw_img; }
@@ -116,12 +117,28 @@ public:
     const types & at2d(size_t y, size_t x) const {
         return raw_img[y*width + x];
     }
+	// 獲得大小
+	size_t size() {
+		return this->raw_img.size();
+	}
 	// 重設大小
 	void resize(size_t width, size_t height, size_t bits=8) {
 		raw_img.resize(width*height * bits/8);
 		this->width=width;
 		this->height=height;
 		this->bitCount=bits;
+	}
+	// 轉為灰階
+	ImgRaw ConverGray() const {
+		if (bitCount == 24) {
+			ImgRaw gray(this->width, this->height, 8);
+			for (size_t i = 0; i < gray.size(); i++) {
+				gray[i] =
+					raw_img[i*3+0]*0.299 +
+					raw_img[i*3+1]*0.587 +
+					raw_img[i*3+2]*0.114;
+			} return gray;
+		} return *this;
 	}
 public:
     // 大小是否相等
@@ -184,7 +201,7 @@ public:
 	void addArrow(string name="feaArrow.bmp");
 private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
-	void FeatureDescrip(vector<ImgRaw>& kaidaImag);
+	void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
 	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
@@ -197,7 +214,6 @@ public:
 	// 特徵點
 	Feature* FeatureStart;
 	Feature* FeatureEnd;
-	Feature* FeatureNow;
 };
 //----------------------------------------------------------------
 struct Fea_point {
@@ -223,12 +239,13 @@ public:
 class Stitching{
 private:
 	using Desc = std::vector<std::vector<std::vector<float>>>;
+public:
+	Stitching(const Sift& desc1, const Sift& desc2);
+	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
+	void Check(void); // 檢查是否有相同的特徵描述子
+	void Link(int x1, int y1, int x2, int y2);// 將帶入的兩點相連
+private:
 	int Width, Height;
 	Feature *FeatureStart1, *FeatureStart2;
 	ImgRaw matchImg;
-public:
-	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
-	Stitching(Feature* inFeatureptr1, Feature* inFeatureptr2,string name1,string name2);
-	void Check(void); // 檢查是否有相同的特徵描述子
-	void Link(int x1, int y1, int x2, int y2);// 將帶入的兩點相連
 };

@@ -23,6 +23,7 @@ using namespace cv;
 
 //================================================================
 int main(int argc, char const *argv[]){
+	//srand((unsigned)time(NULL)); rand();
 
 #define testpoint1
 #ifdef testpoint1
@@ -33,8 +34,8 @@ start = clock();
 	// 讀取圖片
 	string name1="Lena.bmp";
 	string name2="Lena2.bmp";
-	ImgRaw img1(name1, 1);
-	ImgRaw img2(name2, 1);
+	ImgRaw img1(name1);
+	ImgRaw img2(name2);
     // 金字塔1
     Sift fea1(img1);
 	fea1.pyramid2();
@@ -44,7 +45,7 @@ start = clock();
 	fea2.pyramid2();
 	fea2.addArrow("feaArrow2.bmp");
 	// 匹配特徵點(兩張大小要一樣)
-	Stitching match(fea1.FeatureStart, fea2.FeatureStart, name1, name2);
+	Stitching match(fea1, fea2);
 	match.Check();
 	
 

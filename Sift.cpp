@@ -12,6 +12,7 @@ Final: 2017/07/05
 #include <map>
 #include <cmath>
 #include <memory>
+#include <random>
 
 #include "Sift.hpp"
 using namespace std;
@@ -19,8 +20,7 @@ using namespace std;
 #define M_PI 3.14159265358979323846
 
 
-// (多一個 gray_tran 參數判定感覺不是很好有機會修掉)
-ImgRaw::ImgRaw(string bmpname, bool gray_tran){
+ImgRaw::ImgRaw(string bmpname){
 	vector<unsigned char> img;
 	uint32_t width, height;
 	uint16_t bits;
@@ -29,11 +29,6 @@ ImgRaw::ImgRaw(string bmpname, bool gray_tran){
 	this->width    = width;
 	this->height   = height;
 	this->bitCount = bits;
-	// 轉換灰階
-	if (gray_tran == 1 and bits == 24) {
-		Raw::raw2gray(img);
-		this->bitCount = 8;
-	}
 	// 初始化(含正規化)
 	raw_img.resize(img.size());
 	for (size_t i = 0; i < img.size(); i++) {
@@ -163,7 +158,7 @@ static inline void CoordinateChange(int* deltaX, int* deltaY, float sita) {
 	(*deltaX) = newxx;
 	(*deltaY) = newyy;
 }
-void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag) {
+void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 	//新增一個4*4*8的特徵描述空間
 	vector <vector <vector <float>>> descripgroup(4);//儲存特徵描述子
 	for (int v = 0; v < 4; v++) {
@@ -318,15 +313,15 @@ static inline size_t getPyramidOctv(size_t width, size_t height) {
 	return n;
 }
 void Sift::pyramid2() {
-	ImgRaw first_img(raw_img.width, raw_img.height);
-	size_t octv = getPyramidOctv(raw_img.width, raw_img.height);
+	ImgRaw gray_img = raw_img.ConverGray();
+	size_t octv = getPyramidOctv(gray_img.width, gray_img.height);
 	float curr_size=2.f, curr_sigmaCoef=1.f;
 	for (size_t ph = 0; ph < octv; ph++, curr_size /= 2.f, curr_sigmaCoef*=2.f) { // 金字塔的sigma還沒修復第二層沒*2
-		const size_t curr_Width = raw_img.width*curr_size;
-		const size_t curr_Height = raw_img.height*curr_size;
+		const size_t curr_Width = gray_img.width*curr_size;
+		const size_t curr_Height = gray_img.height*curr_size;
 		ImgRaw currSize_img(curr_Width ,curr_Height);
 		//ImgRaw::first(currSize_img, raw_img, curr_size);
-		ZoomInOut(currSize_img, raw_img, curr_Width, curr_Height);
+		ZoomInOut(currSize_img, gray_img, curr_Width, curr_Height);
 
 		// 高斯模糊
 		vector<ImgRaw> gau_imgs(pyWidth);
@@ -346,7 +341,7 @@ void Sift::pyramid2() {
 			}
 		}
 		// 紀錄當前指針位置
-		FeatureNow = FeatureEnd;
+		Feature* FeatureNow = FeatureEnd;
 		// 尋找特徵點並累加直方圖
 		for (size_t scale_idx = 1; scale_idx < pyWidth-1-1; scale_idx++) {
 			ImgRaw MaxMin_img(curr_Width, curr_Height);
@@ -373,7 +368,7 @@ void Sift::pyramid2() {
 			//cout; //pause
 		}
 		// 描述剛剛才找到的新特徵點(尋找前先記錄位置)
-		FeatureDescrip(gau_imgs);
+		FeatureDescrip(gau_imgs, FeatureNow);
 	}
 }
 // 畫線
@@ -482,7 +477,11 @@ bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr
 			for (int j = (y - 1); j <= (y + 1); j++) {
 				size_t currIdx = j*curr_Width+x;
 				for (int i = - 1; i < 1; i++) {
-					if ((Val>0 and Val<currImg[currIdx +i]) or (Val<0 and Val>currImg[currIdx +i])) {return false;}
+					if ((Val>0 and Val<currImg[currIdx +i]) or 
+						(Val<0 and Val>currImg[currIdx +i]))
+					{
+						return false;
+					}
 				}
 				//if ((Val>0 and Val<currImg[currIdx -1]) or (Val<0 and Val>currImg[currIdx -1])) {return false;}
 				//if ((Val>0 and Val<currImg[currIdx +0]) or (Val<0 and Val>currImg[currIdx +0])) {return false;}
@@ -510,7 +509,7 @@ void Sift::addArrow(string name)
 	img.width=Width;
 	img.height=Height;*/
 
-	ImgRaw img("kanna.bmp", 0);
+	ImgRaw img("kanna.bmp");
 
 	ImgRaw img_gray(Width, Height);
 
@@ -680,22 +679,15 @@ void Sift::addArrow(string name)
 /************/
 /*** 匹配 ****/
 /************/
-Stitching::Stitching(
-	Feature* inFeatureptr1, 
-	Feature* inFeatureptr2,
-	string name1,
-	string name2)
-{
-	FeatureStart1 = inFeatureptr1;
-	FeatureStart2 = inFeatureptr2;
-
-
-	ImgRaw img1(name1, 0);
-	ImgRaw img2(name2, 0);
+Stitching::Stitching(const Sift& desc1, const Sift& desc2) {
+	FeatureStart1 = desc1.FeatureStart;
+	FeatureStart2 = desc2.FeatureStart;;
+	const ImgRaw& img1=desc1.raw_img;
+	const ImgRaw& img2=desc2.raw_img;
 
 	Width=img1.width+img2.width;
 	Height=img1.height;
-
+	// 合併兩張圖
 	matchImg.resize(img1.width*2, img2.height, 24);
 	for (size_t j = 0; j < img1.height; j++) {
 		for (size_t i = 0; i < img1.width; i++) {
@@ -792,6 +784,14 @@ void Stitching::Link(int x1, int y1, int x2, int y2) {
 		miny = y1;
 	}
 
+
+	auto random_num = [] {
+		return ((rand() / (RAND_MAX+1.0)) * (1 - 0) + 0);
+	};
+
+	float rVal=random_num();
+	float gVal=random_num();
+	float bVal=random_num();
 	for (int i = minx; i < maxx; i++) {
 		size_t w = matchImg.width;
 		size_t h = matchImg.height;
@@ -799,15 +799,15 @@ void Stitching::Link(int x1, int y1, int x2, int y2) {
 			int usey = (i - minx) * slope;
 			if (usey < Height && usey >= 0) {
 				//matchImg.at2d((miny+usey),i)=0.5;
-				matchImg[((miny+usey)*w + i)*3 + 0] = 0.5;
-				matchImg[((miny+usey)*w + i)*3 + 1] = 0.5;
-				matchImg[((miny+usey)*w + i)*3 + 2] = 0.5;
+				matchImg[((miny+usey)*w + i)*3 + 0] = rVal;
+				matchImg[((miny+usey)*w + i)*3 + 1] = gVal;
+				matchImg[((miny+usey)*w + i)*3 + 2] = bVal;
 			}
 		} else {
 			//matchImg.at2d(y1,i)=0.5;
-			matchImg[(y1*w + i)*3 + 0] = 0.5;
-			matchImg[(y1*w + i)*3 + 1] = 0.5;
-			matchImg[(y1*w + i)*3 + 2] = 0.5;
+			matchImg[(y1*w + i)*3 + 0] = rVal;
+			matchImg[(y1*w + i)*3 + 1] = gVal;
+			matchImg[(y1*w + i)*3 + 2] = bVal;
 		}
 	}
 }
