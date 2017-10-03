@@ -86,6 +86,8 @@ public:
 	// 初始化
     ImgRaw(vector<types> img, size_t width, size_t height) :
         raw_img(img), width(width), height(height) {}
+	ImgRaw(size_t width, size_t height, size_t bits) :
+		raw_img(width*height * (bits/8)), width(width), height(height){}
 	ImgRaw(size_t width, size_t height) :
 		raw_img(width*height), width(width), height(height){}
 	ImgRaw(size_t size = 0) :raw_img(size){}
@@ -115,10 +117,11 @@ public:
         return raw_img[y*width + x];
     }
 	// 重設大小
-	void resize(size_t width, size_t height) {
-		raw_img.resize(width*height);
+	void resize(size_t width, size_t height, size_t bits=8) {
+		raw_img.resize(width*height * bits/8);
 		this->width=width;
 		this->height=height;
+		this->bitCount=bits;
 	}
 public:
     // 大小是否相等
@@ -127,7 +130,7 @@ public:
     // 寫 BMP 檔
     void bmp(string name, size_t bits=0) {
 		if (bits == 0) { bits = this->bitCount; }
-        vector<unsigned char> img = (*this);// // 有重載轉換函式
+        vector<unsigned char> img = (*this);// 有重載轉換函式
         Raw::raw2bmp(name, img, width, height, bits);
     }
 
@@ -219,32 +222,13 @@ public:
 //-----------------------------------------------------------------
 class Stitching{
 private:
+	using Desc = std::vector<std::vector<std::vector<float>>>;
 	int Width, Height;
 	Feature *FeatureStart1, *FeatureStart2;
 	ImgRaw matchImg;
-	//RGBTRIPLE** color;
-	//BITMAPFILEHEADER FileHeader;
-	//BITMAPINFOHEADER InfoHeader;
 public:
-	//*** 前兩項參數為標頭檔，第三、四項為圖片資訊，五、六項為特徵點資訊 ***//
-	Stitching(
-		//BITMAPFILEHEADER Filedata, 
-		//BITMAPINFOHEADER Infodata, 
-		//RGBTRIPLE** image1, 
-		//RGBTRIPLE** image2, 
-		Feature* inFeatureptr1, 
-		Feature* inFeatureptr2,
-		string name1,
-		string name2
-	);
-	~Stitching();
-	void OutBMP(std::string outname);
-	void OutRAW(std::string outname);
-	//void WriteImage(RGBTRIPLE** image1, RGBTRIPLE** image2);
-	//*** 檢查是否有相同的特徵描述子 ***//
-	void Check(void);
-	//*** 將帶入的兩點相連 ***//
-	void Link(int x1, int y1, int x2, int y2);
-	//*** 計算兩個描述子之間的歐式距離 ***//
-	float EuclideanDistance(std::vector <std::vector <std::vector <float>>> point1, std::vector <std::vector <std::vector <float>>> point2);
+	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
+	Stitching(Feature* inFeatureptr1, Feature* inFeatureptr2,string name1,string name2);
+	void Check(void); // 檢查是否有相同的特徵描述子
+	void Link(int x1, int y1, int x2, int y2);// 將帶入的兩點相連
 };

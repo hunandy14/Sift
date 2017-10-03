@@ -31,8 +31,8 @@ start = clock();
 
 
 	// 讀取圖片
-	string name1="kanna.bmp";
-	string name2="kanna.bmp";
+	string name1="Lena.bmp";
+	string name2="Lena2.bmp";
 	ImgRaw img1(name1, 1);
 	ImgRaw img2(name2, 1);
     // 金字塔1
@@ -46,7 +46,7 @@ start = clock();
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1.FeatureStart, fea2.FeatureStart, name1, name2);
 	match.Check();
-
+	
 
 
 end = clock();

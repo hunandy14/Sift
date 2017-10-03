@@ -681,10 +681,6 @@ void Sift::addArrow(string name)
 /*** 匹配 ****/
 /************/
 Stitching::Stitching(
-	/*BITMAPFILEHEADER Filedata, 
-	BITMAPINFOHEADER Infodata, 
-	RGBTRIPLE** image1, 
-	RGBTRIPLE** image2, */
 	Feature* inFeatureptr1, 
 	Feature* inFeatureptr2,
 	string name1,
@@ -694,109 +690,42 @@ Stitching::Stitching(
 	FeatureStart2 = inFeatureptr2;
 
 
-	ImgRaw img1(name1, 1);
-	ImgRaw img2(name2, 1);
+	ImgRaw img1(name1, 0);
+	ImgRaw img2(name2, 0);
 
 	Width=img1.width+img2.width;
 	Height=img1.height;
 
-	matchImg.resize(img1.width*2, img2.height);
+	matchImg.resize(img1.width*2, img2.height, 24);
 	for (size_t j = 0; j < img1.height; j++) {
 		for (size_t i = 0; i < img1.width; i++) {
-			matchImg.at2d(j, i) = img1.at2d(j, i);
+			matchImg[(j*matchImg.width+i)*3 + 0] = img1[(j*img1.width+i)*3 + 0];
+			matchImg[(j*matchImg.width+i)*3 + 1] = img1[(j*img1.width+i)*3 + 1];
+			matchImg[(j*matchImg.width+i)*3 + 2] = img1[(j*img1.width+i)*3 + 2];
 		}
 		for (size_t i = img1.width; i < img2.width+img1.width; i++) {
-			matchImg.at2d(j, i) = img2.at2d(j, i-img1.width);
+			matchImg[(j*matchImg.width+i)*3 + 0] = img2[(j*img1.width+i-img1.width)*3 + 0];
+			matchImg[(j*matchImg.width+i)*3 + 1] = img2[(j*img1.width+i-img1.width)*3 + 1];
+			matchImg[(j*matchImg.width+i)*3 + 2] = img2[(j*img1.width+i-img1.width)*3 + 2];
 		}
 	}
-	matchImg.bmp("matchImg.bmp", 8);
-
-	//FileHeader = Filedata;
-	//InfoHeader = Infodata;
-
-
-	//InfoHeader.biWidth = Infodata.biWidth * 2;
-	//Width = Infodata.biWidth * 2;
-	//Height = InfoHeader.biHeight;
-
-	/*int widthsize = Width * 3;
-	if (Width % 4 != 0) {
-		widthsize += (4 - Width % 4);
-	}
-
-	InfoHeader.biSizeImage = widthsize * Height;
-	FileHeader.bfSize = InfoHeader.biSizeImage + 54;
-
-	WriteImage(image1, image2);*/
+	matchImg.bmp("matchImg.bmp", 24); // 測試
+	cout << endl;
 }
-Stitching::~Stitching() {
-	for (int i = 0; i < Height; i++) {
-		//delete[] color[i];
-	}
-	//delete[] color;
-}
-
-void Stitching::OutBMP(string outname) {
-	int fix;
-	/* 計算每列需略過的 bytes 數 */
-	int check = (Width * 3) % 4;
-	if (check != 0)
-		fix = 4 - check;
-	else
-		fix = 0;
-	/*
-	fstream out;
-	outname += ".bmp";
-	out.open(outname, ios::out | ios::binary);
-	out.write((char*)&FileHeader, sizeof(BITMAPFILEHEADER));
-	out.write((char*)&InfoHeader, sizeof(BITMAPINFOHEADER));
-
-	for (int j = Height - 1; j >= 0; --j) {
-		for (int i = 0; i < Width; ++i) {
-			RGBDATA rgb;
-			rgb.rgbtBlue = color[j][i].rgbtBlue;
-			rgb.rgbtGreen = color[j][i].rgbtGreen;
-			rgb.rgbtRed = color[j][i].rgbtRed;
-			out.write((char*)&rgb, sizeof(RGBTRIPLE));
-		}
-		// 略過各列多餘的資訊
-		for (int n = 0; n<fix; ++n) {
-			BYTE   ByteBuf;
-			out.write((char*)&ByteBuf, sizeof(ByteBuf));
-		}
-	}*/
-}
-//*** 將檔案輸出成RAW格式 ***//
-void Stitching::OutRAW(string outname) {
-	fstream out;
-	outname += ".raw";
-	out.open(outname, ios::out | ios::binary);
-
-	for (int j = 0; j < Height; ++j) {
-		for (int i = 0; i < Width; ++i) {
-			//out.write((char*)&color[j][i], sizeof(RGBTRIPLE));
-		}
-	}
-}
-//*** 寫入兩張圖片的資訊 
-/*void Stitching::WriteImage(RGBTRIPLE** image1, RGBTRIPLE** image2) {
-	color = new RGBTRIPLE*[Height];
-	for (int i = 0; i < Height; ++i) {
-		color[i] = new RGBTRIPLE[Width];
-	}
-
-	for (int j = 0; j < Height; j++) {
-		// 寫入第一張圖的資訊
-		for (int i = 0; i < Width/2; i++) {
-			color[j][i] = image1[j][i];
-		}
-		// 寫入第二張圖的資訊
-		for (int i = Width / 2; i < Width; i++) {
-			color[j][i] = image2[j][i - (Width / 2)];
-		}
-	}
-}*/
 //*** 檢查是否有相同的特徵描述子 ***//
+float Stitching::EuclDist(const Desc& point1, const Desc& point2) {
+	// 兩個個描述子間128點的歐式距離(EuclideanDistance)
+	float add = 0.f;
+	for (size_t k = 0; k < 4; k++) {
+		for (size_t j = 0; j < 4; j++) {
+			for (size_t i = 0; i < 8; i++) {
+				const float reduce = point1[k][j][i] - point2[k][j][i];
+				add += reduce * reduce;
+			}
+		}
+	}
+	return sqrtf(add);
+}
 void Stitching::Check(void) {
 	Feature *startlink1, *startlink2;
 	startlink1 = FeatureStart1;
@@ -814,7 +743,7 @@ void Stitching::Check(void) {
 		while (startlink2->nextptr != nullptr) {
 			startlink2 = startlink2->nextptr;
 			//******* 找處距離最近的兩個點
-			float value = EuclideanDistance(startlink1->descrip, startlink2->descrip);
+			float value = EuclDist(startlink1->descrip, startlink2->descrip);
 			if (value < distance1) {
 				distance2 = distance1;
 				distance1 = value;
@@ -825,24 +754,21 @@ void Stitching::Check(void) {
 				distance2 = value;
 			}
 		}
-
-
 		//****** 確認是否匹配成功並畫線(閥值設為0.04)
-		if ((distance1 / distance2) < 0.8)//閥值越小找到的點越少但越可靠
+		if ((distance1 / distance2) < 0.4)//閥值越小找到的點越少但越可靠
 		{
 			int x1, y1;
 			x1 = startlink1->x / startlink1->size;
 			y1 = startlink1->y / startlink1->size;
-			
 			Link(x1, y1, useX1 + (Width / 2), useY1);
 			//cout << "y1=" << y1 << ", x1=" << x1 << ", y2=" << useY1 << ", x2=" <<  (int)(useX1+Width*0.5) << endl;
 			++pc;
 		}
 	}
-	matchImg.bmp("matchImg.bmp", 8);
+	matchImg.bmp("matchImg.bmp", 24);
 	//cout << "pc : " << pc << endl;
 }
-//*** 將帶入的兩點相連 ***//
+// 將帶入的兩點相連
 void Stitching::Link(int x1, int y1, int x2, int y2) {
 	int miny, minx, maxx;
 	float slope;
@@ -867,35 +793,22 @@ void Stitching::Link(int x1, int y1, int x2, int y2) {
 	}
 
 	for (int i = minx; i < maxx; i++) {
+		size_t w = matchImg.width;
+		size_t h = matchImg.height;
 		if (slope != 0.0) {
 			int usey = (i - minx) * slope;
 			if (usey < Height && usey >= 0) {
-				// color[miny + usey][i].rgbtBlue = 100;
-				// color[miny + usey][i].rgbtGreen = 100;
-				// color[miny + usey][i].rgbtRed = 255;
-				matchImg.at2d((miny+usey),i)=0.5;
-				
+				//matchImg.at2d((miny+usey),i)=0.5;
+				matchImg[((miny+usey)*w + i)*3 + 0] = 0.5;
+				matchImg[((miny+usey)*w + i)*3 + 1] = 0.5;
+				matchImg[((miny+usey)*w + i)*3 + 2] = 0.5;
 			}
 		} else {
-			// color[y1][i].rgbtBlue = 100;
-			// color[y1][i].rgbtGreen = 100;
-			// color[y1][i].rgbtRed = 255;
-			matchImg.at2d(y1,i)=0.5;
+			//matchImg.at2d(y1,i)=0.5;
+			matchImg[(y1*w + i)*3 + 0] = 0.5;
+			matchImg[(y1*w + i)*3 + 1] = 0.5;
+			matchImg[(y1*w + i)*3 + 2] = 0.5;
 		}
 	}
 }
-//*** 計算兩個描述子之間的歐式距離 ***//
-float Stitching::EuclideanDistance(vector<vector<vector<float>>> point1, vector<vector<vector<float>>> point2) {
-	float add = 0.0;
-	for (int k = 0; k < 4; k++) {
-		for (int j = 0; j < 4; j++) {
-			for (int i = 0; i < 8; i++) {
-				float reduce;
-				reduce = point1[k][j][i] - point2[k][j][i];
-				add += reduce * reduce;
-			}
-		}
-	}
-	add = sqrt(add);
-	return add;
-}
+
