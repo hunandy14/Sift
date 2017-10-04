@@ -346,3 +346,6 @@ bool Corner::harris(const vector<float>& p,
     return 0;
 }
 
+
+
+

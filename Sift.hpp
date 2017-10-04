@@ -196,7 +196,7 @@ public:
 public:
 	void pyramid2();
     void comp(vector<ImgRaw>& pyrs, string name="");
-	void addArrow(string name="feaArrow.bmp");
+	void drawArrow(string name="feaArrow.bmp");
 private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
 	void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
@@ -230,9 +230,13 @@ struct Fea_point {
 // µe½u
 class Draw {
 public:
-	static void draw_line(ImgRaw& img, int y, int x, float line_len, float sg);
-	static void draw_line2(ImgRaw& img, int y, int x, int y2, int x2);
+	static void drawLine_p(ImgRaw& img, int y, int x, int y2, int x2);
+	static void drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg);
 	static void draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg);
+
+	static void drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2);
+	static void drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg);
+	static void draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg);
 };
 //-----------------------------------------------------------------
 class Stitching{

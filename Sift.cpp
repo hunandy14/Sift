@@ -371,7 +371,7 @@ void Sift::pyramid2() {
 	}
 }
 // 畫線
-void Draw::draw_line2(ImgRaw& img, int y, int x, int y2, int x2) {
+void Draw::drawLine_p(ImgRaw& img, int y, int x, int y2, int x2) {
 	// 兩點之間的距離差
 	float dx = x2-x;
 	float dy = y2-y;
@@ -409,7 +409,7 @@ void Draw::draw_line2(ImgRaw& img, int y, int x, int y2, int x2) {
 		}
 	}
 }
-void Draw::draw_line(ImgRaw& img, int y, int x, float line_len, float sg) {
+void Draw::drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg) {
 	float value = 200 /255.0;
 	float endvalue = 255 /255.0;
 	// 防呆
@@ -424,7 +424,7 @@ void Draw::draw_line(ImgRaw& img, int y, int x, float line_len, float sg) {
 	int x2 = x + line_len*cos(sg * M_PI/180);
 	int y2 = y + line_len*sin(sg * M_PI/180);
 	// 畫線
-	draw_line2(img, y, x, y2, x2);
+	drawLine_p(img, y, x, y2, x2);
 }
 void Draw::draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg) {
 	float value = 200 /255.0;
@@ -441,10 +441,92 @@ void Draw::draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg) {
 	int x2 = x + line_len*cos(sg * M_PI/180);
 	int y2 = y + line_len*sin(sg * M_PI/180);
 	// 畫線
-	draw_line2(img, y, x, y2, x2);
+	drawLine_p(img, y, x, y2, x2);
 	// 畫頭
-	draw_line(img, y2, x2, 10, sg-150);
-	draw_line(img, y2, x2, 10, sg+150);
+	drawLine_s(img, y2, x2, 10, sg-150);
+	drawLine_s(img, y2, x2, 10, sg+150);
+}
+// 畫線RGB
+void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2) {
+	// 兩點之間的距離差
+	float dx = x2-x;
+	float dy = y2-y;
+	// 以Y軸為主
+	float sita=fastAtan2f(dy, dx);
+	if (sita>45 and sita<135 or sita>225 and sita<315) {
+		float slopeY = dx/dy; // 斜率
+		for (int i = 0; i < abs(dy); i++) {
+			int iFix = dy>0? i:-i;
+			int currPos = iFix*slopeY + x;
+
+			int distX = currPos;
+			int distY = y+iFix;
+
+			if (distX<0 or distX>=img.width or distY<0 or distY>=img.height) {
+				return;
+			}
+			size_t posi = distY*img.width + distX;
+			img.raw_img[posi*3 + 0] = 1;
+			img.raw_img[posi*3 + 1] = 0;
+			img.raw_img[posi*3 + 2] = 0;
+		}
+	} 
+	// 以X軸為主
+	else {
+		float slopeX = dy/dx; // 斜率
+		for (int i = 0; i < abs(dx); i++) {
+			int iFix = dx>0? i:-i;
+			int currPos = iFix*slopeX + y;
+
+			int distX = x+iFix;
+			int distY = currPos;
+
+			if (distX<0 or distX>=img.width or distY<0 or distY>=img.height) {
+				return;
+			}
+			size_t posi = distY*img.width + distX;
+			img.raw_img[posi*3 + 0] = 1;
+			img.raw_img[posi*3 + 1] = 0;
+			img.raw_img[posi*3 + 2] = 0;
+		}
+	}
+}
+void Draw::drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg) {
+	float value = 200 /255.0;
+	float endvalue = 255 /255.0;
+	// 防呆
+	if (line_len < 0) {
+		return;
+	}
+	if (line_len==1) {
+		img.at2d(x, y) = value;
+		return;
+	}
+	// 算頭尾
+	int x2 = x + line_len*cos(sg * M_PI/180);
+	int y2 = y + line_len*sin(sg * M_PI/180);
+	// 畫線
+	drawLineRGB_p(img, y, x, y2, x2);
+}
+void Draw::draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg) {
+	float value = 200 /255.0;
+	float endvalue = 255 /255.0;
+	// 防呆
+	if (line_len < 0) {
+		return;
+	}
+	if (line_len==1) {
+		img.at2d(x, y) = value;
+		return;
+	}
+	// 算頭尾
+	int x2 = x + line_len*cos(sg * M_PI/180);
+	int y2 = y + line_len*sin(sg * M_PI/180);
+	// 畫線
+	drawLineRGB_p(img, y, x, y2, x2);
+	// 畫頭
+	drawLineRGB_s(img, y2, x2, 10, sg-150);
+	drawLineRGB_s(img, y2, x2, 10, sg+150);
 }
 // 過濾特徵點並找極值
 bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
@@ -495,9 +577,8 @@ bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr
 	return false;
 };
 // 印出箭頭
-void Sift::addArrow(string name)
+void Sift::drawArrow(string name)
 {
-	
 	//箭頭倍率
 	float mag = 100000.f;
 	Feature* pictureS = FeatStart;
@@ -517,7 +598,7 @@ void Sift::addArrow(string name)
 		x=pictureS->x/roominout;
 		y=pictureS->y/roominout;
 		//cout << x  << ", "<< y  << ", "<< roominout << ", " << pictureS->sita << endl;
-		Draw::draw_line(img, y, x, 10, -pictureS->sita);
+		Draw::drawLine_s(img, y, x, 10, -pictureS->sita);
 		*/
 		//劃出箭頭的直線
 		while (true)
