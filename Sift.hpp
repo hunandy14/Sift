@@ -84,6 +84,7 @@ private:
     using types = float;
 public:
 	// 初始化
+	ImgRaw() = default;
     ImgRaw(vector<types> img, size_t width, size_t height) :
         raw_img(img), width(width), height(height) {}
 	ImgRaw(size_t width, size_t height, size_t bits) :
@@ -91,18 +92,20 @@ public:
 		width(width), height(height), bitCount(bits){}
 	ImgRaw(size_t width, size_t height) :
 		raw_img(width*height), width(width), height(height){}
-	ImgRaw(size_t size = 0) :raw_img(size){}
 	ImgRaw(string bmpname);
     // 隱式轉換
     operator vector<types>&() { return raw_img; }
 	operator const vector<types>&() const { return raw_img; }
     operator vector<unsigned char>() {
-        vector<unsigned char> img(raw_img.size());
-        for(unsigned i = 0; i < raw_img.size(); ++i) {
-            img[i] = (unsigned char)(raw_img[i]*255);
-        }
-        return img;
+		const vector<unsigned char> img = static_cast<const ImgRaw&>(*this);
+		return const_cast<vector<unsigned char>&>(img);
     }
+	operator const vector<unsigned char>() const {
+		vector<unsigned char> img(raw_img.size());
+		for(unsigned i = 0; i < raw_img.size(); ++i)
+			img[i] = (unsigned char)(raw_img[i]*255);
+		return img;
+	}
     // 重載下標符號
     types & operator[](size_t idx) {
         return const_cast<types&>(static_cast<const ImgRaw&>(*this)[idx]);
@@ -110,13 +113,16 @@ public:
     const types & operator[](size_t idx) const {
         return raw_img[idx];
     }
-    // 二維讀取
-    types & at2d(size_t y, size_t x) {
+    // 二維讀取 (覺得累贅想拿掉)
+    /*types & at2d(size_t y, size_t x) {
         return const_cast<types&>(static_cast<const ImgRaw&>(*this).at2d(y, x));
     }
     const types & at2d(size_t y, size_t x) const {
         return raw_img[y*width + x];
-    }
+    }*/
+    // 大小是否相等
+    friend bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs);
+    friend bool operator==(const ImgRaw& lhs, const ImgRaw& rhs);
 	// 獲得大小
 	size_t size() {
 		return this->raw_img.size();
@@ -128,6 +134,7 @@ public:
 		this->height=height;
 		this->bitCount=bits;
 	}
+public:
 	// 轉為灰階
 	ImgRaw ConverGray() const {
 		if (bitCount == 24) {
@@ -138,20 +145,15 @@ public:
 					raw_img[i*3+1]*0.587 +
 					raw_img[i*3+2]*0.114;
 			} return gray;
-		} return *this;
+		} return (*this);
 	}
-public:
-    // 大小是否相等
-    friend bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs);
-    friend bool operator==(const ImgRaw& lhs, const ImgRaw& rhs);
     // 寫 BMP 檔
     void bmp(string name, size_t bits=0) {
 		if (bits == 0) { bits = this->bitCount; }
         vector<unsigned char> img = (*this);// 有重載轉換函式
         Raw::raw2bmp(name, img, width, height, bits);
     }
-
-public:
+public: // 放大縮小 (覺得累贅想拿掉)
     static void zero(ImgRaw& tar, ImgRaw& sou, float z) {
         Scaling::zero(tar, sou, sou.width, sou.height, z);
         tar.width = (size_t)(sou.width*z);

@@ -14,65 +14,67 @@ using namespace std;
 #include "imglib.hpp"
 constexpr auto M_PI = 3.14159265358979323846;
 
-// 高斯模糊(3x3)
-void Gaus::GauBlur(vector<types>& img_gau,
-    const vector<types>& img_ori,
+void Gaus::GauBlur3x3(vector<types>& img_gau, const vector<types>& img_ori,
+	size_t width, size_t height, float p) {
+	// 來源不可相同
+	if (&img_gau == &img_ori) {
+		throw file_same("## Erroe! in and out is same.");
+	}
+	constexpr size_t GauMat_R = 3;
+	// 設定正確的大小
+	img_gau.resize(img_ori.size());
+	// 高斯矩陣
+	vector<types> gau_mat = gau_matrix(p, GauMat_R);
+	// 高斯橫向
+	vector<types> gau(width*height);
+	for (size_t j = 0; j < height; j++) {
+		for (size_t i = 0; i < width; i++) {
+			float mat[GauMat_R];
+			if (i == 0) {
+				mat[0] = img_ori[j*width + i+0] * gau_mat[0];
+				mat[1] = img_ori[j*width + i+0] * gau_mat[1];
+				mat[2] = img_ori[j*width + i+1] * gau_mat[2];
+			} else if (i == width-1) {
+				mat[0] = img_ori[j*width + i-1] * gau_mat[0];
+				mat[1] = img_ori[j*width + i+0] * gau_mat[1];
+				mat[2] = img_ori[j*width + i+0] * gau_mat[2];
+			} else {
+				mat[0] = img_ori[j*width + i-1] * gau_mat[0];
+				mat[1] = img_ori[j*width + i+0] * gau_mat[1];
+				mat[2] = img_ori[j*width + i+1] * gau_mat[2];
+			}
+			gau[j*width + i] = (mat[0] + mat[1] + mat[2]);
+		}
+	}
+	// 高斯縱向
+	for (size_t j = 0; j < height; j++) {
+		for (size_t i = 0; i < width; i++) {
+			float mat[GauMat_R];
+			if (j == 0) {
+				mat[0] = gau[(j+0)*width + i] * gau_mat[0];
+				mat[1] = gau[(j+0)*width + i] * gau_mat[1];
+				mat[2] = gau[(j+1)*width + i] * gau_mat[2];
+			} else if (j == height-1) {
+				mat[0] = gau[(j-1)*width + i] * gau_mat[0];
+				mat[1] = gau[(j+0)*width + i] * gau_mat[1];
+				mat[2] = gau[(j+0)*width + i] * gau_mat[2];
+			} else {
+				mat[0] = gau[(j-1)*width + i] * gau_mat[0];
+				mat[1] = gau[(j+0)*width + i] * gau_mat[1];
+				mat[2] = gau[(j+1)*width + i] * gau_mat[2];
+			}
+			img_gau[j*width+i] = (mat[0] + mat[1] + mat[2]);
+		}
+	}
+}
+// 高斯模糊
+void Gaus::GauBlur(vector<types>& img_gau, const vector<types>& img_ori,
     size_t width, size_t height, float p)
 {
     // 來源不可相同
     if (&img_gau == &img_ori) {
         throw file_same("## Erroe! in and out is same.");
     }
-
-	/*
-    constexpr size_t GauMat_R = 3;
-    // 設定正確的大小
-    img_gau.resize(img_ori.size());
-    // 高斯矩陣
-    vector<types> gau_mat = gau_matrix(p, GauMat_R);
-    // 高斯橫向
-	vector<types> gau(width*height);
-    for (size_t j = 0; j < height; j++) {
-        for (size_t i = 0; i < width; i++) {
-            float mat[GauMat_R];
-            if (i == 0) {
-                mat[0] = img_ori[j*width + i+0] * gau_mat[0];
-                mat[1] = img_ori[j*width + i+0] * gau_mat[1];
-                mat[2] = img_ori[j*width + i+1] * gau_mat[2];
-            } else if (i == width-1) {
-                mat[0] = img_ori[j*width + i-1] * gau_mat[0];
-                mat[1] = img_ori[j*width + i+0] * gau_mat[1];
-                mat[2] = img_ori[j*width + i+0] * gau_mat[2];
-            } else {
-                mat[0] = img_ori[j*width + i-1] * gau_mat[0];
-                mat[1] = img_ori[j*width + i+0] * gau_mat[1];
-                mat[2] = img_ori[j*width + i+1] * gau_mat[2];
-            }
-			gau[j*width + i] = (mat[0] + mat[1] + mat[2]);
-        }
-    }
-    // 高斯縱向
-    for (size_t j = 0; j < height; j++) {
-        for (size_t i = 0; i < width; i++) {
-            float mat[GauMat_R];
-            if (j == 0) {
-                mat[0] = gau[(j+0)*width + i] * gau_mat[0];
-				mat[1] = gau[(j+0)*width + i] * gau_mat[1];
-				mat[2] = gau[(j+1)*width + i] * gau_mat[2];
-            } else if (j == height-1) {
-                mat[0] = gau[(j-1)*width + i] * gau_mat[0];
-				mat[1] = gau[(j+0)*width + i] * gau_mat[1];
-				mat[2] = gau[(j+0)*width + i] * gau_mat[2];
-            } else {
-                mat[0] = gau[(j-1)*width + i] * gau_mat[0];
-				mat[1] = gau[(j+0)*width + i] * gau_mat[1];
-				mat[2] = gau[(j+1)*width + i] * gau_mat[2];
-            }
-            img_gau[j*width+i] = (mat[0] + mat[1] + mat[2]);
-        }
-    }*/
-	
-	
 	vector<types> gau_mat = gau_matrix(p, 0);
 	img_gau.resize(height*width);
     // 緩存
@@ -120,13 +122,6 @@ float Gaus::gau_meth(size_t r, float p) {
     num /= sqrt(two*M_PI)*p;
     return num;
 }
-// 高斯差分
-void Gaus::GauDog(vector<types>& img_dog,
-	vector<types>& img_gau, size_t width, size_t height)
-{
-	
-}
-
 // 高斯矩陣 (mat_len defa=3)
 vector<float> Gaus::gau_matrix(float p, size_t mat_len) {
     vector<float> gau_mat;
@@ -156,38 +151,20 @@ vector<float> Gaus::gau_matrix(float p, size_t mat_len) {
     for (auto&& i : gau_mat) { i /= sum; }
     return gau_mat;
 }
-vector<Gaus::types> Gaus::gau_matrix2d(vector<types>& gau_mat2d, types p, size_t mat_len) {
-    // 高斯2d矩陣
-    gau_mat2d.resize(mat_len*mat_len);
-    // 二維讀取
-    auto at2d = [&](int y, int x)->float& {
-        return gau_mat2d[y*mat_len + x];
-    };
-
-    vector<float> gau_mat1d = Gaus::gau_matrix(p, mat_len);
-    // 做 X
-    for (size_t j = 0; j < mat_len; j++) {
-        for (size_t i = 0; i < mat_len; i++) {
-            at2d(j, i) = gau_mat1d[i];
-        }
-    }
-    // 做 Y
-    for (size_t j = 0; j < mat_len; j++) {
-        for (size_t i = 0; i < mat_len; i++) {
-            at2d(i, j) *= gau_mat1d[i];
-        }
-    }
-    // 檢查
-/*
-float sum=0;
-for (size_t j = 0; j < mat_len; j++)
-    for (size_t i = 0; i < mat_len; i++)
-        sum+=at2d(i, j);
-if (sum == 1) cout << "gau_matrix2d -> check ok" << endl;
-*/
+vector<float> Gaus::gau_matrix2d(vector<types>& gau_mat2d, types p, size_t mat_len) {
+	// 高斯2d矩陣
+	gau_mat2d.resize(mat_len*mat_len);
+	vector<float> gau_mat1d = Gaus::gau_matrix(p, mat_len);
+	// 做 X
+	for (size_t j = 0; j < mat_len; j++)
+		for (size_t i = 0; i < mat_len; i++)
+			gau_mat2d[j*mat_len + i] = gau_mat1d[i];
+	// 做 Y
+	for (size_t j = 0; j < mat_len; j++)
+		for (size_t i = 0; i < mat_len; i++)
+			gau_mat2d[i*mat_len + j] *= gau_mat1d[i];
     return gau_mat2d;
 }
-
 // 正規化
 void Gaus::regularization(vector<types>& img, vector<unsigned char>& img_ori) {
 	img.resize(img_ori.size());
@@ -201,11 +178,14 @@ void Gaus::unregularization(vector<unsigned char>& img, vector<types>& img_ori) 
 		img[i] = img_ori[i]*255.0;
 	}
 }
-//----------------------------------------------------------------
+
+
+
+
+
 // ZroOrder調整大小
-void Scaling::zero(vector<types>& img,
-    vector<types>& img_ori, size_t width,
-    size_t height, float Ratio)
+void Scaling::zero(vector<types>& img, vector<types>& img_ori,
+	size_t width, size_t height, float Ratio)
 {
     int w = (int)floor(width * Ratio);
     int h = (int)floor(height * Ratio);
@@ -218,9 +198,8 @@ void Scaling::zero(vector<types>& img,
     }
 }
 // FisrtOrder調整大小
-void Scaling::first(vector<types>& img,
-    vector<types>& img_ori, size_t width,
-    size_t height, float Ratio)
+void Scaling::first(vector<types>& img, vector<types>& img_ori, 
+	size_t width, size_t height, float Ratio)
 {
     int w = (int)floor(width * Ratio);
     int h = (int)floor(height * Ratio);
@@ -248,9 +227,8 @@ void Scaling::first(vector<types>& img,
     }
 }
 // Bicubic調整大小
-void Scaling::cubic(vector<types>& img,
-    vector<types>& img_ori, size_t width,
-    size_t height, float Ratio)
+void Scaling::cubic(vector<types>& img, vector<types>& img_ori, 
+	size_t width, size_t height, float Ratio)
 {
     /*
     using uch = types;
@@ -319,7 +297,11 @@ float Scaling::bicubicInterpolate (
         arr[i] = cubicInterpolate((i*4 + p), x);
     } return cubicInterpolate(arr, y);
 }
-//----------------------------------------------------------------
+
+
+
+
+
 bool Corner::harris(const vector<float>& p,
     size_t w, size_t y, size_t x, float r)
 {

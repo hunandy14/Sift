@@ -19,13 +19,12 @@ class Gaus{
 private:
     using types = float;
 public:
-    static void GauBlur(vector<types>& img_gau,
-		const vector<types>& img_ori,
-        size_t width, size_t height, float p);
-	static void GauDog(vector<types>& img_dog,
-		vector<types>& img_gau, size_t width, size_t height);
-    static vector<types> gau_matrix(float p, size_t mat_len = 3);
-	static vector<types> gau_matrix2d(vector<types>& gau_mat2d, types p, size_t mat_len=0);
+	static void GauBlur(vector<types>& img_gau, const vector<types>& img_ori,
+		size_t width, size_t height, float p);
+	static void GauBlur3x3(vector<types>& img_gau, const vector<types>& img_ori,
+		size_t width, size_t height, float p);
+    static vector<float> gau_matrix(float p, size_t mat_len = 0);
+	static vector<float> gau_matrix2d(vector<types>& gau_mat2d, types p, size_t mat_len=0);
 public:
 	static void regularization(vector<types>& img, vector<unsigned char>& img_ori);
 	static void unregularization(vector<unsigned char>& img, vector<types>& img_ori);
@@ -38,17 +37,14 @@ private:
     using types = float;
 public:
     // ZroOrder調整大小
-    static void zero(vector<types>& img,
-        vector<types>& img_ori, 
+    static void zero(vector<types>& img, vector<types>& img_ori, 
         size_t width, size_t height, float Ratio);
     // FisrtOrder調整大小
-    static void first(vector<types>& img,
-        vector<types>& img_ori, 
+    static void first(vector<types>& img, vector<types>& img_ori, 
         size_t width, size_t height, float Ratio);
     // Bicubic調整大小
-    static void cubic(vector<types>& img,
-        vector<types>& img_ori, size_t width, 
-        size_t height, float Ratio);
+    static void cubic(vector<types>& img, vector<types>& img_ori, 
+		size_t width, size_t height, float Ratio);
 private:
     // Bicubic 插值核心運算
     static float cubicInterpolate (

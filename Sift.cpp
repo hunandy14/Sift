@@ -417,7 +417,7 @@ void Draw::drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	if (line_len==1) {
-		img.at2d(x, y) = value;
+		img[x*img.width + y] = value;
 		return;
 	}
 	// 算頭尾
@@ -434,7 +434,7 @@ void Draw::draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	if (line_len==1) {
-		img.at2d(x, y) = value;
+		img[x*img.width + y] = value;
 		return;
 	}
 	// 算頭尾
@@ -499,7 +499,7 @@ void Draw::drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	if (line_len==1) {
-		img.at2d(x, y) = value;
+		img[x*img.width + y] = value;
 		return;
 	}
 	// 算頭尾
@@ -516,7 +516,7 @@ void Draw::draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	if (line_len==1) {
-		img.at2d(x, y) = value;
+		img[x*img.width + y] = value;
 		return;
 	}
 	// 算頭尾
