@@ -23,6 +23,8 @@ void Gaus::GauBlur(vector<types>& img_gau,
     if (&img_gau == &img_ori) {
         throw file_same("## Erroe! in and out is same.");
     }
+
+	/*
     constexpr size_t GauMat_R = 3;
     // 設定正確的大小
     img_gau.resize(img_ori.size());
@@ -68,13 +70,15 @@ void Gaus::GauBlur(vector<types>& img_gau,
             }
             img_gau[j*width+i] = (mat[0] + mat[1] + mat[2]);
         }
-    }
-
-	/*
+    }*/
+	
+	
+	vector<types> gau_mat = gau_matrix(p, 0);
+	img_gau.resize(height*width);
     // 緩存
-     vector<types> img_gauX(img_ori.size());
+    vector<types> img_gauX(img_ori.size());
     // 高斯模糊 X 軸
-     const size_t r = gau_mat.size() / 2;
+    const size_t r = gau_mat.size() / 2;
     for (unsigned j = 0; j < height; ++j) {
         for (unsigned i = 0; i < width; ++i) {
             double sum = 0;
@@ -103,11 +107,11 @@ void Gaus::GauBlur(vector<types>& img_gau,
                 } else if (idx > (int)(height-1)) {
                   idx = (height-1);
                 }
-                sum += img_gauX[i*height + idx] * gau_mat[k];
+                sum += img_gauX[idx*width + i] * gau_mat[k];
             }
-            img_gau[i*height + j] = sum;
+            img_gau[j*width + i] = sum;
         }
-    }*/
+    }
 }
 // 高斯公式
 float Gaus::gau_meth(size_t r, float p) {
@@ -128,8 +132,7 @@ vector<float> Gaus::gau_matrix(float p, size_t mat_len) {
     vector<float> gau_mat;
     // 計算矩陣長度
     if (mat_len == 0) {
-        // (顏瑞穎給的公式)
-        //mat_len = (int)(((p - 0.8) / 0.3 + 1.0) * 2.0);
+        mat_len = (int)(((p - 0.8) / 0.3 + 1.0) * 2.0);// (顏瑞穎給的公式)
     }
     // 奇數修正
     if (mat_len % 2 == 0) { ++mat_len; }

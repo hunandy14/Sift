@@ -122,7 +122,7 @@ public:
 		return this->raw_img.size();
 	}
 	// 重設大小
-	void resize(size_t width, size_t height, size_t bits=8) {
+	void resize(size_t width, size_t height, size_t bits) {
 		raw_img.resize(width*height * bits/8);
 		this->width=width;
 		this->height=height;
@@ -192,9 +192,7 @@ class Sift {
 private:
     using types = float;
 public:
-    Sift(ImgRaw img);
-    Sift(vector<types> raw_img, size_t width, size_t height):
-        raw_img(raw_img, width, height) {}
+    Sift(ImgRaw img, size_t intvls=6);
 public:
 	void pyramid2();
     void comp(vector<ImgRaw>& pyrs, string name="");
@@ -207,13 +205,12 @@ private:
 	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
 public:
     ImgRaw raw_img;  //原圖
-	size_t pyWidth=5;  //塔高(放大縮小)
-	size_t pyheight=5; //塔寬(模糊幾次)
+	size_t pyWidth=6;  //塔高(放大縮小)
     vector<vector<ImgRaw>> pyrs;
 	vector<vector<ImgRaw>> pyrs_dog;
 	// 特徵點
-	Feature* FeatureStart;
-	Feature* FeatureEnd;
+	Feature* FeatStart;
+	Feature* FeatEnd;
 };
 //----------------------------------------------------------------
 struct Fea_point {
@@ -233,7 +230,9 @@ struct Fea_point {
 // 畫線
 class Draw {
 public:
-	static void draw_line(ImgRaw& img, size_t y, size_t x, float line_len, float sg);
+	static void draw_line(ImgRaw& img, int y, int x, float line_len, float sg);
+	static void draw_line2(ImgRaw& img, int y, int x, int y2, int x2);
+	static void draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg);
 };
 //-----------------------------------------------------------------
 class Stitching{
@@ -242,7 +241,7 @@ private:
 public:
 	Stitching(const Sift& desc1, const Sift& desc2);
 	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
-	void Check(void); // 檢查是否有相同的特徵描述子
+	void Check(float matchTh=0.6); // 檢查是否有相同的特徵描述子
 	void Link(int x1, int y1, int x2, int y2);// 將帶入的兩點相連
 private:
 	int Width, Height;
