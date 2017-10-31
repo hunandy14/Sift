@@ -4,8 +4,6 @@ Date : 2017/07/04
 By   : CharlotteHonG
 Final: 2017/07/04
 *****************************************************************/
-#define M_PI 3.14159265358979323846
-
 #pragma warning(disable : 4819)
 #include <iostream>
 #include <vector>
@@ -25,8 +23,8 @@ using namespace cv;
 int main(int argc, char const *argv[]){
 	//srand((unsigned)time(NULL)); rand();
 	// 讀取圖片
-	string name1="kanna.bmp";
-	string name2="kanna3.bmp";
+	string name1="Lena.bmp";
+	string name2="Lena3.bmp";
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
 
@@ -39,11 +37,11 @@ start = clock();
 
     // 金字塔1
     Sift fea1(img1);
-	fea1.pyramid2();
+	fea1.pyramid();
 	fea1.drawArrow("feaArrow1.bmp");
 	// 金字塔2
 	Sift fea2(img2);
-	fea2.pyramid2();
+	fea2.pyramid();
 	fea2.drawArrow("feaArrow2.bmp");
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1, fea2);

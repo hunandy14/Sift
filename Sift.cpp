@@ -18,6 +18,7 @@ Final: 2017/07/05
 using namespace std;
 #define M_PI 3.14159265358979323846
 
+// ImgRaw建構子
 ImgRaw::ImgRaw(string bmpname){
 	vector<unsigned char> img;
 	uint32_t width, height;
@@ -43,7 +44,7 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name) {
     // 合成圖片
     size_t w = pyrs[0].width, h = pyrs[0].height;
     size_t s2 = pyrs.size();
-    ImgRaw big_img(w*s2, h);
+    ImgRaw big_img(w*s2, h, 8);
     for (unsigned j = 0, idx = 0; j < h; ++j) {
         for (unsigned n = 0; n < s2; ++n) {
             for (unsigned i = 0; i < w; ++i) {
@@ -73,6 +74,30 @@ void Sift::AddnewFeaturestruct(int Inx, int Iny, float Insize, int scale_idx, in
 	FeatEnd->nextptr = newnode;// 加入該點
 	FeatEnd = newnode; // 更新結尾點的標記
 }
+// 過濾特徵點並找極值
+bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
+	const float& Val = gauDog_imgs[scale_idx][y*curr_Width + x];
+	// 過濾變化率過小的特徵點
+	if (abs(Val) > SIFT_Dx/2.0) {
+		// 找極值
+		for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++) {
+			const ImgRaw& currImg = gauDog_imgs[k];
+			for (int j = (y - 1); j <= (y + 1); j++) {
+				size_t currIdx = j*curr_Width+x;
+				for (int i = - 1; i <= 1; i++) {
+					if ((Val>0 and Val<currImg[currIdx +i]) or 
+						(Val<0 and Val>currImg[currIdx +i]))
+					{
+						return false;
+					}
+				}
+				//if ((Val>0 and Val<currImg[currIdx -1]) or (Val<0 and Val>currImg[currIdx -1])) {return false;}
+				//if ((Val>0 and Val<currImg[currIdx +0]) or (Val<0 and Val>currImg[currIdx +0])) {return false;}
+				//if ((Val>0 and Val<currImg[currIdx +1]) or (Val<0 and Val>currImg[currIdx +1])) {return false;}
+			}
+		} return true;
+	} return false;
+};
 // 獲得特徵點直方圖統計
 static inline float fastAtan2f(float dy, float dx){
 	// 快速atan運算
@@ -310,7 +335,7 @@ static inline size_t getPyramidOctv(size_t width, size_t height) {
 	else {n -= 6;}
 	return n;
 }
-void Sift::pyramid2() {
+void Sift::pyramid() {
 	ImgRaw gray_img = raw_img.ConverGray();
 	size_t octv = getPyramidOctv(gray_img.width, gray_img.height);
 	float curr_size=2.f, curr_sigmaCoef=1.f;
@@ -324,6 +349,7 @@ void Sift::pyramid2() {
 		// 高斯模糊
 		vector<ImgRaw> gau_imgs(pyWidth);
 		ImgRaw::gauBlur(gau_imgs[0], currSize_img, SIFT_GauSigma * (curr_sigmaCoef));
+		gau_imgs[0].bmp("gau/gau"+to_string(0)+".bmp", 8);
 		for (size_t i = 1; i < pyWidth; i++) {
 			const float curr_Sigma = SIFT_GauSigma * powf(sqrt(2.0),i) * (curr_sigmaCoef); // 這裡的2是 S+3 的 S
 			gau_imgs[i].resize(curr_Width, curr_Height, 8);
@@ -343,8 +369,8 @@ void Sift::pyramid2() {
 		Feature* FeatureNow = FeatEnd;
 		// 尋找特徵點並累加直方圖
 		for (size_t scale_idx = 1; scale_idx < pyWidth-1-1; scale_idx++) {
-			ImgRaw MaxMin_img(curr_Width, curr_Height);
-			ImgRaw Herris_img(curr_Width, curr_Height);
+			ImgRaw MaxMin_img(curr_Width, curr_Height, 8);
+			ImgRaw Herris_img(curr_Width, curr_Height, 8);
 			// 特徵直方圖累加半徑
 			const size_t r = curr_size * 3. * 1.5 * (scale_idx+1);
 			for (size_t j = r+1; j < curr_Height-r-1; j++) {
@@ -369,6 +395,123 @@ void Sift::pyramid2() {
 		// 描述剛剛才找到的新特徵點(尋找前先記錄位置)
 		FeatureDescrip(gau_imgs, FeatureNow);
 	}
+}
+// 印出箭頭
+void Sift::drawArrow(string name)
+{
+	//箭頭倍率
+	float mag = 100000.f;
+	Feature* pictureS = FeatStart;
+	size_t Height=raw_img.height;
+	size_t Width=raw_img.width;
+	// 臨時圖庫
+	ImgRaw img = raw_img;
+	while (pictureS->nextptr != NULL) {
+		//cout << pictureS->x  << ", "<< pictureS->y  << ", "<< pictureS->mag << ", " << pictureS->sita << endl;
+		pictureS = pictureS->nextptr;
+		int x, y;
+		float roominout = pictureS->size;
+		x = 1;
+		/*
+		//cout<< roominout << endl;
+		x=pictureS->x/roominout;
+		y=pictureS->y/roominout;
+		//cout << x  << ", "<< y  << ", "<< roominout << ", " << pictureS->sita << endl;
+		Draw::drawLine_s(img, y, x, 10, -pictureS->sita);
+		*/
+		//Draw::draw_arrowRGB(img, pictureS->x/roominout, pictureS->y/roominout, pictureS->mm*1000.0, pictureS->sita);
+		//劃出箭頭的直線
+		
+		while (true) {
+			if (pictureS->sita == 90 || pictureS->sita == 270) y = 0;
+			else y = x * tan((pictureS->sita)*M_PI / 180.0);
+
+			if ((x*x + y*y) <= (pictureS->mm)*mag) {
+				int dx, dy;
+				if (pictureS->sita > 90 && pictureS->sita <= 270) {
+					dx = (int)(pictureS->x / roominout) - x;
+					dy = (int)(pictureS->y / roominout) - y;
+				} else {
+					dx = (int)(pictureS->x / roominout) + x;
+					dy = (int)(pictureS->y / roominout) + y;
+				}
+
+				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height) {
+					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
+					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
+					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
+				}
+			} else {
+				break;
+			}
+			++x;
+		}
+		if (pictureS->sita > 90 && pictureS->sita <= 270) {
+			x = -x;
+			y = -y;
+		}
+		
+		//畫出箭頭的兩條斜線
+		int xR, yR;
+		int xL, yL;
+		xR = xL = 1;
+		int sitaR = pictureS->sita - 150;
+		int sitaL = pictureS->sita + 150;
+		if (sitaR < 0) sitaR = 360 + sitaR;
+		if (sitaL >= 360) sitaL = sitaL - 360;
+		while (true)//右下線
+		{
+			if (sitaR == 90 || sitaR == 270) yR = 0;
+			else yR = xR * tan((sitaR)*M_PI / 180.0);
+
+			if ((xR*xR + yR*yR) <= (pictureS->mm)*mag / 4.0) {
+				int dx, dy;
+				if (sitaR > 90 && sitaR <= 270) {
+					dx = pictureS->x / roominout + x - xR;
+					dy = pictureS->y / roominout + y - yR;
+				} else {
+					dx = pictureS->x / roominout + x + xR;
+					dy = pictureS->y / roominout + y + yR;
+				}
+
+				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height) {
+					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
+					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
+					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
+				}
+			} else {
+				break;
+			}
+			++xR;
+		}
+
+		while (true)//左下線
+		{
+			if (sitaL == 90 || sitaL == 270) yL = 0;
+			else yL = xL * tan((sitaL)*M_PI / 180.0);
+
+			if ((xL*xL + yL*yL) <= (pictureS->mm)*mag / 4.0) {
+				int dx, dy;
+				if (sitaL > 90 && sitaL <= 270) {
+					dx = pictureS->x / roominout + x - xL;
+					dy = pictureS->y / roominout + y - yL;
+				} else {
+					dx = pictureS->x / roominout + x + xL;
+					dy = pictureS->y / roominout + y + yL;
+				}
+				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height) {
+					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
+					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
+					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
+				}
+			} else {
+				break;
+			}
+			++xL;
+		}
+	}
+	/*輸出圖片*/
+	img.bmp(name);
 }
 // 畫線
 void Draw::drawLine_p(ImgRaw& img, int y, int x, int y2, int x2) {
@@ -528,207 +671,6 @@ void Draw::draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg) {
 	drawLineRGB_s(img, y2, x2, 10, sg-150);
 	drawLineRGB_s(img, y2, x2, 10, sg+150);
 }
-// 過濾特徵點並找極值
-bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
-	const float& Val = gauDog_imgs[scale_idx][y*curr_Width + x];
-	/*bool maxc, minc;
-	maxc = minc = true;
-	for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++)
-	{
-		for (int j = (y - 1); j <= (y + 1); j++)
-		{
-			for (int i = (x - 1); i < (x + 1); i++)
-			{
-				if (gauDog_imgs[k][j*curr_Width + i] > Val)
-					maxc = false;
-				if (gauDog_imgs[k][j*curr_Width + i] < Val)
-					minc = false;
-				if (!(maxc | minc))
-					return false;
-			}
-		}
-	}
-
-	if (abs(Val) < 0.015)
-		return false;
-	else
-		return true;*/
-
-	// 過濾變化率過小的特徵點
-	if (abs(Val) > SIFT_Dx/2.0) {
-		// 找極值
-		for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++) {
-			const ImgRaw& currImg = gauDog_imgs[k];
-			for (int j = (y - 1); j <= (y + 1); j++) {
-				size_t currIdx = j*curr_Width+x;
-				for (int i = - 1; i <= 1; i++) {
-					if ((Val>0 and Val<currImg[currIdx +i]) or 
-						(Val<0 and Val>currImg[currIdx +i]))
-					{
-						return false;
-					}
-				}
-				//if ((Val>0 and Val<currImg[currIdx -1]) or (Val<0 and Val>currImg[currIdx -1])) {return false;}
-				//if ((Val>0 and Val<currImg[currIdx +0]) or (Val<0 and Val>currImg[currIdx +0])) {return false;}
-				//if ((Val>0 and Val<currImg[currIdx +1]) or (Val<0 and Val>currImg[currIdx +1])) {return false;}
-			}
-		} return true;
-	} 
-	return false;
-};
-// 印出箭頭
-void Sift::drawArrow(string name)
-{
-	//箭頭倍率
-	float mag = 100000.f;
-	Feature* pictureS = FeatStart;
-	size_t Height=raw_img.height;
-	size_t Width=raw_img.width;
-	// 臨時圖庫
-	ImgRaw img = raw_img;
-	while (pictureS->nextptr != NULL)
-	{
-		//cout << pictureS->x  << ", "<< pictureS->y  << ", "<< pictureS->mag << ", " << pictureS->sita << endl;
-		pictureS = pictureS->nextptr;
-		int x, y;
-		float roominout = pictureS->size;
-		x = 1;
-		/*
-		//cout<< roominout << endl;
-		x=pictureS->x/roominout;
-		y=pictureS->y/roominout;
-		//cout << x  << ", "<< y  << ", "<< roominout << ", " << pictureS->sita << endl;
-		Draw::drawLine_s(img, y, x, 10, -pictureS->sita);
-		*/
-		//劃出箭頭的直線
-		while (true)
-		{
-			if (pictureS->sita == 90 || pictureS->sita == 270) y = 0;
-			else y = x * tan((pictureS->sita)*M_PI / 180.0);
-
-			if ((x*x + y*y) <= (pictureS->mm)*mag)
-			{
-				int dx, dy;
-				if (pictureS->sita > 90 && pictureS->sita <= 270)
-				{
-					dx = (int)(pictureS->x / roominout) - x;
-					dy = (int)(pictureS->y / roominout) - y;
-				}
-				else
-				{
-					dx = (int)(pictureS->x / roominout) + x;
-					dy = (int)(pictureS->y / roominout) + y;
-				}
-
-				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height)
-				{
-					//cout << "123" << endl;
-					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
-					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
-					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
-					//color[dy][dx].rgbtBlue = 255.0;
-					//color[dy][dx].rgbtGreen = 0.0;
-					//color[dy][dx].rgbtRed = 0.0;
-				}
-			}
-			else
-			{
-				break;
-			}
-			++x;
-		}
-		if (pictureS->sita > 90 && pictureS->sita <= 270)
-		{
-			x = -x;
-			y = -y;
-		}
-		//畫出箭頭的兩條斜線
-		int xR, yR;
-		int xL, yL;
-		xR = xL = 1;
-		int sitaR = pictureS->sita - 150;
-		int sitaL = pictureS->sita + 150;
-		if (sitaR < 0) sitaR = 360 + sitaR;
-		if (sitaL >= 360) sitaL = sitaL - 360;
-		while (true)//右下線
-		{
-			if (sitaR == 90 || sitaR == 270) yR = 0;
-			else yR = xR * tan((sitaR)*M_PI / 180.0);
-
-			if ((xR*xR + yR*yR) <= (pictureS->mm)*mag / 4.0)
-			{
-				int dx, dy;
-				if (sitaR > 90 && sitaR <= 270)
-				{
-					dx = pictureS->x / roominout + x - xR;
-					dy = pictureS->y / roominout + y - yR;
-				}
-				else
-				{
-					dx = pictureS->x / roominout + x + xR;
-					dy = pictureS->y / roominout + y + yR;
-				}
-
-				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height)
-				{
-					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
-					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
-					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
-					
-					//color[dy][dx].rgbtBlue = 255.0;
-					//color[dy][dx].rgbtGreen = 0.0;
-					//color[dy][dx].rgbtRed = 0.0;
-					
-				}
-			}
-			else
-			{
-				break;
-			}
-			++xR;
-		}
-
-		while (true)//左下線
-		{
-			if (sitaL == 90 || sitaL == 270) yL = 0;
-			else yL = xL * tan((sitaL)*M_PI / 180.0);
-
-			if ((xL*xL + yL*yL) <= (pictureS->mm)*mag / 4.0)
-			{
-				int dx, dy;
-				if (sitaL > 90 && sitaL <= 270)
-				{
-					dx = pictureS->x / roominout + x - xL;
-					dy = pictureS->y / roominout + y - yL;
-				}
-				else
-				{
-					dx = pictureS->x / roominout + x + xL;
-					dy = pictureS->y / roominout + y + yL;
-				}
-
-				if (dx >= 0 && dx < Width && dy >= 0 && dy < Height)
-				{
-					img[(dy*Width+dx)*3 + 0] = 255 /255.0;
-					img[(dy*Width+dx)*3 + 1] = 0 /255.0;
-					img[(dy*Width+dx)*3 + 2] = 0 /255.0;
-					
-					//color[dy][dx].rgbtBlue = 255.0;
-					//color[dy][dx].rgbtGreen = 0.0;
-					//color[dy][dx].rgbtRed = 0.0;
-					
-				}
-			}
-			else
-			{
-				break;
-			}
-			++xL;
-		}
-	}
-	/*輸出圖片*/
-	img.bmp(name);
-}
 
 /************/
 /*** 匹配 ****/
@@ -758,19 +700,18 @@ Stitching::Stitching(const Sift& desc1, const Sift& desc2) {
 	matchImg.bmp("matchImg.bmp", 24); // 測試
 	cout << endl;
 }
-//*** 檢查是否有相同的特徵描述子 ***//
+// 檢查是否有相同的特徵描述子(歐式距離計算)
 float Stitching::EuclDist(const Desc& point1, const Desc& point2) {
-	// 兩個個描述子間128點的歐式距離(EuclideanDistance)
-	float add = 0.f;
+	float sum = 0.f;
 	for (size_t k = 0; k < 4; k++) {
 		for (size_t j = 0; j < 4; j++) {
 			for (size_t i = 0; i < 8; i++) {
 				const float reduce = point1[k][j][i] - point2[k][j][i];
-				add += reduce * reduce;
+				sum += reduce * reduce;
 			}
 		}
 	}
-	return sqrtf(add);
+	return sqrtf(sum);
 }
 void Stitching::Check(float matchTh) {
 	Feature *startlink1, *startlink2;
@@ -806,8 +747,11 @@ void Stitching::Check(float matchTh) {
 			int x1, y1;
 			x1 = startlink1->x / startlink1->size;
 			y1 = startlink1->y / startlink1->size;
-			Link(x1, y1, useX1 + (Width / 2), useY1);
-			//cout << "y1=" << y1 << ", x1=" << x1 << ", y2=" << useY1 << ", x2=" <<  (int)(useX1+Width*0.5) << endl;
+			
+			// 畫線
+			Link(x1, y1, useX1 + (Width / 2), useY1); // 這是原本的
+			//Draw::drawLineRGB_p(matchImg, x1, y1, useX1 + (Width / 2), useY1);
+
 			++pc;
 		}
 	}
@@ -819,6 +763,7 @@ void Stitching::Link(int x1, int y1, int x2, int y2) {
 	int miny, minx, maxx;
 	float slope;
 
+	// 轉換位置
 	if (x2 == x1) {
 		slope = 0xffff;
 	} else {
@@ -838,14 +783,15 @@ void Stitching::Link(int x1, int y1, int x2, int y2) {
 		miny = y1;
 	}
 
-
+	// 取得隨機數
 	auto random_num = [] {
 		return ((rand() / (RAND_MAX+1.0)) * (1 - 0) + 0);
 	};
-
 	float rVal=random_num();
 	float gVal=random_num();
 	float bVal=random_num();
+
+	// 畫線
 	for (int i = minx; i < maxx; i++) {
 		size_t w = matchImg.width;
 		size_t h = matchImg.height;

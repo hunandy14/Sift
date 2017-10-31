@@ -127,7 +127,8 @@ vector<float> Gaus::gau_matrix(float p, size_t mat_len) {
     vector<float> gau_mat;
     // 計算矩陣長度
     if (mat_len == 0) {
-        mat_len = (int)(((p - 0.8) / 0.3 + 1.0) * 2.0);// (顏瑞穎給的公式)
+        //mat_len = (int)(((p - 0.8) / 0.3 + 1.0) * 2.0);// (顏瑞穎給的公式)
+		mat_len = (int)(round((p*6 + 1))) | 1; // (opencv的公式)
     }
     // 奇數修正
     if (mat_len % 2 == 0) { ++mat_len; }

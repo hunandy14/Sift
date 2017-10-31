@@ -40,8 +40,6 @@ Final: 2017/07/05
     #define AND &&
 #endif
 
-#include <memory>
-
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 
@@ -85,13 +83,10 @@ private:
 public:
 	// 初始化
 	ImgRaw() = default;
-    ImgRaw(vector<types> img, size_t width, size_t height) :
-        raw_img(img), width(width), height(height) {}
-	ImgRaw(size_t width, size_t height, size_t bits) :
-		raw_img(width*height * (bits/8)), 
+    ImgRaw(vector<types> img, size_t width, size_t height, size_t bits) :
+        raw_img(img), width(width), height(height), bitCount(bits) {}
+	ImgRaw(size_t width, size_t height, size_t bits) :raw_img(width*height * (bits/8)), 
 		width(width), height(height), bitCount(bits){}
-	ImgRaw(size_t width, size_t height) :
-		raw_img(width*height), width(width), height(height){}
 	ImgRaw(string bmpname);
     // 隱式轉換
     operator vector<types>&() { return raw_img; }
@@ -196,7 +191,7 @@ private:
 public:
     Sift(ImgRaw img, size_t intvls=6);
 public:
-	void pyramid2();
+	void pyramid();
     void comp(vector<ImgRaw>& pyrs, string name="");
 	void drawArrow(string name="feaArrow.bmp");
 private:
