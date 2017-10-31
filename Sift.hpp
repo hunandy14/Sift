@@ -231,7 +231,8 @@ public:
 	static void drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg);
 	static void draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg);
 
-	static void drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2);
+	static void drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2, 
+		float r=1, float g=0, float b=0);
 	static void drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg);
 	static void draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg);
 };
@@ -243,7 +244,6 @@ public:
 	Stitching(const Sift& desc1, const Sift& desc2);
 	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
 	void Check(float matchTh=0.6); // 檢查是否有相同的特徵描述子
-	void Link(int x1, int y1, int x2, int y2);// 將帶入的兩點相連
 private:
 	int Width, Height;
 	Feature *FeatureStart1, *FeatureStart2;

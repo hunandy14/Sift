@@ -590,7 +590,8 @@ void Draw::draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg) {
 	drawLine_s(img, y2, x2, 10, sg+150);
 }
 // 畫線RGB
-void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2) {
+void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2, 
+	float r, float g, float b) {
 	// 兩點之間的距離差
 	float dx = x2-x;
 	float dy = y2-y;
@@ -609,9 +610,9 @@ void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2) {
 				return;
 			}
 			size_t posi = distY*img.width + distX;
-			img.raw_img[posi*3 + 0] = 1;
-			img.raw_img[posi*3 + 1] = 0;
-			img.raw_img[posi*3 + 2] = 0;
+			img.raw_img[posi*3 + 0] = r;
+			img.raw_img[posi*3 + 1] = g;
+			img.raw_img[posi*3 + 2] = b;
 		}
 	} 
 	// 以X軸為主
@@ -628,9 +629,9 @@ void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2) {
 				return;
 			}
 			size_t posi = distY*img.width + distX;
-			img.raw_img[posi*3 + 0] = 1;
-			img.raw_img[posi*3 + 1] = 0;
-			img.raw_img[posi*3 + 2] = 0;
+			img.raw_img[posi*3 + 0] = r;
+			img.raw_img[posi*3 + 1] = g;
+			img.raw_img[posi*3 + 2] = b;
 		}
 	}
 }
@@ -742,73 +743,24 @@ void Stitching::Check(float matchTh) {
 			}
 		}
 		//****** 確認是否匹配成功並畫線(閥值設為0.04)
-		if ((distance1 / distance2) < matchTh)//閥值越小找到的點越少但越可靠
-		{
+		if ((distance1 / distance2) < matchTh) {//閥值越小找到的點越少但越可靠
 			int x1, y1;
 			x1 = startlink1->x / startlink1->size;
 			y1 = startlink1->y / startlink1->size;
 			
+			// 隨機顏色
+			auto random_num = [] {
+				return ((rand() / (RAND_MAX+1.0)) * (1 - 0) + 0);
+			};
+			float rVal = random_num();
+			float gVal = random_num();
+			float bVal = random_num();
 			// 畫線
-			Link(x1, y1, useX1 + (Width / 2), useY1); // 這是原本的
-			//Draw::drawLineRGB_p(matchImg, x1, y1, useX1 + (Width / 2), useY1);
+			Draw::drawLineRGB_p(matchImg, y1, x1, useY1,useX1 + (Width / 2), rVal, gVal, bVal);
 
 			++pc;
 		}
 	}
 	matchImg.bmp("matchImg.bmp", 24);
-	//cout << "pc : " << pc << endl;
-}
-// 將帶入的兩點相連
-void Stitching::Link(int x1, int y1, int x2, int y2) {
-	int miny, minx, maxx;
-	float slope;
-
-	// 轉換位置
-	if (x2 == x1) {
-		slope = 0xffff;
-	} else {
-		float dx, dy;
-		dx = x2 - x1;
-		dy = y2 - y1;
-		slope = dy / dx;
-	}
-
-	if (x1 > x2) {
-		minx = x2;
-		maxx = x1;
-		miny = y2;
-	} else {
-		minx = x1;
-		maxx = x2;
-		miny = y1;
-	}
-
-	// 取得隨機數
-	auto random_num = [] {
-		return ((rand() / (RAND_MAX+1.0)) * (1 - 0) + 0);
-	};
-	float rVal=random_num();
-	float gVal=random_num();
-	float bVal=random_num();
-
-	// 畫線
-	for (int i = minx; i < maxx; i++) {
-		size_t w = matchImg.width;
-		size_t h = matchImg.height;
-		if (slope != 0.0) {
-			int usey = (i - minx) * slope;
-			if (usey < Height && usey >= 0) {
-				//matchImg.at2d((miny+usey),i)=0.5;
-				matchImg[((miny+usey)*w + i)*3 + 0] = rVal;
-				matchImg[((miny+usey)*w + i)*3 + 1] = gVal;
-				matchImg[((miny+usey)*w + i)*3 + 2] = bVal;
-			}
-		} else {
-			//matchImg.at2d(y1,i)=0.5;
-			matchImg[(y1*w + i)*3 + 0] = rVal;
-			matchImg[(y1*w + i)*3 + 1] = gVal;
-			matchImg[(y1*w + i)*3 + 2] = bVal;
-		}
-	}
 }
 
