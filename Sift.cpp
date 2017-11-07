@@ -510,6 +510,26 @@ void Sift::drawArrow(string name)
 			++xL;
 		}
 	}
+
+
+
+
+	/*輸出圖片*/
+	img.bmp(name);
+}
+void Sift::drawArrow2(string name){
+	//箭頭倍率
+	float mag = 5000.f;
+	// 臨時圖庫
+	ImgRaw img = raw_img;
+	for (Feature*& feaPoint = FeatStart;
+		feaPoint->nextptr != NULL;
+		feaPoint = feaPoint->nextptr)
+	{
+		size_t x = feaPoint->x/feaPoint->size;
+		size_t y = feaPoint->y/feaPoint->size;
+		Draw::draw_arrowRGB(img, y, x, (feaPoint->mm)*mag, feaPoint->sita);
+	}
 	/*輸出圖片*/
 	img.bmp(name);
 }
@@ -564,8 +584,8 @@ void Draw::drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	// 算頭尾
-	int x2 = x + line_len*cos(sg * M_PI/180);
-	int y2 = y + line_len*sin(sg * M_PI/180);
+	int x2 = x + line_len*cos(sg * M_PI/180.0);
+	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
 	drawLine_p(img, y, x, y2, x2);
 }
@@ -581,8 +601,8 @@ void Draw::draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	// 算頭尾
-	int x2 = x + line_len*cos(sg * M_PI/180);
-	int y2 = y + line_len*sin(sg * M_PI/180);
+	int x2 = x + line_len*cos(sg * M_PI/180.0);
+	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
 	drawLine_p(img, y, x, y2, x2);
 	// 畫頭
@@ -647,8 +667,8 @@ void Draw::drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	// 算頭尾
-	int x2 = x + line_len*cos(sg * M_PI/180);
-	int y2 = y + line_len*sin(sg * M_PI/180);
+	int x2 = x + line_len*cos(sg * M_PI/180.0);
+	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
 	drawLineRGB_p(img, y, x, y2, x2);
 }
@@ -664,13 +684,14 @@ void Draw::draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	// 算頭尾
-	int x2 = x + line_len*cos(sg * M_PI/180);
-	int y2 = y + line_len*sin(sg * M_PI/180);
+	int x2 = x + line_len*cos(sg * M_PI/180.0);
+	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
 	drawLineRGB_p(img, y, x, y2, x2);
 	// 畫頭
-	drawLineRGB_s(img, y2, x2, 10, sg-150);
-	drawLineRGB_s(img, y2, x2, 10, sg+150);
+	size_t head_len = 6;
+	drawLineRGB_s(img, y2, x2, head_len, sg-150);
+	drawLineRGB_s(img, y2, x2, head_len, sg+150);
 }
 
 /************/

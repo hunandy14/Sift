@@ -24,7 +24,7 @@ int main(int argc, char const *argv[]){
 	//srand((unsigned)time(NULL)); rand();
 	// 讀取圖片
 	string name1="Lena.bmp";
-	string name2="Lena3.bmp";
+	string name2="LenaR.bmp";
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
 
@@ -42,7 +42,7 @@ start = clock();
 	// 金字塔2
 	Sift fea2(img2);
 	fea2.pyramid();
-	fea2.drawArrow("feaArrow2.bmp");
+	fea2.drawArrow2("feaArrow2.bmp");
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1, fea2);
 	match.Check(0.6);
