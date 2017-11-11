@@ -24,7 +24,7 @@ int main(int argc, char const *argv[]){
 	//srand((unsigned)time(NULL)); rand();
 	// 讀取圖片
 	string name1="Lena.bmp";
-	string name2="LenaR.bmp";
+	string name2="Lena3.bmp";
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
 

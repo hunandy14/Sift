@@ -522,7 +522,7 @@ void Sift::drawArrow2(string name){
 	float mag = 5000.f;
 	// 臨時圖庫
 	ImgRaw img = raw_img;
-	for (Feature*& feaPoint = FeatStart;
+	for (Feature* feaPoint = FeatStart;
 		feaPoint->nextptr != NULL;
 		feaPoint = feaPoint->nextptr)
 	{
