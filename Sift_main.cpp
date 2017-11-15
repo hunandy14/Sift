@@ -11,6 +11,7 @@ Final: 2017/07/04
 #include <cmath>
 #include <ctime>
 #include <memory>
+//#include <windows.h>
 
 using namespace std;
 #include "Sift.hpp"
@@ -49,6 +50,7 @@ ImgRaw rotateImg(const ImgRaw& sou, float sita) {
 			X  = x2;
 
 			X += sou.width/2.0 - 1, Y += sou.height/2.0 - 1;
+			// 過濾四個角
 			if ((int)Y < rotate.height and (int)Y > 0) {
 				if ((int)X < rotate.width and (int)X > 0) {
 					rotate.at2d(j, i) = sou.at2d(Y, X);
@@ -58,6 +60,37 @@ ImgRaw rotateImg(const ImgRaw& sou, float sita) {
 	}
 	return rotate;
 }
+
+ImgRaw rotateImg2(const ImgRaw& sou, float radius, float sita) {
+	int ry = radius * SQUARE2;
+	int rx = radius * SQUARE2;
+	ImgRaw rotate(rx*2, ry*2, 8);
+
+	float cos_t = cosf(sita*(float)(M_PI/180));  
+	float sin_t = sinf(sita*(float)(M_PI/180));
+	//cout << "123" << endl;
+
+
+	for (int j = -ry; j < ry; j++) {
+		for (int i = -rx; i < rx; i++) {
+			float r_rot = j*sin_t + i*cos_t; // 原圖X座標(未轉換)
+			float c_rot = j*cos_t - i*sin_t; // 原圖Y座標(未轉換)
+
+			float rbin = round(r_rot + radius);  
+			float cbin = round(c_rot + radius);
+
+			if (cbin < radius*2 and cbin > 0) {
+				if (rbin < radius*2 and rbin > 0) {
+					rotate.at2d(j+ry, i+rx) = sou.at2d(cbin, rbin);
+				}
+			}
+		}
+	}
+	return rotate;
+}
+
+
+
 //================================================================
 int main(int argc, char const *argv[]){
 	//srand((unsigned)time(NULL)); rand();
@@ -67,10 +100,15 @@ int main(int argc, char const *argv[]){
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
 
+
+
 	// 旋轉圖片
 	ImgRaw sou = img1.ConverGray();
-	ImgRaw rotate = rotateImg(sou, 45.0);
-	rotate.bmp("rotate.bmp");
+	for (size_t i = 0; i < 10; i++) {
+		ImgRaw rotate = rotateImg2(sou, sou.width/2, 45.0);
+		rotate.bmp("rotate.bmp");
+		//Sleep (1000);
+	}
 
 
 
