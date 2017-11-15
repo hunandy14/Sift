@@ -18,63 +18,20 @@ using namespace std;
 using namespace cv;
 
 #define M_PI 3.14159265358979323846
+#define SQUARE2 1.4142135623730951f
 
 
-static inline void ImgRotate(float& deltaX, float& deltaY, float sita) {
-	// 座標轉換
-	float X = cos(sita)*deltaX - sin(sita)*deltaY;
-	deltaY = sin(sita)*deltaX + cos(sita)*deltaY;
-	deltaX = X;
-}
-static inline void ImgRotate2(float& x, float& y, float sita) {
-	// 座標轉換
-	float x2;
-	x2 = x*cos(sita) + y*sin(sita);
-	y  = y*cos(sita) - x*sin(sita);
-	x  = x2;
-}
-//================================================================
-int main(int argc, char const *argv[]){
-	//srand((unsigned)time(NULL)); rand();
-	// 讀取圖片
-	string name1="Lena.bmp";
-	string name2="02.bmp";
-	ImgRaw img1(name1);
-	ImgRaw img2(name2);
+ImgRaw rotateImg(const ImgRaw& sou, float sita) {
+	size_t ry = sou.height * SQUARE2/SQUARE2;
+	size_t rx = sou.width  * SQUARE2/SQUARE2;
+	ImgRaw rotate(rx, ry, 8);
 
-	ImgRaw sou = img1.ConverGray();
-	ImgRaw rotate(sou.width, sou.height, sou.bitCount);
-	
-	float ori_X = 120;
-	float ori_Y = 120;
-	float si= 180;
-
-	// 轉正
-	cout << "X=" << ori_X << ", Y=" << ori_Y << endl;
-	if (ori_X > sou.width) {
-		ori_X = sou.width/2.0 - ori_X;
-	} else {
-		ori_X = ori_X - sou.width/2.0;
-	}
-	if (ori_Y > sou.height) {
-		ori_Y = sou.height/2.0 - ori_Y;
-	} else {
-		ori_Y = ori_Y - sou.height/2.0;
-	}
-	ImgRotate(ori_X, ori_Y, si * M_PI/180.0);
-	ori_X += sou.width/2.0 - 1, ori_Y += sou.height/2.0 - 1;
-	if (ori_Y < 0) {ori_Y=0;}
-	if (ori_X < 0) {ori_X=0;}
-	cout << "rat=" << si << ", X=" << ori_X << ", Y=" << ori_Y << endl;
-	
-
-	// for 要跑新圖才能插值運算
+	float cos_t = cosf(sita*(float)(M_PI/180));  
+	float sin_t = sinf(sita*(float)(M_PI/180)); 
 	for (float j = 0; j < rotate.height; j++) {
 		for (float i = 0; i < rotate.width; i++) {
 			float X=i, Y=j;
-			
 			// 轉正
-			//cout << "X=" << (int)X << ", Y=" << (int)Y << endl;
 			if (X > sou.width) {
 				X = sou.width/2.0 - X;
 			} else {
@@ -86,25 +43,37 @@ int main(int argc, char const *argv[]){
 				Y = Y - sou.height/2.0;
 			}
 
-			ImgRotate2(X, Y, 45 * M_PI/180.0);
+			float x2;
+			x2 = X*cos_t + Y*sin_t;
+			Y  = Y*cos_t - X*sin_t;
+			X  = x2;
 
 			X += sou.width/2.0 - 1, Y += sou.height/2.0 - 1;
-			if (Y < 0) {Y=0;}
-			if (X < 0) {X=0;}
-			//cout << "rat=" << si << ", X=" << (int)X << ", Y=" << (int)Y << endl;
-
 			if ((int)Y < rotate.height and (int)Y > 0) {
 				if ((int)X < rotate.width and (int)X > 0) {
 					rotate.at2d(j, i) = sou.at2d(Y, X);
 				}
 			}
-
-			
-			//rotate.at2d(j, i) = 0.5;
 		}
 	}
+	return rotate;
+}
+//================================================================
+int main(int argc, char const *argv[]){
+	//srand((unsigned)time(NULL)); rand();
+	// 讀取圖片
+	string name1="Lena.bmp";
+	string name2="02.bmp";
+	ImgRaw img1(name1);
+	ImgRaw img2(name2);
+
+	// 旋轉圖片
+	ImgRaw sou = img1.ConverGray();
+	ImgRaw rotate = rotateImg(sou, 45.0);
 	rotate.bmp("rotate.bmp");
-	
+
+
+
 
 
 
