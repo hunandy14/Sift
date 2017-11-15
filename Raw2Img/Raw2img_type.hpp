@@ -15,15 +15,15 @@ Final: 2017/06/23
     ##     ##  ######   ########
 */
 
-enum RGB {R, G, B};
-class RGB_t {
+enum RGBs {R, G, B};
+class RGBs_t {
 public:
-    RGB_t(size_t rgb): rgb(RGB(rgb)) {
+    RGBs_t(size_t rgb): rgb(RGBs(rgb)) {
         if(rgb>2) {throw std::range_error("range only 0~2");}
     }
-    inline operator RGB() {return rgb;}
+    inline operator RGBs() {return rgb;}
 private:
-    RGB rgb;
+    RGBs rgb;
 };
 /*
     ######## #### ##       ########         ##     ##

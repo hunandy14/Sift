@@ -11,7 +11,7 @@ Final: 2017/07/04
 #include <cmath>
 #include <ctime>
 #include <memory>
-//#include <windows.h>
+#include <windows.h>
 
 using namespace std;
 #include "Sift.hpp"
@@ -104,10 +104,10 @@ int main(int argc, char const *argv[]){
 
 	// 旋轉圖片
 	ImgRaw sou = img1.ConverGray();
-	for (size_t i = 0; i < 10; i++) {
-		ImgRaw rotate = rotateImg2(sou, sou.width/2, 45.0);
+	for (size_t i = 0; i <= 36; i++) {
+		ImgRaw rotate = rotateImg2(sou, sou.width/2, i*10);
 		rotate.bmp("rotate.bmp");
-		//Sleep (1000);
+		Sleep (100);
 	}
 
 
