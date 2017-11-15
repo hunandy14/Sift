@@ -173,13 +173,10 @@ void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, flo
 	}
 }
 // 產生特徵描述子
-static inline void CoordinateChange(int* deltaX, int* deltaY, float sita) {
+static inline void CoordinateChange(int& deltaX, int& deltaY, float sita) {
 	// 座標轉換
-	int newxx, newyy;
-	newxx = cos(sita)*(*deltaX) - sin(sita)*(*deltaY);
-	newyy = sin(sita)*(*deltaX) + cos(sita)*(*deltaY);
-	(*deltaX) = newxx;
-	(*deltaY) = newyy;
+	deltaX = cos(sita)*deltaX - sin(sita)*deltaY;
+	deltaY = sin(sita)*deltaX + cos(sita)*deltaY;
 }
 void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 	//新增一個4*4*8的特徵描述空間
@@ -208,7 +205,7 @@ void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 				int newx, newy;
 				newx = i - FeatureS->x;
 				newy = j - FeatureS->y;
-				CoordinateChange(&newx, &newy, (FeatureS->sita * M_PI / 180.0));
+				CoordinateChange(newx, newy, (FeatureS->sita * M_PI / 180.0));
 				float blockx = newx / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
 				float blocky = newy / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
 

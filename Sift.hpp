@@ -109,12 +109,12 @@ public:
         return raw_img[idx];
     }
     // 二維讀取 (覺得累贅想拿掉)
-    /*types & at2d(size_t y, size_t x) {
+    types & at2d(size_t y, size_t x) {
         return const_cast<types&>(static_cast<const ImgRaw&>(*this).at2d(y, x));
     }
     const types & at2d(size_t y, size_t x) const {
         return raw_img[y*width + x];
-    }*/
+    }
     // 大小是否相等
     friend bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs);
     friend bool operator==(const ImgRaw& lhs, const ImgRaw& rhs);
