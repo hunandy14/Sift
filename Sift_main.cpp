@@ -67,10 +67,13 @@ int main(int argc, char const *argv[]){
 	ImgRaw sou = img1.ConverGray();
 	ImgRaw rotate = rotateImg(sou, sou.width/2, 45);
 	rotate.bmp("rotate.bmp");
+	// 放大圖片
+	ImgRaw first = sou.ConverGray();
+	ImgRaw::first(first, sou, 2);
+	first.bmp("first.bmp", 8);
 
 
-
-#define testpoint1
+//#define testpoint1
 #ifdef testpoint1
 clock_t start,end;
 start = clock();

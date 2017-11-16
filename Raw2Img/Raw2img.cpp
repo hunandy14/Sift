@@ -33,7 +33,8 @@ void Raw::raw2bmp(
         }
     }
     // 寫入圖片資訊
-    size_t alig = (width*3) % 4;
+	size_t realW = info_h.biWidth * info_h.biBitCount/8.0;
+	size_t alig = (realW*3) % 4;
     for(int j = height-1; j >= 0; --j) {
         for(unsigned i = 0; i < width; ++i) {
             if(bits==24) {
@@ -80,7 +81,8 @@ void Raw::read_bmp(vector<uch>& raw, string name,
     // 讀 Raw
     bmp.seekg(file_h.bfOffBits, ios::beg);
     raw.resize(info_h.biWidth * info_h.biHeight * (info_h.biBitCount/8));
-    size_t alig = (info_h.biWidth*3) % 4;
+	size_t realW = info_h.biWidth * info_h.biBitCount/8.0;
+    size_t alig = (realW*3) % 4;
     char* p = reinterpret_cast<char*>(raw.data());
     for(int j = info_h.biHeight-1; j >= 0; --j) {
         for(unsigned i = 0; i < info_h.biWidth; ++i) {

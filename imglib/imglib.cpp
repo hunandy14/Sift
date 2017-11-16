@@ -9,6 +9,7 @@ Final: 2017/07/04
 #include <vector>
 #include <string>
 #include <cmath>
+#include <algorithm>
 using namespace std;
 
 #include "imglib.hpp"
@@ -202,28 +203,17 @@ void Scaling::zero(vector<types>& img, vector<types>& img_ori,
 void Scaling::first(vector<types>& img, vector<types>& img_ori, 
 	size_t width, size_t height, float Ratio)
 {
-    int w = (int)floor(width * Ratio);
-    int h = (int)floor(height * Ratio);
-    img.resize(h*w);
-    for (int j = 0; j < h; ++j) {
-        for (int i = 0; i < w; ++i) {
-            // 對應到原圖的座標
-            int oy = (int)floor(j / Ratio);
-            int ox = (int)floor(i / Ratio);
-            // 附近的四個點
-            size_t xp = (ox+1) > (int)(width-1)? width-1: (ox+1);
-            size_t yp = (oy+1) > (int)(height-1)? height-1: (oy+1);
-            types A = img_ori[oy*width + ox];
-            types B = img_ori[oy*width + xp];
-            types C = img_ori[yp*width + ox];
-            types D = img_ori[yp*width + xp];
-            // 公式的 a 與 b
-            float a = (i - ox*Ratio) / (Ratio);
-            float b = (j - oy*Ratio) / (Ratio);
-            types AB = (A*(1.0 - a)) + (B*a);
-            types CD = (C*(1.0 - a)) + (D*a);
-            types X = (AB*(1.0 - b)) + (CD*b);
-            img[j*w + i] = X;
+    int newH = static_cast<int>(floor(height * Ratio));
+    int newW = static_cast<int>(floor(width  * Ratio));
+    img.resize(newH*newW);
+	// 跑新圖座標
+    for (int j = 0; j < newH; ++j) {
+        for (int i = 0; i < newW; ++i) {
+			// 對齊中央
+			const float srcY = ((j+0.5)/Ratio) - 0.5;
+			const float srcX = ((i+0.5)/Ratio) - 0.5;
+			// 獲取插補值
+			img[j*newW + i] = bilinear(img_ori, width, srcY, srcX);
         }
     }
 }
@@ -298,7 +288,31 @@ float Scaling::bicubicInterpolate (
         arr[i] = cubicInterpolate((i*4 + p), x);
     } return cubicInterpolate(arr, y);
 }
-
+// 線性取值
+float Scaling::bilinear(vector<types>& img, 
+	size_t width, float y, float x)
+{
+	// 獲取鄰點(不能用 1+)
+	size_t x0 = floor(x);
+	size_t x1 = ceil(x);
+	size_t y0 = floor(y);
+	size_t y1 = ceil(y);
+	// 獲取比例(只能用 1-)
+	float dx1 = x - x0;
+	float dx2 = 1 - dx1;
+	float dy1 = y - y0;
+	float dy2 = 1 - dy1;
+	// 獲取點
+	const float& A = img[y0*width + x0];
+	const float& B = img[y0*width + x1];
+	const float& C = img[y1*width + x0];
+	const float& D = img[y1*width + x1];
+	// 乘出比例(要交叉)
+	float AB = A*dx2 + B*dx1;
+	float CD = C*dx2 + D*dx1;
+	float X = AB*dy2 + CD*dy1;
+	return X;
+}
 
 
 

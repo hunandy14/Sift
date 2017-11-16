@@ -45,6 +45,9 @@ public:
     // Bicubic調整大小
     static void cubic(vector<types>& img, vector<types>& img_ori, 
 		size_t width, size_t height, float Ratio);
+	// 線性取值
+	static float bilinear(vector<types>& raw_img,
+		size_t width, float y, float x);
 private:
     // Bicubic 插值核心運算
     static float cubicInterpolate (
