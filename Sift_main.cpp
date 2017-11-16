@@ -11,7 +11,7 @@ Final: 2017/07/04
 #include <cmath>
 #include <ctime>
 #include <memory>
-#include <windows.h>
+//#include <windows.h>
 
 using namespace std;
 #include "Sift.hpp"
@@ -21,9 +21,6 @@ using namespace cv;
 #define M_PI 3.14159265358979323846
 #define SQUARE2 1.4142135623730951f
 
-void rotateCapture(const ImgRaw& sou, float radius, float sita) {
-	
-}
 ImgRaw rotateImg(const ImgRaw& sou, float radius, float sita) {
 	int ry = radius * SQUARE2;
 	int rx = radius * SQUARE2;
@@ -52,32 +49,21 @@ ImgRaw rotateImg(const ImgRaw& sou, float radius, float sita) {
 	}
 	return rotate;
 }
-
-
-
 //================================================================
 int main(int argc, char const *argv[]){
 	//srand((unsigned)time(NULL)); rand();
 	// 讀取圖片
 	string name1="Lena.bmp";
-	string name2="02.bmp";
+	string name2="Lena5.bmp";
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
-
-
-
 	// 旋轉圖片
-	ImgRaw sou = img1.ConverGray();
-	
+
+	/*ImgRaw sou = img1.ConverGray();
 	ImgRaw rotate = rotateImg(sou, sou.width/2, 45);
-	rotate.bmp("rotate.bmp");
+	rotate.bmp("rotate.bmp");*/
 
-
-
-
-
-
-// #define testpoint1
+#define testpoint1
 #ifdef testpoint1
 clock_t start,end;
 start = clock();
@@ -86,14 +72,14 @@ start = clock();
     // 金字塔1
     Sift fea1(img1);
 	fea1.pyramid();
-	fea1.drawArrow2("feaArrow1.bmp");
+	fea1.drawArrow("feaArrow1.bmp");
 	// 金字塔2
 	Sift fea2(img2);
 	fea2.pyramid();
-	fea2.drawArrow2("feaArrow2.bmp");
+	fea2.drawArrow("feaArrow2.bmp");
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1, fea2);
-	match.Check(0.75);
+	match.Check(0.7);
 	
 
 

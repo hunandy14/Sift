@@ -223,7 +223,6 @@ public:
 	void pyramid();
     void comp(vector<ImgRaw>& pyrs, string name="");
 	void drawArrow(string name="feaArrow.bmp");
-	void drawArrow2(string name="feaArrow.bmp");
 private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
 	void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
