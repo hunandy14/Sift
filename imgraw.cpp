@@ -10,7 +10,17 @@ Final: 2017/11/16
 #include <cmath>
 #include <algorithm>
 
+#include "imglib\imglib.hpp"
+#include "Raw2Img\Raw2Img.hpp"
 #include "Imgraw.hpp"
+
+#if defined(_MSC_VER)
+	#define or ||
+	#define and &&
+	#define OR ||
+	#define AND &&
+#endif
+
 #define M_PI 3.14159265358979323846
 
 
@@ -89,6 +99,7 @@ const ImgRaw::types ImgRaw::atBilinear(float y, float x) const {
 	float X = AB*dy2 + CD*dy1;
 	return X;
 }
+
 
 
 

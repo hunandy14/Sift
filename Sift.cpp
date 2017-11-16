@@ -13,10 +13,16 @@ Final: 2017/07/05
 #include <memory>
 #include <random>
 
-#include "Sift.hpp"
-using namespace std;
+#if defined(_MSC_VER)
+	#define or ||
+	#define and &&
+	#define OR ||
+	#define AND &&
+#endif
 #define M_PI 3.14159265358979323846
 
+#include "Sift.hpp"
+using namespace std;
 
 // Sift建構子
 Sift::Sift(ImgRaw img, size_t intvls): raw_img(img), pyWidth(intvls) {

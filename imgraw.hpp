@@ -7,16 +7,6 @@ Final: 2017/11/16
 #pragma warning(disable : 4819)
 #pragma once
 
-#if defined(_MSC_VER)
-#define or ||
-#define and &&
-#define OR ||
-#define AND &&
-#endif
-
-#include "imglib\imglib.hpp"
-#include "Raw2Img\Raw2Img.hpp"
-
 //-----------------------------------------------------------------
 // §Ö³tatan¹Bºâ
 float fastAtan2f(float dy, float dx);

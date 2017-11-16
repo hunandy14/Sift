@@ -18,6 +18,12 @@ using namespace std;
 #include <opencv2/opencv.hpp>
 using namespace cv;
 
+#if defined(_MSC_VER)
+	#define or ||
+	#define and &&
+	#define OR ||
+	#define AND &&
+#endif
 #define M_PI 3.14159265358979323846
 #define SQUARE2 1.4142135623730951f
 
