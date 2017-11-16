@@ -115,6 +115,35 @@ public:
     const types & at2d(size_t y, size_t x) const {
         return raw_img[y*width + x];
     }
+	const types atBilinear(float y, float x) const {
+		if (x < 0 or y < 0 or 
+			x>=width-1 or y >=height-1)
+		{
+			std::cerr << "atBilinear(x, y) : [x, y] our of range. \n";
+			std::cerr << "x=" << x << "y=" << y << "\n";
+			return 0;
+		}
+		// 獲取鄰點(不能用 1+)
+		size_t x0 = floor(x);
+		size_t x1 = ceil(x);
+		size_t y0 = floor(y);
+		size_t y1 = ceil(y);
+		// 獲取比例(只能用 1-)
+		float dx1 = x - x0;
+		float dx2 = 1 - dx1;
+		float dy1 = y - y0;
+		float dy2 = 1 - dy1;
+		// 獲取點
+		const float& A = raw_img[y0*width + x0];
+		const float& B = raw_img[y0*width + x1];
+		const float& C = raw_img[y1*width + x0];
+		const float& D = raw_img[y1*width + x1];
+		// 乘出比例(要交叉)
+		float AB = A*dx2 + B*dx1;
+		float CD = C*dx2 + D*dx1;
+		float X = AB*dy2 + CD*dy1;
+		return X;
+	}
     // 大小是否相等
     friend bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs);
     friend bool operator==(const ImgRaw& lhs, const ImgRaw& rhs);
