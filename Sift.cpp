@@ -306,8 +306,8 @@ void Sift::pyramid() {
 		const size_t curr_Width = gray_img.width*curr_size;
 		const size_t curr_Height = gray_img.height*curr_size;
 		ImgRaw currSize_img(curr_Width ,curr_Height, 8);
-		//ImgRaw::first(currSize_img, gray_img, curr_size);
-		ZoomInOut(currSize_img, gray_img, curr_Width, curr_Height);
+		ImgRaw::first(currSize_img, gray_img, curr_size);
+		//ZoomInOut(currSize_img, gray_img, curr_Width, curr_Height);
 
 		// 高斯模糊
 		vector<ImgRaw> gau_imgs(pyWidth);

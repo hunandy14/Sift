@@ -200,6 +200,30 @@ void Scaling::zero(vector<types>& img, vector<types>& img_ori,
     }
 }
 // FisrtOrder調整大小
+float Scaling::bilinear(vector<types>& img, 
+	size_t width, float y, float x) // 線性取值
+{
+	// 獲取鄰點(不能用 1+)
+	size_t x0 = floor(x);
+	size_t x1 = ceil(x);
+	size_t y0 = floor(y);
+	size_t y1 = ceil(y);
+	// 獲取比例(只能用 1-)
+	float dx1 = x - x0;
+	float dx2 = 1 - dx1;
+	float dy1 = y - y0;
+	float dy2 = 1 - dy1;
+	// 獲取點
+	const float& A = img[y0*width + x0];
+	const float& B = img[y0*width + x1];
+	const float& C = img[y1*width + x0];
+	const float& D = img[y1*width + x1];
+	// 乘出比例(要交叉)
+	float AB = A*dx2 + B*dx1;
+	float CD = C*dx2 + D*dx1;
+	float X = AB*dy2 + CD*dy1;
+	return X;
+}
 void Scaling::first(vector<types>& img, vector<types>& img_ori, 
 	size_t width, size_t height, float Ratio)
 {
@@ -288,31 +312,7 @@ float Scaling::bicubicInterpolate (
         arr[i] = cubicInterpolate((i*4 + p), x);
     } return cubicInterpolate(arr, y);
 }
-// 線性取值
-float Scaling::bilinear(vector<types>& img, 
-	size_t width, float y, float x)
-{
-	// 獲取鄰點(不能用 1+)
-	size_t x0 = floor(x);
-	size_t x1 = ceil(x);
-	size_t y0 = floor(y);
-	size_t y1 = ceil(y);
-	// 獲取比例(只能用 1-)
-	float dx1 = x - x0;
-	float dx2 = 1 - dx1;
-	float dy1 = y - y0;
-	float dy2 = 1 - dy1;
-	// 獲取點
-	const float& A = img[y0*width + x0];
-	const float& B = img[y0*width + x1];
-	const float& C = img[y1*width + x0];
-	const float& D = img[y1*width + x1];
-	// 乘出比例(要交叉)
-	float AB = A*dx2 + B*dx1;
-	float CD = C*dx2 + D*dx1;
-	float X = AB*dy2 + CD*dy1;
-	return X;
-}
+
 
 
 
