@@ -58,17 +58,16 @@ int main(int argc, char const *argv[]){
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
 	// 旋轉圖片
-
-	/*ImgRaw sou = img1.ConverGray();
+	ImgRaw sou = img1.ConverGray();
 	ImgRaw rotate = rotateImg(sou, sou.width/2, 45);
-	rotate.bmp("rotate.bmp");*/
+	rotate.bmp("rotate.bmp");
+
+
 
 #define testpoint1
 #ifdef testpoint1
 clock_t start,end;
 start = clock();
-
-
     // 金字塔1
     Sift fea1(img1);
 	fea1.pyramid();
@@ -80,26 +79,9 @@ start = clock();
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1, fea2);
 	match.Check(0.7);
-	
-
-
 end = clock();
 cout << "time is:" << (end - start)/1000.0 << "s" << endl;
 #endif // testpoint1
-	
-
-	// 畫線測試
-	/*ImgRaw img_line(1280, 720, 8);
-	for (size_t i = 0; i < 36; i++) {
-		Draw::draw_arrow(img_line, 200, 200, 100.f*sqrt(2), i*10);
-	} img_line.bmp("line.bmp");*/
-	
-/*
-	ImgRaw img_lineRGB(1280, 720, 24);
-	for (size_t i = 0; i < 36; i++) {
-		Draw::draw_arrowRGB(img_lineRGB, 200, 200, 100.f*sqrt(2), i*10);
-	} img_lineRGB.bmp("lineRGB.bmp");
-	*/
 	return 0;
 }
 
