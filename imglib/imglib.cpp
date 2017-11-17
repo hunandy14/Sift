@@ -200,7 +200,7 @@ void Scaling::zero(vector<types>& img, vector<types>& img_ori,
     }
 }
 // FisrtOrder調整大小
-float Scaling::bilinear(vector<types>& img, 
+float Scaling::bilinear(const vector<types>& img, 
 	size_t width, float y, float x) // 線性取值
 {
 	// 獲取鄰點(不能用 1+)
@@ -231,15 +231,24 @@ void Scaling::first(vector<types>& img, vector<types>& img_ori,
     int newW = static_cast<int>(floor(width  * Ratio));
     img.resize(newH*newW);
 	// 跑新圖座標
+	//float max = 0, min = 99999;
     for (int j = 0; j < newH; ++j) {
         for (int i = 0; i < newW; ++i) {
-			// 對齊中央
-			const float srcY = ((j+0.5)/Ratio) - 0.5;
-			const float srcX = ((i+0.5)/Ratio) - 0.5;
+			// 調整對齊
+			float srcY, srcX;
+			if (Ratio < 1) {
+				srcY = ((j+0.5f)/Ratio) - 0.5;
+				srcX = ((i+0.5f)/Ratio) - 0.5;
+			} else {
+				srcY = j * (height-1.f) / (newH-1.f);
+				srcX = i * (width -1.f) / (newW-1.f);
+			}
+			//min=std::min(min, srcX), max=std::max(max, srcX);
 			// 獲取插補值
 			img[j*newW + i] = bilinear(img_ori, width, srcY, srcX);
         }
     }
+	//cout << "min=" << min << ", max=" << max << endl;
 }
 // Bicubic調整大小
 void Scaling::cubic(vector<types>& img, vector<types>& img_ori, 

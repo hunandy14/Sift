@@ -138,117 +138,6 @@ void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, flo
 		}
 	}
 }
-// 產生特徵描述子
-static inline void CoordinateChange(int& deltaX, int& deltaY, float sita) {
-	// 座標轉換
-	float deltaX2 = deltaY*sin(sita) + deltaX*cos(sita);
-	deltaY = deltaY*cos(sita) - deltaX*sin(sita);
-	deltaX = deltaX2;
-}
-void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
-	//新增一個4*4*8的特徵描述空間
-	vector <vector <vector <float>>> descripgroup(4);//儲存特徵描述子
-	for (int v = 0; v < 4; v++) {
-		descripgroup[v].resize(4);
-		for (int j = 0; j < 4; j++) {
-			descripgroup[v][j].resize(8);
-		}
-	}
-	// 從當前極值產出的點開始做
-	for (Feature* FeatureS = FeatureNow; FeatureS->nextptr != nullptr;) {
-		FeatureS = FeatureS->nextptr;
-		// 轉制
-		int radius = (FeatureS->sigmaOCT * 3 * sqrt(2)*(5) + 1) / 2;
-		int inHeight = raw_img.height*FeatureS->size;
-		int inWidth = raw_img.width*FeatureS->size;
-		// 直徑x直徑
-		for (int j = FeatureS->y - radius; j < FeatureS->y + radius; j++) {
-			for (int i = FeatureS->x - radius; i < FeatureS->x + radius; i++) {
-				if (j < 1 || j >= inHeight - 1 || i < 1 || i >= inWidth - 1) {
-					continue; // 邊緣不算
-				}
-
-				int newx, newy;
-				newx = i - FeatureS->x;
-				newy = j - FeatureS->y;
-				CoordinateChange(newx, newy, (FeatureS->sita * M_PI / 180.0));
-				float blockx = newx / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
-				float blocky = newy / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
-
-				
-				float sita, mm;
-				const float* curryImg = kaidaImag[FeatureS->kai].raw_img.data();
-
-				float dx = curryImg[j*inWidth + i+1] - curryImg[j*inWidth + i-1];
-				float dy = curryImg[(j+1)*inWidth + i]- curryImg[(j-1)*inWidth + i];
-				mm = getMag(dx, dy);
-				sita = getSita(dx, dy);
-				
-				const float unit = 360.0/8.0;
-				float weix0, weix1;
-				float weiy0, weiy1;
-				weix1 = blockx - (int)blockx; weix0 = 1 - weix1;
-				weiy1 = blocky - (int)blocky; weiy0 = 1 - weiy1;
-
-				//****** 以firstorder將值分別存入descripgroup容器裡面
-				int bx0, bx1;
-				int by0, by1;
-				bx0 = blockx;
-				bx1 = bx0 + 1;
-				by0 = blocky;
-				by1 = by0 + 1;
-
-				float RU, RD, LU, LD;
-				float SitaGroup;
-
-				SitaGroup = sita / unit;
-				
-				if (bx0 >= 1 && bx0 <= 4 && by0 >= 1 && by0 <= 4)//RU
-				{
-					RU = weix0 * weiy0 * mm;
-					descripgroup[by0 - 1][bx0 - 1][SitaGroup] += RU;
-				}
-				if (bx0 >= 1 && bx0 <= 4 && by1 >= 1 && by1 <= 4)//RD
-				{
-					RD = weix0 * weiy1 * mm;
-					descripgroup[by1 - 1][bx0 - 1][SitaGroup] += RD;
-				}
-				if (bx1 >= 1 && bx1 <= 4 && by0 >= 1 && by0 <= 4)//LU
-				{
-					LU = weix1 * weiy0 * mm;
-					descripgroup[by0 - 1][bx1 - 1][SitaGroup] += LU;
-				}
-				if (bx1 >= 1 && bx1 <= 4 && by1 >= 1 && by1 <= 4)//LD
-				{
-					LD = weix1 * weiy1 * mm;
-					descripgroup[by1 - 1][bx1 - 1][SitaGroup] += LD;
-				}
-				
-			}
-		}
-		//****** 限定門檻值
-		float add = 0.0;
-		for (int j = 0; j < 4; j++) {
-			for (int i = 0; i < 4; i++) {
-				for (int v = 0; v < 8; v++) {
-					if (descripgroup[j][i][v] > 0.2) 
-						descripgroup[j][i][v] = 0.2;
-					add += descripgroup[j][i][v];
-				}
-			}
-		}
-		//****** 向量正規化
-		add = sqrt(add);
-		for (int j = 0; j < 4; j++) {
-			for (int i = 0; i < 4; i++) {
-				for (int v = 0; v < 8; v++) {
-					descripgroup[j][i][v] /= add;
-				}
-			}
-		}
-		FeatureS->descrip = descripgroup;
-	}
-}
 // 高斯金字塔
 static inline void ZoomInOut(ImgRaw& doImage, const ImgRaw& gray, int InWidth, int InHeight) {
 // 放大縮小
@@ -356,8 +245,125 @@ void Sift::pyramid() {
 		}
 		// 描述剛剛才找到的新特徵點(尋找前先記錄位置)
 		FeatureDescrip(gau_imgs, FeatureNow);
+	} // 不同尺度大小的for()
+}
+// 產生特徵描述子
+static inline void CoordinateChange(int& deltaX, int& deltaY, float sita) {
+	// 座標轉換
+	float deltaX2 = deltaY*sin(sita) + deltaX*cos(sita);
+	deltaY = deltaY*cos(sita) - deltaX*sin(sita);
+	deltaX = deltaX2;
+}
+void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
+	//新增一個4*4*8的特徵描述空間
+	vector <vector <vector <float>>> descripgroup(4);//儲存特徵描述子
+	for (int v = 0; v < 4; v++) {
+		descripgroup[v].resize(4);
+		for (int j = 0; j < 4; j++) {
+			descripgroup[v][j].resize(8);
+		}
+	}
+	// 從當前極值產出的點開始做
+	for (Feature* FeatureS = FeatureNow; FeatureS->nextptr != nullptr;) {
+		FeatureS = FeatureS->nextptr;
+		// 轉制
+		int radius = (FeatureS->sigmaOCT * 3 * sqrt(2)*(5) + 1) / 2;
+		int inHeight = raw_img.height*FeatureS->size;
+		int inWidth = raw_img.width*FeatureS->size;
+		// 直徑x直徑
+		for (int j = FeatureS->y - radius; j < FeatureS->y + radius; j++) {
+			for (int i = FeatureS->x - radius; i < FeatureS->x + radius; i++) {
+				if (j < 1 || j >= inHeight - 1 || i < 1 || i >= inWidth - 1) {
+					continue; // 邊緣不算
+				}
+
+				int newx, newy;
+				newx = i - FeatureS->x;
+				newy = j - FeatureS->y;
+				CoordinateChange(newx, newy, (FeatureS->sita * M_PI / 180.0));
+				float blockx = newx / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
+				float blocky = newy / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
+
+
+				float sita, mm;
+				const float* curryImg = kaidaImag[FeatureS->kai].raw_img.data();
+
+				float dx = curryImg[j*inWidth + i+1] - curryImg[j*inWidth + i-1];
+				float dy = curryImg[(j+1)*inWidth + i]- curryImg[(j-1)*inWidth + i];
+				mm = getMag(dx, dy);
+				sita = getSita(dx, dy);
+
+				const float unit = 360.0/8.0;
+				float weix0, weix1;
+				float weiy0, weiy1;
+				weix1 = blockx - (int)blockx; weix0 = 1 - weix1;
+				weiy1 = blocky - (int)blocky; weiy0 = 1 - weiy1;
+
+				//****** 以firstorder將值分別存入descripgroup容器裡面
+				int bx0, bx1;
+				int by0, by1;
+				bx0 = blockx;
+				bx1 = bx0 + 1;
+				by0 = blocky;
+				by1 = by0 + 1;
+
+				float RU, RD, LU, LD;
+				float SitaGroup;
+
+				SitaGroup = sita / unit;
+
+				if (bx0 >= 1 && bx0 <= 4 && by0 >= 1 && by0 <= 4)//RU
+				{
+					RU = weix0 * weiy0 * mm;
+					descripgroup[by0 - 1][bx0 - 1][SitaGroup] += RU;
+				}
+				if (bx0 >= 1 && bx0 <= 4 && by1 >= 1 && by1 <= 4)//RD
+				{
+					RD = weix0 * weiy1 * mm;
+					descripgroup[by1 - 1][bx0 - 1][SitaGroup] += RD;
+				}
+				if (bx1 >= 1 && bx1 <= 4 && by0 >= 1 && by0 <= 4)//LU
+				{
+					LU = weix1 * weiy0 * mm;
+					descripgroup[by0 - 1][bx1 - 1][SitaGroup] += LU;
+				}
+				if (bx1 >= 1 && bx1 <= 4 && by1 >= 1 && by1 <= 4)//LD
+				{
+					LD = weix1 * weiy1 * mm;
+					descripgroup[by1 - 1][bx1 - 1][SitaGroup] += LD;
+				}
+
+			}
+		}
+		//****** 限定門檻值
+		float add = 0.0;
+		for (int j = 0; j < 4; j++) {
+			for (int i = 0; i < 4; i++) {
+				for (int v = 0; v < 8; v++) {
+					if (descripgroup[j][i][v] > 0.2) 
+						descripgroup[j][i][v] = 0.2;
+					add += descripgroup[j][i][v];
+				}
+			}
+		}
+		//****** 向量正規化
+		add = sqrt(add);
+		for (int j = 0; j < 4; j++) {
+			for (int i = 0; i < 4; i++) {
+				for (int v = 0; v < 8; v++) {
+					descripgroup[j][i][v] /= add;
+				}
+			}
+		}
+		FeatureS->descrip = descripgroup;
 	}
 }
+
+
+
+
+
+
 // 印出箭頭
 void Sift::drawArrow(string name){
 	//箭頭倍率
@@ -375,6 +381,10 @@ void Sift::drawArrow(string name){
 	/*輸出圖片*/
 	img.bmp(name);
 }
+
+
+
+
 
 
 /************/

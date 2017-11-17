@@ -71,40 +71,19 @@ ImgRaw::ImgRaw(string bmpname){
 }
 // 二維雙線性運算讀取
 const ImgRaw::types ImgRaw::atBilinear(float y, float x) const {
-	if (x < 0 || y < 0 || 
-		x>=width-1 || y >=height-1)
-	{
+	if (x < 0 || y < 0 || x>=width-1 || y >=height-1){
 		std::cerr << "atBilinear(x, y) : [x, y] our of range. \n";
 		std::cerr << "x=" << x << "y=" << y << "\n";
 		return 0;
 	}
-	// 獲取鄰點(不能用 1+)
-	size_t x0 = floor(x);
-	size_t x1 = ceil(x);
-	size_t y0 = floor(y);
-	size_t y1 = ceil(y);
-	// 獲取比例(只能用 1-)
-	float dx1 = x - x0;
-	float dx2 = 1 - dx1;
-	float dy1 = y - y0;
-	float dy2 = 1 - dy1;
-	// 獲取點
-	const float& A = raw_img[y0*width + x0];
-	const float& B = raw_img[y0*width + x1];
-	const float& C = raw_img[y1*width + x0];
-	const float& D = raw_img[y1*width + x1];
-	// 乘出比例(要交叉)
-	float AB = A*dx2 + B*dx1;
-	float CD = C*dx2 + D*dx1;
-	float X = AB*dy2 + CD*dy1;
-	return X;
+	return Scaling::bilinear(raw_img, width, y, x);
 }
 
 
 
 
 // 畫線
-void Draw::drawLine_p(ImgRaw& img, int y, int x, int y2, int x2) {
+void Draw::drawLine_p(ImgRaw& img, int y, int x, int y2, int x2, float val) {
 	// 兩點之間的距離差
 	float dx = x2-x;
 	float dy = y2-y;
@@ -122,7 +101,7 @@ void Draw::drawLine_p(ImgRaw& img, int y, int x, int y2, int x2) {
 			if (distX<0 or distX>=img.width or distY<0 or distY>=img.height) {
 				return;
 			}
-			img.raw_img[distY*img.width + distX] = 0.5;
+			img.raw_img[distY*img.width + distX] = val;
 		}
 	} 
 	// 以X軸為主
@@ -138,46 +117,42 @@ void Draw::drawLine_p(ImgRaw& img, int y, int x, int y2, int x2) {
 			if (distX<0 or distX>=img.width or distY<0 or distY>=img.height) {
 				return;
 			}
-			img.raw_img[distY*img.width + distX] = 0.5;
+			img.raw_img[distY*img.width + distX] = val;
 		}
 	}
 }
-void Draw::drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg) {
-	float value = 200 /255.0;
-	float endvalue = 255 /255.0;
+void Draw::drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg, float val) {
 	// 防呆
 	if (line_len < 0) {
 		return;
 	}
 	if (line_len==1) {
-		img[x*img.width + y] = value;
+		img[x*img.width + y] = val;
 		return;
 	}
 	// 算頭尾
 	int x2 = x + line_len*cos(sg * M_PI/180.0);
 	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
-	drawLine_p(img, y, x, y2, x2);
+	drawLine_p(img, y, x, y2, x2, val);
 }
-void Draw::draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg) {
-	float value = 200 /255.0;
-	float endvalue = 255 /255.0;
+void Draw::draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg, float val) {
 	// 防呆
 	if (line_len < 0) {
 		return;
 	}
 	if (line_len==1) {
-		img[x*img.width + y] = value;
+		img[x*img.width + y] = val;
 		return;
 	}
 	// 算頭尾
 	int x2 = x + line_len*cos(sg * M_PI/180.0);
 	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
-	drawLine_p(img, y, x, y2, x2);
+	drawLine_p(img, y, x, y2, x2, val);
 	// 畫頭
-	drawLine_s(img, y2, x2, 10, sg-150);
-	drawLine_s(img, y2, x2, 10, sg+150);
+	drawLine_s(img, y2, x2, 10, sg-150, val);
+	drawLine_s(img, y2, x2, 10, sg+150, val);
 }
 // 畫線RGB
 void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2, 

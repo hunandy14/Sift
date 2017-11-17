@@ -47,7 +47,7 @@ public:
 		size_t width, size_t height, float Ratio);
 public:
 	// 線性取值
-	static float bilinear(vector<types>& raw_img,
+	static float bilinear(const vector<types>& raw_img,
 		size_t width, float y, float x);
 private:
     // Bicubic 插值核心運算
