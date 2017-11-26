@@ -59,6 +59,9 @@ struct Feature
 	int sita;//包含主方向與負方向的角度
 	vector<vector<vector<float>>> descrip;// 描述子
 	Feature* nextptr = nullptr;
+
+	float descr[128] = {};
+	int d; // 特徵點長度
 };
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
@@ -74,6 +77,7 @@ public:
 class Sift {
 private:
     using types = float;
+	using desc = vector<vector<vector<float>>>;
 public:
     Sift(ImgRaw img, size_t intvls=6);
 public:
@@ -83,9 +87,15 @@ public:
 private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
 	void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
+	void FeatureDescrip2(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
+	void FeatureDescrip3(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
+	void FeatureDescrip_ori(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
+	
 	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
 	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
+private:
+	static void DescripNomal(desc& descripgroup);
 public:
     ImgRaw raw_img;  //原圖
 	size_t pyWidth=6;  //塔高(放大縮小)
