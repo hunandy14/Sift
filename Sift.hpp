@@ -60,7 +60,7 @@ struct Feature {
 	Feature* nextptr = nullptr; // 下一點
 
 	float descr[128] = {};// 統計完成後的描述子(robbs的方法)
-	int d; // 特徵點長度
+	int d=0; // 特徵點長度
 };
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
@@ -82,19 +82,17 @@ public:
 public:
 	void pyramid();
     void comp(vector<ImgRaw>& pyrs, string name="");
-	void drawArrow(string name="feaArrow.bmp");
+	void drawArrow(string name="feaArrow.bmp", float ratio = 10000.f);
 private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
-	void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
-	void FeatureDescrip2(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 
-	
+	// 描述特徵子
 	static bool calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori);
 	static Desc descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n);
 	static void interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, float mag, int d, int n);
 	static void hist_to_descr(Desc &hist, int d, int n, Feature* feat);
 	static void normalize_descr(Feature* feat);
-	static void FeatureDescrip3(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
+	static void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 
 
 	void FeatureDescrip_ori(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
@@ -105,13 +103,12 @@ private:
 private:
 	static void DescripNomal(Desc& descripgroup);
 public:
-    ImgRaw raw_img;  //原圖
-	size_t pyWidth=6;  //塔高(放大縮小)
+    ImgRaw raw_img;    // 原圖
+	size_t pyWidth=6;  // 塔高(放大縮小)
     vector<vector<ImgRaw>> pyrs;
 	vector<vector<ImgRaw>> pyrs_dog;
-	// 特徵點
-	Feature* FeatStart;
-	Feature* FeatEnd;
+	Feature* FeatStart; // 特徵點
+	Feature* FeatEnd;   // 標記才不用從頭再找
 };
 //----------------------------------------------------------------
 struct Fea_point {
