@@ -49,18 +49,17 @@ Final: 2017/07/05
 #define SIFT_HarrisR 10
 
 // 特徵點結構
-struct Feature
-{
+struct Feature {
 	float size;//階
 	int kai;//層
 	float sigmaOCT;//高斯模糊係數
 	int x, y;//各所在階層的座標
 	float mm;//強度
 	int sita;//包含主方向與負方向的角度
-	vector<vector<vector<float>>> descrip;// 描述子
-	Feature* nextptr = nullptr;
+	vector<vector<vector<float>>> descrip;// 描述子(舊方法的)
+	Feature* nextptr = nullptr; // 下一點
 
-	float descr[128] = {};
+	float descr[128] = {};// 統計完成後的描述子(robbs的方法)
 	int d; // 特徵點長度
 };
 // 尺寸大小不合
@@ -77,7 +76,7 @@ public:
 class Sift {
 private:
     using types = float;
-	using desc = vector<vector<vector<float>>>;
+	using Desc = vector<vector<vector<float>>>;
 public:
     Sift(ImgRaw img, size_t intvls=6);
 public:
@@ -88,14 +87,23 @@ private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
 	void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 	void FeatureDescrip2(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
-	void FeatureDescrip3(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
+
+	
+	static bool calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori);
+	static Desc descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n);
+	static void interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, float mag, int d, int n);
+	static void hist_to_descr(Desc &hist, int d, int n, Feature* feat);
+	static void normalize_descr(Feature* feat);
+	static void FeatureDescrip3(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
+
+
 	void FeatureDescrip_ori(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 	
 	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
 	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
 private:
-	static void DescripNomal(desc& descripgroup);
+	static void DescripNomal(Desc& descripgroup);
 public:
     ImgRaw raw_img;  //原圖
 	size_t pyWidth=6;  //塔高(放大縮小)
@@ -127,6 +135,7 @@ private:
 public:
 	Stitching(const Sift& desc1, const Sift& desc2);
 	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
+	float Stitching::EuclDist2(float point1[128], float point2[128]); // 描述子歐式距離
 	void Check(float matchTh=0.6); // 檢查是否有相同的特徵描述子
 private:
 	int Width, Height;

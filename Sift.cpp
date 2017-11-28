@@ -12,6 +12,7 @@ Final: 2017/07/05
 #include <algorithm>
 #include <memory>
 #include <random>
+#include <limits>
 
 #if defined(_MSC_VER)
 	#define or ||
@@ -256,58 +257,31 @@ void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, flo
 
 
 
-
-
 // 產生特徵描述子
-static inline void CoordinateChange(int& deltaX, int& deltaY, float sita) {
-	// 座標轉換
-	float deltaX2 = deltaY*sin(sita) + deltaX*cos(sita);
-	deltaY = deltaY*cos(sita) - deltaX*sin(sita);
-	deltaX = deltaX2;
-
-	//float r_rot = (j)*sin_t + (i)*cos_t; // 原圖X座標
-	//float c_rot = (j)*cos_t - (i)*sin_t; // 原圖Y座標
-}
-
-
-
-
-
-
-
-
-static bool calc_grad_mag_ori(vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori)
-{
+bool Sift::calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori) {
 	float dx = 0.0, dy = 0.0;
 	int Col = COL;
-	if (r > 0 && r < ROW - 1 && c > 0 && c < COL - 1)
-	{
-		dx = img[(r    ) * Col + (c + 1)] - img[(r    ) * Col + (c - 1)];
-		dy = img[(r - 1) * Col + (c    )] - img[(r + 1) * Col + (c    )];
+	if (r > 0 && r < ROW - 1 && c > 0 && c < COL - 1) {
+		dx = img[(r)* Col + (c + 1)] - img[(r)* Col + (c - 1)];
+		dy = img[(r - 1) * Col + (c)] - img[(r + 1) * Col + (c)];
 		mag = sqrt(dx * dx + dy * dy);
 		//mag = dx > dy ? max(0.875f*dx+0.5f*dy, dx) : max(0.875f*dy + 0.5f*dx, dy);
 		ori = atan2(dy, dx);
 		return true;
-	}
-	else
-	{
+	} else {
 		return false;
 	}
 }
-static void interp_hist_entry(vector<vector<vector<float>>> &hist, float rbin, float cbin, float obin, float mag, int d, int n);
-static vector<vector<vector<float>>> descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n)
-{
+Sift::Desc Sift::descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n) {
 	vector<vector<vector<float>>> hist;
 	float cos_t, sin_t, hist_width, exp_denom, r_rot, c_rot, grad_mag,
 		grad_ori, w, rbin, cbin, obin, bins_per_rad, PI2 = 2.f * M_PI;
 	int radius, i, j;
 
 	hist.resize(d);
-	for (i = 0; i < d; i++)
-	{
+	for (i = 0; i < d; i++) {
 		hist[i].resize(d);
-		for (j = 0; j < d; j++)
-		{
+		for (j = 0; j < d; j++) {
 			hist[i][j].resize(n);
 		}
 	}
@@ -319,10 +293,8 @@ static vector<vector<vector<float>>> descr_hist(vector<float> &img, int &COL, in
 	hist_width = (float)SIFT_DESCR_SCL_FCTR * scl;
 	radius = (int)(hist_width * sqrt(2.f) * (d + 1.f) * 0.5f + 0.5f);
 
-	for (i = -radius; i <= radius; i++)
-	{
-		for (j = -radius; j <= radius; j++)
-		{
+	for (i = -radius; i <= radius; i++) {
+		for (j = -radius; j <= radius; j++) {
 			// 把位置縮放到 [0~4)
 			c_rot = (j * cos_t - i * sin_t) / hist_width;
 			r_rot = (j * sin_t + i * cos_t) / hist_width;
@@ -335,19 +307,15 @@ static vector<vector<vector<float>>> descr_hist(vector<float> &img, int &COL, in
 			system("pause");*/
 
 			// 確保位置 [0~4) 刪除超出原圖指定半徑外的點
-			if (rbin > -1.f  &&  rbin < d  &&  cbin > -1.f  &&  cbin < d)
-			{
+			if (rbin > -1.f  &&  rbin < d  &&  cbin > -1.f  &&  cbin < d) {
 				// 計算成功回傳1 並修改數值
-				if (calc_grad_mag_ori(img, COL, ROW, r + i, c + j, grad_mag, grad_ori))
-				{
+				if (calc_grad_mag_ori(img, COL, ROW, r + i, c + j, grad_mag, grad_ori)) {
 					grad_ori -= ori;
 					// 修正0~360
-					while (grad_ori < 0.f)
-					{
+					while (grad_ori < 0.f) {
 						grad_ori += PI2;
 					}
-					while (grad_ori >= PI2)
-					{
+					while (grad_ori >= PI2) {
 						grad_ori -= PI2;
 					}
 
@@ -360,8 +328,7 @@ static vector<vector<vector<float>>> descr_hist(vector<float> &img, int &COL, in
 	}
 	return hist;
 }
-void interp_hist_entry(vector<vector<vector<float>>> &hist, float rbin, float cbin, float obin, float mag, int d, int n)
-{
+void Sift::interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, float mag, int d, int n) {
 	float d_r, d_c, d_o, v_r, v_c, v_o;
 	vector<vector<float>>::iterator row;
 	vector<float>::iterator h;
@@ -372,24 +339,19 @@ void interp_hist_entry(vector<vector<vector<float>>> &hist, float rbin, float cb
 	o0 = (int)floor(obin);
 	d_r = rbin - r0;
 	d_c = cbin - c0;
-	d_o = obin - o0; 
+	d_o = obin - o0;
 
-	for (r = 0; r <= 1; r++)
-	{
+	for (r = 0; r <= 1; r++) {
 		rb = r0 + r;
-		if (rb >= 0 && rb < d)
-		{
+		if (rb >= 0 && rb < d) {
 			v_r = mag * ((r == 0) ? 1.f - d_r : d_r);
 			row = hist[rb].begin();
-			for (c = 0; c <= 1; c++)
-			{
+			for (c = 0; c <= 1; c++) {
 				cb = c0 + c;
-				if (cb >= 0 && cb < d)
-				{
+				if (cb >= 0 && cb < d) {
 					v_c = v_r * ((c == 0) ? 1.f - d_c : d_c);
 					h = row[cb].begin();
-					for (o = 0; o <= 1; o++)
-					{
+					for (o = 0; o <= 1; o++) {
 						ob = (o0 + o) % n;
 						v_o = v_c * ((o == 0) ? 1.f - d_o : d_o);
 						h[ob] += v_o;
@@ -399,46 +361,36 @@ void interp_hist_entry(vector<vector<vector<float>>> &hist, float rbin, float cb
 		}
 	}
 }
-static void normalize_descr(Feature* feat);
-static void hist_to_descr(vector<vector<vector<float>>> &hist, int d, int n, Feature* feat)
-{
+void Sift::hist_to_descr(Desc &hist, int d, int n, Feature* feat) {
 	int int_val, i, r, c, o, k = 0;
 
-	for (r = 0; r < d; r++)
-	{
-		for (c = 0; c < d; c++)
-		{
-			for (o = 0; o < n; o++)
-			{
+	for (r = 0; r < d; r++) {
+		for (c = 0; c < d; c++) {
+			for (o = 0; o < n; o++) {
 				feat->descr[k++] = hist[r][c][o];
 			}
 		}
 	}
 	feat->d = k;
 	normalize_descr(feat);
-	for (i = 0; i < k; i++)
-	{
-		if (feat->descr[i] > SIFT_DESCR_MAG_THR)
-		{
+	for (i = 0; i < k; i++) {
+		if (feat->descr[i] > SIFT_DESCR_MAG_THR) {
 			feat->descr[i] = (float)SIFT_DESCR_MAG_THR;
 		}
 	}
 	normalize_descr(feat);
 
 	// convert floating-point descriptor to integer valued descriptor
-	for (i = 0; i < k; i++)
-	{
-		int_val = (int)(SIFT_INT_DESCR_FCTR * feat->descr[i]);
+	for (i = 0; i < k; i++) {
+		int_val = (int)((SIFT_INT_DESCR_FCTR) * feat->descr[i]);
 		feat->descr[i] = (float)min(255, int_val);
 	}
 }
-void normalize_descr(Feature* feat)
-{
+void Sift::normalize_descr(Feature* feat) {
 	float cur, len_inv, len_sq = 0.f;
 	int i, d = feat->d;
 
-	for (i = 0; i < d; i++)
-	{
+	for (i = 0; i < d; i++) {
 		cur = feat->descr[i];
 		len_sq += cur*cur;
 	}
@@ -446,8 +398,6 @@ void normalize_descr(Feature* feat)
 	for (i = 0; i < d; i++)
 		feat->descr[i] *= len_inv;
 }
-
-
 void Sift::FeatureDescrip3(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 	//新增一個4*4*8的特徵描述空間
 	vector <vector <vector <float>>> hist(4);//儲存特徵描述子
@@ -460,7 +410,6 @@ void Sift::FeatureDescrip3(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 	// 從當前極值產出的點開始做
 	for (Feature* FeatureS = FeatureNow; FeatureS->nextptr != nullptr;) {
 		FeatureS = FeatureS->nextptr;
-		
 		//const int radius = (FeatureS->sigmaOCT*3.f * SQUARE2*5.f) * 0.5f;
 		ImgRaw& curryImg = kaidaImag[FeatureS->kai];
 		int col = curryImg.width;
@@ -471,35 +420,24 @@ void Sift::FeatureDescrip3(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 		int c=FeatureS->x;
 		int n=SIFT_DESCR_HIST_BINS;
 		int scl_octv = FeatureS->sigmaOCT;
-
 		hist = descr_hist(curryImg, col, row, r, c, ori, scl_octv, d, n);
-		//hist_to_descr(hist, d, n, FeatureS);
-
-
-
-
+		hist_to_descr(hist, d, n, FeatureS);
+		
 		Sift::DescripNomal(hist);
 		FeatureS->descrip = hist;
 	}
 }
 
 
+static inline void CoordinateChange(int& deltaX, int& deltaY, float sita) {
+	// 座標轉換
+	float deltaX2 = deltaY*sin(sita) + deltaX*cos(sita);
+	deltaY = deltaY*cos(sita) - deltaX*sin(sita);
+	deltaX = deltaX2;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	//float r_rot = (j)*sin_t + (i)*cos_t; // 原圖X座標
+	//float c_rot = (j)*cos_t - (i)*sin_t; // 原圖Y座標
+}
 void Sift::FeatureDescrip2(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 	if (FeatureNow==nullptr) { return; }
 	//新增一個4*4*8的特徵描述空間
@@ -805,7 +743,7 @@ void Sift::FeatureDescrip_ori(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 		FeatureS->descrip = descripgroup;
 	}
 }
-void Sift::DescripNomal(desc& descripgroup) {
+void Sift::DescripNomal(Desc& descripgroup) {
 	//****** 限定門檻值
 	float add = 0.0;
 	for (int j = 0; j < 4; j++) {
@@ -888,6 +826,14 @@ float Stitching::EuclDist(const Desc& point1, const Desc& point2) {
 	}
 	return sqrtf(sum);
 }
+float Stitching::EuclDist2(float point1[128], float point2[128]) {
+	float sum = 0.f;
+	for (size_t i = 0; i < 128; i++) {
+		const float reduce = point1[i] - point2[i];
+		sum += reduce * reduce;
+	}
+	return sqrtf(sum);
+}
 void Stitching::Check(float matchTh) {
 	Feature *startlink1, *startlink2;
 	startlink1 = FeatureStart1;
@@ -896,16 +842,18 @@ void Stitching::Check(float matchTh) {
 	while (startlink1->nextptr != nullptr) {
 		startlink1 = startlink1->nextptr;
 
+		// 初始化最大值
 		float distance1, distance2;
-		distance1 = distance2 = 0xffffffff;
+		distance1 = distance2 = numeric_limits<float>::max();
 		float useX1, useY1;
-		useX1 = useY1 = 0xffffffff;
+		useX1 = useY1 = numeric_limits<float>::max();
 
 		startlink2 = FeatureStart2;
 		while (startlink2->nextptr != nullptr) {
 			startlink2 = startlink2->nextptr;
 			//******* 找處距離最近的兩個點
-			float value = EuclDist(startlink1->descrip, startlink2->descrip);
+			//float value = EuclDist(startlink1->descrip, startlink2->descrip);
+			float value = EuclDist2(startlink1->descr, startlink2->descr);
 			if (value < distance1) {
 				distance2 = distance1;
 				distance1 = value;
