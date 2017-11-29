@@ -61,6 +61,9 @@ struct Feature {
 
 	float descr[128] = {};// 統計完成後的描述子(robbs的方法)
 	int d=0; // 特徵點長度
+public:
+	float rX() {return x/size;}
+	float rY() {return y/size;}
 };
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
@@ -79,6 +82,7 @@ private:
 	using Desc = vector<vector<vector<float>>>;
 public:
     Sift(ImgRaw img, size_t intvls=6);
+
 public:
 	void pyramid();
     void comp(vector<ImgRaw>& pyrs, string name="");
@@ -90,7 +94,7 @@ private:
 	static bool calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori);
 	static Desc descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n);
 	static void interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, float mag, int d, int n);
-	static void hist_to_descr(Desc &hist, int d, int n, Feature* feat);
+	static void hist_to_descr(const Desc &hist, int d, int n, Feature* feat);
 	static void normalize_descr(Feature* feat);
 	static void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 
@@ -110,21 +114,6 @@ public:
 	Feature* FeatStart; // 特徵點
 	Feature* FeatEnd;   // 標記才不用從頭再找
 };
-//----------------------------------------------------------------
-struct Fea_point {
-	Fea_point(size_t o, size_t s, size_t y, size_t x, 
-		float gau_r ,float sigma, float m=0.f, float sida=0.f):
-		o(o), s(s), y(y), x(x), gau_r(gau_r), sigma(sigma), m(m), sida(sida){}
-	size_t o;
-	size_t s;
-	size_t y;
-	size_t x;
-	size_t gau_r;
-	float sigma;
-	float m;
-	float sida;
-};
-
 //-----------------------------------------------------------------
 class Stitching{
 private:
@@ -135,7 +124,7 @@ public:
 	float Stitching::EuclDist2(float point1[128], float point2[128]); // 描述子歐式距離
 	void Check(float matchTh=0.6); // 檢查是否有相同的特徵描述子
 private:
+	const Feature *feat1, *feat2;
 	int Width, Height;
-	Feature *FeatureStart1, *FeatureStart2;
 	ImgRaw matchImg;
 };

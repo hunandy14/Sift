@@ -20,9 +20,9 @@ private:
 public:
 	// 初始化
 	ImgRaw() = default;
-	ImgRaw(vector<types> img, size_t width, size_t height, size_t bits) :
+	ImgRaw(vector<types> img, uint32_t width, uint32_t height, uint16_t bits) :
 		raw_img(img), width(width), height(height), bitCount(bits) {}
-	ImgRaw(size_t width, size_t height, size_t bits) :raw_img(width*height * (bits/8)), 
+	ImgRaw(uint32_t width, uint32_t height, uint16_t bits) :raw_img(width*height * (bits/8)), 
 		width(width), height(height), bitCount(bits){}
 	ImgRaw(string bmpname);
 	// 隱式轉換
@@ -58,7 +58,7 @@ public:
 	// 獲得大小
 	size_t size() { return this->raw_img.size(); }
 	// 重設大小
-	void resize(size_t width, size_t height, size_t bits) {
+	void resize(uint32_t width, uint32_t height, uint16_t bits) {
 		raw_img.resize(width*height * bits/8);
 		this->width=width;
 		this->height=height;
@@ -68,7 +68,7 @@ public:
 	// 轉為灰階
 	ImgRaw ConverGray() const;
 	// 寫 BMP 檔
-	void bmp(string name, size_t bits=0);
+	void bmp(string name, uint32_t bits=0);
 public: // 放大縮小 (覺得累贅想拿掉)
 	static void zero(ImgRaw& tar, ImgRaw& sou, float z) {
 		Scaling::zero(tar, sou, sou.width, sou.height, z);
@@ -106,7 +106,7 @@ inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
 	} return 0;
 }
 // 寫 BMP 檔
-inline void ImgRaw::bmp(string name, size_t bits) {
+inline void ImgRaw::bmp(string name, uint32_t bits) {
 	if (bits == 0) { bits = this->bitCount; }
 	vector<unsigned char> img = (*this);// 有重載轉換函式
 	Raw::raw2bmp(name, img, width, height, bits);
@@ -119,7 +119,7 @@ inline ImgRaw ImgRaw::ConverGray() const {
 			const types& R = raw_img[i*3+0];
 			const types& G = raw_img[i*3+1];
 			const types& B = raw_img[i*3+2];
-			gray[i] = R*0.299 + G*0.587 + B*0.114;
+			gray[i] = (float)(R*0.299 + G*0.587 + B*0.114);
 		} return gray;
 	} else if (bitCount == 8) {
 		return (*this);

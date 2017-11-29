@@ -288,10 +288,8 @@ Sift::Desc Sift::descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c
 	return hist;
 }
 void Sift::interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, float mag, int d, int n) {
-	float d_r, d_c, d_o, v_r, v_c, v_o;
-	vector<vector<float>>::iterator row;
-	vector<float>::iterator h;
-	int r0, c0, o0, rb, cb, ob, r, c, o;
+	float d_r, d_c, d_o;
+	int r0, c0, o0;
 
 	r0 = (int)floor(rbin);
 	c0 = (int)floor(cbin);
@@ -300,19 +298,19 @@ void Sift::interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, flo
 	d_c = cbin - c0;
 	d_o = obin - o0;
 
-	for (r = 0; r <= 1; r++) {
-		rb = r0 + r;
+	for (int r = 0; r <= 1; r++) {
+		int rb = r0 + r;
 		if (rb >= 0 && rb < d) {
-			v_r = mag * ((r == 0) ? 1.f - d_r : d_r);
-			row = hist[rb].begin();
-			for (c = 0; c <= 1; c++) {
-				cb = c0 + c;
+			float v_r = mag * ((r == 0) ? 1.f - d_r : d_r);
+			vector<vector<float>>& row = hist[rb];
+			for (int c = 0; c <= 1; c++) {
+				int cb = c0 + c;
 				if (cb >= 0 && cb < d) {
-					v_c = v_r * ((c == 0) ? 1.f - d_c : d_c);
-					h = row[cb].begin();
-					for (o = 0; o <= 1; o++) {
-						ob = (o0 + o) % n;
-						v_o = v_c * ((o == 0) ? 1.f - d_o : d_o);
+					float v_c = v_r * ((c == 0) ? 1.f - d_c : d_c);
+					vector<float>& h = row[cb];
+					for (int o = 0; o <= 1; o++) {
+						int ob = (o0 + o) % n;
+						float v_o = v_c * ((o == 0) ? 1.f - d_o : d_o);
 						h[ob] += v_o;
 					}
 				}
@@ -320,7 +318,7 @@ void Sift::interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, flo
 		}
 	}
 }
-void Sift::hist_to_descr(Desc &hist, int d, int n, Feature* feat) {
+void Sift::hist_to_descr(const Desc &hist, int d, int n, Feature* feat) {
 	int int_val, i, r, c, o, k = 0;
 
 	for (r = 0; r < d; r++) {
@@ -387,7 +385,7 @@ void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 		// Sift::DescripNomal(hist);
 		// FeatureS->descrip = hist;
 	}
-	cout << endl;
+	// cout << endl;
 }
 // 描述特徵子 (舊方法有誤)
 static inline void CoordinateChange(int& deltaX, int& deltaY, float sita) {
@@ -531,16 +529,15 @@ void Sift::drawArrow(string name, float ratio){
     ##     ## ##     ##    ##    ##    ## ##     ##
     ##     ## ##     ##    ##     ######  ##     ##
 */
-Stitching::Stitching(const Sift& desc1, const Sift& desc2) {
-	FeatureStart1 = desc1.FeatStart;
-	FeatureStart2 = desc2.FeatStart;;
-	const ImgRaw& img1=desc1.raw_img;
-	const ImgRaw& img2=desc2.raw_img;
-
-	Width=img1.width+img2.width;
-	Height=img1.height;
+Stitching::Stitching(const Sift& desc1, const Sift& desc2):
+	feat1(desc1.FeatStart), feat2(desc2.FeatStart)
+{
+	const ImgRaw& img1 = desc1.raw_img;
+	const ImgRaw& img2 = desc2.raw_img;
+	this->Width  = img1.width+img2.width;
+	this->Height = img1.height;
 	// 合併兩張圖
-	matchImg.resize(img1.width*2, img2.height, 24);
+	this->matchImg.resize(img1.width*2, img2.height, 24);
 	for (size_t j = 0; j < img1.height; j++) {
 		for (size_t i = 0; i < img1.width; i++) {
 			matchImg[(j*matchImg.width+i)*3 + 0] = img1[(j*img1.width+i)*3 + 0];
@@ -553,8 +550,6 @@ Stitching::Stitching(const Sift& desc1, const Sift& desc2) {
 			matchImg[(j*matchImg.width+i)*3 + 2] = img2[(j*img1.width+i-img1.width)*3 + 2];
 		}
 	}
-	// matchImg.bmp("matchImg.bmp", 24); // 測試
-	// cout << endl;
 }
 // 檢查是否有相同的特徵描述子(歐式距離計算)
 float Stitching::EuclDist(const Desc& point1, const Desc& point2) {
@@ -579,37 +574,37 @@ float Stitching::EuclDist2(float point1[128], float point2[128]) {
 }
 // 匹配相同的特徵點
 void Stitching::Check(float matchTh) {
-	for (Feature* startlink1 = FeatureStart1->nextptr;
+	for (Feature* startlink1 = feat1->nextptr;
 		startlink1 != nullptr;
 		startlink1 = startlink1->nextptr)
 	{
 		// 初始化最大值
-		float distance1, distance2;
-		distance1 = distance2 = numeric_limits<float>::max();
+		float dist1, dist2;
+		dist1 = dist2 = numeric_limits<float>::max();
 		float useX1, useY1;
 		useX1 = useY1 = numeric_limits<float>::max();
 		// 找處距離最近的兩個點
-		for (Feature* startlink2 = FeatureStart2->nextptr;
+		for (Feature* startlink2 = feat2->nextptr;
 			startlink2 != nullptr;
 			startlink2 = startlink2->nextptr)
 		{
 			float value = EuclDist2(startlink1->descr, startlink2->descr);
-			if (value < distance1) {
-				distance2 = distance1;
-				distance1 = value;
+			if (value < dist1) {
+				dist2 = dist1;
+				dist1 = value;
 
-				useX1 = startlink2->x / startlink2->size;
-				useY1 = startlink2->y / startlink2->size;
-			} else if (value < distance2) {
-				distance2 = value;
+				useX1 = startlink2->rX();
+				useY1 = startlink2->rY();
+			} else if (value < dist2) {
+				dist2 = value;
 			}
 		}
 		// 確認是否匹配成功並畫線
-		if ((distance1 / distance2) < matchTh) {
+		if ((dist1 / dist2) < matchTh) {
 			// 閥值越小找到的點越少但越可靠，論文建議 0.6~0.8
 			int x1, y1;
-			x1 = startlink1->x / startlink1->size;
-			y1 = startlink1->y / startlink1->size;
+			x1 = startlink1->rX();
+			y1 = startlink1->rY();
 			
 			// 隨機顏色
 			auto random_num = [] {
