@@ -139,7 +139,8 @@ public:
 	static void draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg, float val=200/255.0);
 
 	static void drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2, 
-		float r=1, float g=0, float b=0);
+		float r, float, float);
+	static void drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2);
 	static void drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg);
 	static void draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg);
 };

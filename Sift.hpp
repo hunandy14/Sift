@@ -131,7 +131,7 @@ public:
 	Stitching(const Sift& desc1, const Sift& desc2);
 	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
 	float Stitching::EuclDist2(float point1[128], float point2[128]); // 描述子歐式距離
-	void Check(float matchTh=0.6); // 檢查是否有相同的特徵描述子
+	void Check(float matchTh=0.5); // 檢查是否有相同的特徵描述子
 private:
 	const Feature *feat1, *feat2;
 	int Width, Height;

@@ -153,7 +153,8 @@ void Sift::pyramid() {
 					if (findMaxMin(gauDog_imgs, scale_idx, curr_Width, j, i)) {
 						const ImgRaw& currImg = gauDog_imgs[scale_idx];
 						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (curr_sigmaCoef);
-						if (harris(currImg, curr_Width, j, i, SIFT_CURV_THR)) {
+						if (harris(currImg, curr_Width, j, i, r)) { // r=SIFT_CURV_THR=10
+							// 這裡不知道為什麼設置為r效果更好論文所提設置是10
 							getHistogramMS(currImg, curr_size, scale_idx, currSigma, j, i, curr_Width, r);
 							//Herris_img[j*curr_Width + i] = 255 /255.0;
 						}
@@ -399,11 +400,15 @@ void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 		int c=FeatureS->x;
 		int n=SIFT_DESCR_HIST_BINS;
 		int scl_octv = FeatureS->sigmaOCT;
+
+
+		// 描述特徵子
 		hist = descr_hist(curryImg, col, row, r, c, ori, scl_octv, d, n);
-		hist_to_descr(hist, d, n, FeatureS);
-		
-		// Sift::DescripNomal(hist);
-		// FeatureS->descrip = hist;
+			// rob規一化方法
+			hist_to_descr(hist, d, n, FeatureS);
+			// 舊規一化方法(不知道為什麼效果比較好)
+			Sift::DescripNomal(hist);
+			FeatureS->descrip = hist;
 	}
 	// cout << endl;
 }
@@ -608,7 +613,8 @@ void Stitching::Check(float matchTh) {
 			startlink2 != nullptr;
 			startlink2 = startlink2->nextptr)
 		{
-			float value = EuclDist2(startlink1->descr, startlink2->descr);
+			//float value = EuclDist2(startlink1->descr, startlink2->descr); // rob方法
+			float value = EuclDist(startlink1->descrip, startlink2->descrip); // 舊函式
 			if (value < dist1) {
 				dist2 = dist1;
 				dist1 = value;
@@ -621,20 +627,12 @@ void Stitching::Check(float matchTh) {
 		}
 		// 確認是否匹配成功並畫線
 		if ((dist1 / dist2) < matchTh) {
-			// 閥值越小找到的點越少但越可靠，論文建議 0.6~0.8
+			// 閥值越小找到的點越少但越可靠，論文建議 0.4~0.6
 			int x1, y1;
 			x1 = startlink1->rX();
 			y1 = startlink1->rY();
-			
-			// 隨機顏色
-			auto random_num = [] {
-				return ((rand() / (RAND_MAX+1.0)) * (1 - 0) + 0);
-			};
-			float rVal = random_num();
-			float gVal = random_num();
-			float bVal = random_num();
 			// 畫線
-			Draw::drawLineRGB_p(matchImg, y1, x1, useY1,useX1 + (Width / 2), rVal, gVal, bVal);
+			Draw::drawLineRGB_p(matchImg, y1, x1, useY1,useX1 + (Width / 2));
 		}
 	}
 	matchImg.bmp("_matchImg.bmp", 24);

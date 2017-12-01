@@ -33,8 +33,8 @@ using namespace cv;
 int main(int argc, char const *argv[]){
 	//srand((unsigned)time(NULL)); rand();
 	// 讀取圖片
-	string name1="Lena6.bmp";
-	string name2="Lena135.bmp";
+	string name1="sd01.bmp";
+	string name2="sd02.bmp";
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
 
@@ -52,7 +52,7 @@ start = clock();
 	fea2.drawArrow("feaArrow2.bmp");
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1, fea2);
-	match.Check(0.5);
+	match.Check(0.6);
 end = clock();
 cout << "time is:" << (end - start)/1000.0 << "s" << endl;
 #endif // testpoint1

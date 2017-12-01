@@ -235,6 +235,16 @@ void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2,
 		}
 	}
 }
+void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2) {
+	// 隨機顏色
+	auto random_num = [] {
+		return ((rand() / (RAND_MAX+1.0)) * (1 - 0) + 0);
+	};
+	float rVal = random_num();
+	float gVal = random_num();
+	float bVal = random_num();
+	drawLineRGB_p(img, y, x, y2, x2, rVal, gVal, bVal);
+}
 void Draw::drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg) {
 	float value = 200 /255.0;
 	float endvalue = 255 /255.0;
@@ -250,7 +260,7 @@ void Draw::drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg) {
 	int x2 = x + line_len*cos(sg * M_PI/180.0);
 	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
-	drawLineRGB_p(img, y, x, y2, x2);
+	drawLineRGB_p(img, y, x, y2, x2, 242/255.f, 66/255.f, 54/255.f);
 }
 void Draw::draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg) {
 	float value = 200 /255.0;
@@ -267,7 +277,7 @@ void Draw::draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg) {
 	int x2 = x + line_len*cos(sg * M_PI/180.0);
 	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
-	drawLineRGB_p(img, y, x, y2, x2);
+	drawLineRGB_p(img, y, x, y2, x2, 242/255.f, 66/255.f, 54/255.f);
 	// 畫頭
 	size_t head_len = 6;
 	drawLineRGB_s(img, y2, x2, head_len, sg-150);
