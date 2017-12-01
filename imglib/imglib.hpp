@@ -51,15 +51,7 @@ public:
 		size_t width, float y, float x);
 private:
     // Bicubic 插值核心運算
-    static float cubicInterpolate (
-        float* p, float x);
+    static float cubicInterpolate (float* p, float x);
     // Bicubic 輸入16點與插入位置，取得目標值
-    static float bicubicInterpolate (
-        float* p, float y, float x);
-};
-// 角點偵測
-class Corner {
-public:
-	static bool harris(const vector<float>& p,
-		size_t w, size_t y, size_t x, float r);
+    static float bicubicInterpolate (float* p, float y, float x);
 };

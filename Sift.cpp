@@ -22,11 +22,6 @@ Final: 2017/07/05
 #endif
 #define M_PI 3.14159265358979323846
 #define SQUARE2 1.4142135623730951f
-#define SIFT_DESCR_SCL_FCTR 3.f
-#define SIFT_DESCR_HIST_BINS 8
-
-#define SIFT_DESCR_MAG_THR 0.2 // 特徵點向量元素的閥值
-#define SIFT_INT_DESCR_FCTR 512.0 // 將浮點數轉換為 uchar
 
 #include "Sift.hpp"
 using namespace std;
@@ -65,7 +60,7 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name) {
         // system(name.c_str());
     }
 };
-void Sift::AddnewFeaturestruct(int Inx, int Iny, float Insize, int scale_idx, int sigmaOCT, float Inm, int Insita)
+void Sift::FeatAppend(int Inx, int Iny, float Insize, int scale_idx, int sigmaOCT, float Inm, int Insita)
 {
 	Feature* newnode = new Feature;
 	newnode->x = Inx;
@@ -158,7 +153,7 @@ void Sift::pyramid() {
 					if (findMaxMin(gauDog_imgs, scale_idx, curr_Width, j, i)) {
 						const ImgRaw& currImg = gauDog_imgs[scale_idx];
 						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (curr_sigmaCoef);
-						if (Corner::harris(currImg, curr_Width, j, i, r)) {
+						if (harris(currImg, curr_Width, j, i, SIFT_CURV_THR)) {
 							getHistogramMS(currImg, curr_size, scale_idx, currSigma, j, i, curr_Width, r);
 							//Herris_img[j*curr_Width + i] = 255 /255.0;
 						}
@@ -173,6 +168,31 @@ void Sift::pyramid() {
 		// 描述剛剛才找到的那堆新特徵點(當前的點是舊的)
 		FeatureDescrip(gau_imgs, CurrFeature->nextptr);
 	} // 不同尺度大小的for()
+}
+bool Sift::harris(const vector<float>& p,
+	size_t w, size_t y, size_t x, float r)
+{
+	// 閥值 (論文r=10)
+	float thre = ((r + 1)*(r + 1)) / r;
+	// 二維讀取
+	auto at2d = [&](int y, int x)->float {
+		return p[y*w + x];
+	};
+	// 公式
+	float Dxx = 2.f*at2d(y, x) - at2d(y, x - 1) - at2d(y, x + 1);
+	float Dyy = 2.f*at2d(y, x) - at2d(y - 1, x) - at2d(y + 1, x);
+	float Dxy = at2d(y + 1, x + 1) + at2d(y - 1, x - 1)
+		- at2d(y - 1, x + 1) - at2d(y + 1, x - 1);
+	Dxy /= 4.f;
+	float Tr = Dxx + Dyy;
+	float Det = Dxx*Dyy - Dxy*Dxy;
+	// 判斷閥值
+	float val = (Tr*Tr / Det);
+	if (val < thre) {
+		return 1;
+	}
+	// 不成立則刪除
+	return 0;
 }
 void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 	size_t Iny, size_t Inx, size_t InWidth, size_t Inr)
@@ -210,7 +230,7 @@ void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, flo
 	float maxMag = *max_element(magSum.begin(), magSum.end());
 	for (size_t i = 0; i < 36; i++) {
 		if (magSum[i] >= maxMag*0.8) {// 大於80%的都存下來
-			AddnewFeaturestruct(Inx, Iny, Insize, scale, sigma, magSum[i], i*10);
+			FeatAppend(Inx, Iny, Insize, scale, sigma, magSum[i], i*10);
 		}
 	}
 }

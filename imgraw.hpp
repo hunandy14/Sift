@@ -69,6 +69,8 @@ public:
 	ImgRaw ConverGray() const;
 	// 寫 BMP 檔
 	void bmp(string name, uint32_t bits=0);
+	// 取出旋轉後的圖片
+	ImgRaw rotateImg(size_t x, size_t y, float radius, float sita);
 public: // 放大縮小 (覺得累贅想拿掉)
 	static void zero(ImgRaw& tar, ImgRaw& sou, float z) {
 		Scaling::zero(tar, sou, sou.width, sou.height, z);

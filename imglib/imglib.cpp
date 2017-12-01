@@ -326,31 +326,7 @@ float Scaling::bicubicInterpolate (
 
 
 
-bool Corner::harris(const vector<float>& p,
-    size_t w, size_t y, size_t x, float r)
-{
-    // 閥值
-    float thre = ((r + 1)*(r + 1)) / r;
-    // 二維讀取
-    auto at2d = [&](int y, int x)->float {
-        return p[y*w + x];
-    };
-    // 公式
-    float Dxx = 2.f*at2d(y, x) - at2d(y, x - 1) - at2d(y, x + 1);
-    float Dyy = 2.f*at2d(y, x) - at2d(y - 1, x) - at2d(y + 1, x);
-    float Dxy = at2d(y + 1, x + 1) + at2d(y - 1, x - 1)
-        - at2d(y - 1, x + 1) - at2d(y + 1, x - 1);
-    Dxy /= 4.f;
-    float Tr = Dxx + Dyy;
-    float Det = Dxx*Dyy - Dxy*Dxy;
-    // 判斷閥值
-    float val = (Tr*Tr / Det);
-    if (val < thre) {
-        return 1;
-    }
-    // 不成立則刪除
-    return 0;
-}
+
 
 
 

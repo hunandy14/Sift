@@ -78,6 +78,41 @@ const ImgRaw::types ImgRaw::atBilinear(float y, float x) const {
 	}
 	return Scaling::bilinear(raw_img, width, y, x);
 }
+// 取出旋轉後的圖片
+ImgRaw ImgRaw::rotateImg(size_t x, size_t y, float radius, float sita) {
+	ImgRaw& Img = *this;
+	// 畫箭頭標記
+	//Draw::draw_arrow(Img, y, x, radius, sita, 1);
+	//Img.bmp("rotate_test.bmp");
+	// 新圖長寬半徑
+	float maxRadius = radius;
+	int rotH = floor(maxRadius);
+	int rotW = floor(maxRadius);
+	ImgRaw rotate(rotW*2, rotH*2, 8);
+	// 預算
+	sita *= -1; // 把新圖轉回0度
+	float cos_t = cosf(sita*(float)(M_PI/180));  
+	float sin_t = sinf(sita*(float)(M_PI/180));
+	// 跑新圖
+	for (int j = -rotH; j < rotH; j++) {
+		for (int i = -rotW; i < rotW; i++) {
+			// 輸入新圖座標返回舊圖座標(已0, 0為圓心旋轉)
+			float r_rot = (j)*sin_t + (i)*cos_t; // 原圖X座標
+			float c_rot = (j)*cos_t - (i)*sin_t; // 原圖Y座標
+												 // 矯正回指定位置
+			float rbin = r_rot + x; 
+			float cbin = c_rot + y;
+			// 去除原圖外的點
+			if (cbin < Img.height - 1 and cbin > 0) {
+				if (rbin < Img.width - 1 and rbin > 0) {
+					// 雙線姓插補
+					rotate.at2d(j+rotH, i+rotW) = Img.atBilinear(cbin, rbin); 
+				}
+			}
+		}
+	}
+	return rotate;
+}
 
 
 

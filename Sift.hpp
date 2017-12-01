@@ -45,8 +45,16 @@ Final: 2017/07/05
 #define SIFT_GauSigma 1.6f
 // 去除不穩定特徵點
 #define SIFT_Dx 0.03f
-// 角點偵測 r = 10
-#define SIFT_HarrisR 10
+// 原論文給的 3*1.5*sigma
+#define SIFT_DESCR_SCL_FCTR 3.f
+// 特徵描述子8個角度
+#define SIFT_DESCR_HIST_BINS 8
+// 特徵點向量元素的閥值
+#define SIFT_DESCR_MAG_THR 0.2
+// 將浮點數轉換為 uchar
+#define SIFT_INT_DESCR_FCTR 512.0
+// 主曲率特徵點比例閥值(角點偵測時的閥值)
+#define SIFT_CURV_THR 10
 
 // 特徵點結構
 struct Feature {
@@ -103,8 +111,9 @@ private:
 	
 	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
-	void AddnewFeaturestruct(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
+	void FeatAppend(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
 private:
+	bool harris(const vector<float>& p, size_t w, size_t y, size_t x, float r=SIFT_CURV_THR);
 	static void DescripNomal(Desc& descripgroup);
 public:
     ImgRaw raw_img;    // 原圖
