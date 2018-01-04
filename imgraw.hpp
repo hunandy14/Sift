@@ -111,7 +111,7 @@ inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
 inline void ImgRaw::bmp(string name, uint32_t bits) {
 	if (bits == 0) { bits = this->bitCount; }
 	vector<unsigned char> img = (*this);// 有重載轉換函式
-	Raw::raw2bmp(name, img, width, height, bits);
+	Raw2Img::raw2bmp(name, img, width, height, bits);
 }
 // 轉為灰階
 inline ImgRaw ImgRaw::ConverGray() const {

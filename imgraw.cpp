@@ -59,7 +59,7 @@ ImgRaw::ImgRaw(string bmpname){
 	uint32_t width, height;
 	uint16_t bits;
 	// Åª¨ú¹Ï¤ù
-	Raw::read_bmp(img, bmpname, &width, &height, &bits);
+	Raw2Img::read_bmp(img, bmpname, &width, &height, &bits);
 	this->width    = width;
 	this->height   = height;
 	this->bitCount = bits;

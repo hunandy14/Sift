@@ -18,7 +18,7 @@ Final: 2017/06/14
      ##   ##   ### ##   ## ##
 
 */
-class Raw {
+class Raw2Img {
 private:
     using uch = unsigned char;
     // RGB 轉灰階公式
