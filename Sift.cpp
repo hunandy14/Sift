@@ -13,6 +13,7 @@ Final: 2017/07/05
 #include <memory>
 #include <random>
 #include <limits>
+#include <ctime>
 
 #if defined(_MSC_VER)
 	#define or ||
@@ -24,6 +25,7 @@ Final: 2017/07/05
 #define SQUARE2 1.4142135623730951f
 
 #include "Sift.hpp"
+#include "kdtree.hpp"
 using namespace std;
 
 /*
@@ -74,6 +76,7 @@ void Sift::FeatAppend(int Inx, int Iny, float Insize, int scale_idx, int sigmaOC
 
 	FeatEnd->nextptr = newnode;// 加入該點
 	FeatEnd = newnode; // 更新結尾點的標記
+	++feaNum; // 計數幾點
 }
 // 過濾特徵點並找極值
 bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
@@ -169,6 +172,21 @@ void Sift::pyramid() {
 		// 描述剛剛才找到的那堆新特徵點(當前的點是舊的)
 		FeatureDescrip(gau_imgs, CurrFeature->nextptr);
 	} // 不同尺度大小的for()
+
+
+
+
+	// 暫時先這樣(把資料複製到連續的位置上)
+	Feature* temp = new Feature[feaNum];
+	int i = 0;
+	for(Feature* FeatureS = FeatStart->nextptr;// 跳過第一點空點
+		FeatureS != nullptr;
+		FeatureS = FeatureS->nextptr)
+	{
+		memcpy ( &temp[i], FeatureS, sizeof(*FeatureS) );
+	}
+	FeatStart = temp;
+
 }
 bool Sift::harris(const vector<float>& p,
 	size_t w, size_t y, size_t x, float r)
@@ -237,7 +255,7 @@ void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, flo
 }
 
 
-// 描述特徵子
+// 描述特徵子(rob方法)
 bool Sift::calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori) {
 	float dx = 0.0, dy = 0.0;
 	int Col = COL;
@@ -280,12 +298,6 @@ Sift::Desc Sift::descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c
 			r_rot = (j * sin_t + i * cos_t) / hist_width;
 			rbin = r_rot + d / 2.f - 0.5f;
 			cbin = c_rot + d / 2.f - 0.5f;
-			/*cout << hist_width << endl;
-			cout << radius << endl;
-			cout << c_rot << " " << r_rot << endl;
-			cout << cbin << " " << rbin << endl;
-			system("pause");*/
-
 			// 確保位置 [0~4) 刪除超出原圖指定半徑外的點
 			if (rbin > -1.f  &&  rbin < d  &&  cbin > -1.f  &&  cbin < d) {
 				// 計算成功回傳1 並修改數值
@@ -372,6 +384,7 @@ void Sift::normalize_descr(Feature* feat) {
 		cur = feat->descr[i];
 		len_sq += cur*cur;
 	}
+
 	len_inv = 1.f / sqrt(len_sq);
 	for (i = 0; i < d; i++)
 		feat->descr[i] *= len_inv;
@@ -401,112 +414,22 @@ void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 		int n=SIFT_DESCR_HIST_BINS;
 		int scl_octv = FeatureS->sigmaOCT;
 
-
 		// 描述特徵子
 		hist = descr_hist(curryImg, col, row, r, c, ori, scl_octv, d, n);
-			// rob規一化方法
-			hist_to_descr(hist, d, n, FeatureS);
-			// 舊規一化方法(不知道為什麼效果比較好)
-			Sift::DescripNomal(hist);
-			FeatureS->descrip = hist;
+
+
+		// rob規一化方法
+		hist_to_descr(hist, d, n, FeatureS);
+
+		// 舊規一化方法(不知道為什麼效果比較好)
+		Sift::DescripNomal(hist);
+		FeatureS->descrip = hist;
 	}
 	// cout << endl;
 }
-// 描述特徵子 (舊方法有誤)
-static inline void CoordinateChange(int& deltaX, int& deltaY, float sita) {
-	// 座標轉換
-	float deltaX2 = deltaY*sin(sita) + deltaX*cos(sita);
-	deltaY = deltaY*cos(sita) - deltaX*sin(sita);
-	deltaX = deltaX2;
-
-	//float r_rot = (j)*sin_t + (i)*cos_t; // 原圖X座標
-	//float c_rot = (j)*cos_t - (i)*sin_t; // 原圖Y座標
-}
-void Sift::FeatureDescrip_ori(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
-	//新增一個4*4*8的特徵描述空間
-	vector <vector <vector <float>>> descripgroup(4);//儲存特徵描述子
-	for (int v = 0; v < 4; v++) {
-		descripgroup[v].resize(4);
-		for (int j = 0; j < 4; j++) {
-			descripgroup[v][j].resize(8);
-		}
-	}
-	// 從當前極值產出的點開始做
-	for (Feature* FeatureS = FeatureNow; FeatureS->nextptr != nullptr;) {
-		FeatureS = FeatureS->nextptr;
-		// 轉制
-		int radius = (FeatureS->sigmaOCT * 3 * sqrt(2)*(5)) / 2;
-		int inHeight = raw_img.height*FeatureS->size;
-		int inWidth = raw_img.width*FeatureS->size;
-		// 直徑x直徑
-		for (int j = FeatureS->y - radius; j < FeatureS->y + radius; j++) {
-			for (int i = FeatureS->x - radius; i < FeatureS->x + radius; i++) {
-				if (j < 1 || j >= inHeight - 1 || i < 1 || i >= inWidth - 1) {
-					continue; // 邊緣不算
-				}
-
-				int newx, newy;
-				newx = i - FeatureS->x;
-				newy = j - FeatureS->y;
-				CoordinateChange(newx, newy, (FeatureS->sita * M_PI / 180.0));
-				float blockx = newx / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
-				float blocky = newy / ((radius*sqrt(2) / 2.0)) * 2.0 + 3.0;// 取範圍落在1~4內的值
 
 
-				float sita, mm;
-				const float* curryImg = kaidaImag[FeatureS->kai].raw_img.data();
-
-				float dx = curryImg[j*inWidth + i+1] - curryImg[j*inWidth + i-1];
-				float dy = curryImg[(j+1)*inWidth + i]- curryImg[(j-1)*inWidth + i];
-				mm = sqrtf(dx*dx + dy*dy);
-				sita = fastAtan2f(dy, dx);
-
-				const float unit = 360.0/8.0;
-				float weix0, weix1;
-				float weiy0, weiy1;
-				weix1 = blockx - (int)blockx; weix0 = 1 - weix1;
-				weiy1 = blocky - (int)blocky; weiy0 = 1 - weiy1;
-
-				//****** 以firstorder將值分別存入descripgroup容器裡面
-				int bx0, bx1;
-				int by0, by1;
-				bx0 = blockx;
-				bx1 = bx0 + 1;
-				by0 = blocky;
-				by1 = by0 + 1;
-
-				float RU, RD, LU, LD;
-				float SitaGroup;
-
-				SitaGroup = sita / unit;
-
-				if (bx0 >= 1 && bx0 <= 4 && by0 >= 1 && by0 <= 4)//RU
-				{
-					RU = weix0 * weiy0 * mm;
-					descripgroup[by0 - 1][bx0 - 1][SitaGroup] += RU;
-				}
-				if (bx0 >= 1 && bx0 <= 4 && by1 >= 1 && by1 <= 4)//RD
-				{
-					RD = weix0 * weiy1 * mm;
-					descripgroup[by1 - 1][bx0 - 1][SitaGroup] += RD;
-				}
-				if (bx1 >= 1 && bx1 <= 4 && by0 >= 1 && by0 <= 4)//LU
-				{
-					LU = weix1 * weiy0 * mm;
-					descripgroup[by0 - 1][bx1 - 1][SitaGroup] += LU;
-				}
-				if (bx1 >= 1 && bx1 <= 4 && by1 >= 1 && by1 <= 4)//LD
-				{
-					LD = weix1 * weiy1 * mm;
-					descripgroup[by1 - 1][bx1 - 1][SitaGroup] += LD;
-				}
-
-			}
-		}
-		Sift::DescripNomal(descripgroup);
-		FeatureS->descrip = descripgroup;
-	}
-}
+// 彥誠歸一化
 void Sift::DescripNomal(Desc& descripgroup) {
 	//****** 限定門檻值
 	float add = 0.0;
@@ -529,6 +452,378 @@ void Sift::DescripNomal(Desc& descripgroup) {
 		}
 	}
 }
+
+
+// ransac刪除錯誤的特徵子
+struct ransac_data {
+	void* orig_feat_data;
+	int sampled;
+};
+/* RANSAC error tolerance in pixels */
+#define RANSAC_ERR_TOL 3
+/** pessimistic estimate of fraction of inlers for RANSAC */
+#define RANSAC_INLIER_FRAC_EST 0.25
+/** estimate of the probability that a correspondence supports a bad model */
+#define RANSAC_PROB_BAD_SUPP 0.10
+/* extracts a feature's RANSAC data */
+#define feat_ransac_data(feat) ((struct ransac_data*)(feat)->feature_data)
+
+#include <opencv2/opencv.hpp>
+using namespace cv;
+vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
+{
+	vector<float> H(9, 0.f);
+	CvMat *A, *B, X;
+	float x[9];
+
+	int i;
+
+	if (n < 4)
+	{
+		cout << "Warning: too few points in lsq_homog()" << endl;
+		return{};
+	}
+
+	A = cvCreateMat(2 * n, 8, CV_32FC1);
+	B = cvCreateMat(2 * n, 1, CV_32FC1);
+	X = cvMat(8, 1, CV_32FC1, x);
+	cvZero(A);
+	for (i = 0; i < n; i++)
+	{
+		cvmSet(A, i, 0, pts[i].x);
+		cvmSet(A, i + n, 3, pts[i].x);
+		cvmSet(A, i, 1, pts[i].y);
+		cvmSet(A, i + n, 4, pts[i].y);
+		cvmSet(A, i, 2, 1.0);
+		cvmSet(A, i + n, 5, 1.0);
+		cvmSet(A, i, 6, (-pts[i].x * mpts[i].x));
+		cvmSet(A, i, 7, (-pts[i].y * mpts[i].x));
+		cvmSet(A, i + n, 6, (-pts[i].x * mpts[i].y));
+		cvmSet(A, i + n, 7, (-pts[i].y * mpts[i].y));
+		cvmSet(B, i, 0, mpts[i].x);
+		cvmSet(B, i + n, 0, mpts[i].y);
+	}
+
+	cvSolve(A, B, &X, CV_SVD);
+
+	H[8] = 1.f;
+	for (i = 0; i < 8; i++)
+	{
+		H[i] = X.data.fl[i];
+	}
+
+	cvReleaseMat(&A);
+	cvReleaseMat(&B);
+
+	return H;
+}
+inline float dist_sq_2D_2(fpoint p1, fpoint p2){
+	float x_diff = p1.x - p2.x;
+	float y_diff = p1.y - p2.y;
+	return x_diff * x_diff + y_diff * y_diff;
+}
+fpoint persp_xform_pt(fpoint pt, vector<float> &T)
+{
+	CvMat* _T;
+	_T = cvCreateMat(3, 3, CV_32FC1);
+	for (int i = 0; i < 9; i++)
+	{
+		_T->data.fl[i] = T[i];
+	}
+	CvMat XY, UV;
+	float xy[3] = { pt.x, pt.y, 1.f }, uv[3] = { 0.f };
+
+	cvInitMatHeader(&XY, 3, 1, CV_32FC1, xy, CV_AUTOSTEP);
+	cvInitMatHeader(&UV, 3, 1, CV_32FC1, uv, CV_AUTOSTEP);
+	cvMatMul(_T, &XY, &UV);
+
+	fpoint rslt = fpoint(uv[0] / uv[2], uv[1] / uv[2]);
+
+	cvReleaseMat(&_T);
+	return rslt;
+}
+float homog_xfer_err(fpoint pt, fpoint mpt, vector<float> &H)
+{
+	fpoint xpt = persp_xform_pt(pt, H);
+	return sqrt(dist_sq_2D_2(xpt, mpt));
+}
+
+Feature* get_match(Feature* feat){
+	return feat->fwd_match;
+}
+int get_matched_features(Feature *features, int n, Feature ***matched)
+{
+	struct Feature **_matched;
+	struct ransac_data* rdata;
+	int i, m = 0;
+
+	_matched = new struct Feature*[n];
+	if (!_matched)
+	{
+		cout << "memory error" << endl;
+	}
+	else
+	{
+		for (i = 0; i < n; i++)
+		{
+			if (get_match(features + i))
+			{
+				rdata = new struct ransac_data;
+				memset(rdata, 0, sizeof(struct ransac_data));
+				rdata->orig_feat_data = features[i].feature_data;
+				_matched[m] = features + i;
+				_matched[m]->feature_data = rdata;
+				m++;
+			}
+		}
+	}
+	*matched = _matched;
+	return m;
+}
+
+float _log_factorial(int n, int m)
+{
+	float f = 0.f;
+	int i;
+
+	for (i = n; i <= m; i++)
+		f += log((float)i);
+
+	return f;
+}
+float log_factorial(int n)
+{
+	float f = 0.f;
+	int i;
+
+	for (i = 1; i <= n; i++)
+		f += log((float)i);
+
+	return f;
+}
+int calc_min_inliers(int n, int m, float p_badsupp, float p_badxform)
+{
+	float pi = 0.f, sum = 0.f;
+	int i = 0, j = 0;
+	float log_n = log_factorial(n);
+	float log_nm = log_n - _log_factorial((n - m), n);
+	vector<float> temp(n + 1, 0.f);
+	float total_s = 0.f;
+	for (i = m + 1; i <= n; i++)
+	{
+		pi = (float)(i - m) * log(p_badsupp) + (float)(n - i + m) * log(1.f - p_badsupp) + log_nm - log_factorial(i - m) - (log_n - _log_factorial(n - i, n));
+		temp[i] = exp(pi);
+		total_s += temp[i];
+	}
+	sum = total_s;
+	for (j = m + 1; j <= n; j++)
+	{
+		sum -= temp[j];
+		if (sum < p_badxform)
+			break;
+	}
+	temp.clear();
+	return j;
+}
+
+Feature** draw_ransac_sample(Feature** features, int n, int m) {
+	Feature** sample, *feat;
+	struct ransac_data* rdata;
+	int i, x;
+
+	for (i = 0; i < n; i++)
+	{
+		rdata = feat_ransac_data(features[i]);
+		rdata->sampled = 0;
+	}
+
+	sample = new Feature*[m];
+	for (i = 0; i < m; i++)
+	{
+		do
+		{
+			x = rand() % n;
+			feat = features[x];
+			rdata = feat_ransac_data(feat);
+		} while (rdata->sampled);
+		sample[i] = feat;
+		rdata->sampled = 1;
+	}
+
+	return sample;
+}
+void extract_corresp_pts(Feature** features, int n, fpoint** pts, fpoint** mpts)
+{
+	struct Feature *match;
+	fpoint *_pts, *_mpts;
+	int i;
+
+	_pts = new fpoint[n];
+	_mpts = new fpoint[n];
+
+	for (i = 0; i < n; i++)
+	{
+		match = get_match(features[i]);
+		if (!match)
+			cout << "feature does not have match" << endl;
+		_pts[i] = features[i]->img_pt;
+		_mpts[i] = match->img_pt;
+	}
+
+	*pts = _pts;
+	*mpts = _mpts;
+}
+int find_consensus(Feature** features, int n, vector<float> &M, float err_tol, Feature*** consensus)
+{
+	struct Feature** _consensus;
+	struct Feature* match;
+	fpoint pt, mpt;
+	float err;
+	int i, in = 0;
+
+	_consensus = new struct Feature*[n];
+
+	for (i = 0; i < n; i++)
+	{
+		match = get_match(features[i]);
+		if (!match)
+			cout << "feature does not have match" << endl;
+		pt = features[i]->img_pt;
+		mpt = match->img_pt;
+		err = homog_xfer_err(pt, mpt, M);
+		if (err <= err_tol)
+			_consensus[in++] = features[i];
+	}
+
+	*consensus = _consensus;
+	return in;
+}
+void release_mem(fpoint *pts1, fpoint *pts2, Feature** features)
+{
+	delete[] pts1;
+	delete[] pts2;
+	if (features)
+		delete[] features;
+}
+
+// ransac刪除錯誤的特徵子
+vector<float> Sift::ransac_xform(Feature *features, int n, int m, float p_badxform, float err_tol, Feature*** inliers, int &n_in) {
+
+	Feature **matched, **sample, **consensus, **consensus_max = NULL;
+	ransac_data* rdata;
+	fpoint *pts, *mpts;
+	vector<float> M;
+	float p, in_frac = (float)RANSAC_INLIER_FRAC_EST;
+	int i, nm, in_min, k = 0, in = 0, in_max = 0;
+
+	nm = get_matched_features(features, n, &matched);
+	if (nm < m)
+	{
+		cout << "Warning: not enough matches to compute xform" << endl;
+		goto end;
+	}
+
+	srand((unsigned int)time(NULL));
+
+	in_min = calc_min_inliers(nm, m, (float)RANSAC_PROB_BAD_SUPP, p_badxform);
+
+	p = pow(1.f - pow(in_frac, m), k);
+
+	while (p > p_badxform)
+	{
+		sample = draw_ransac_sample(matched, nm, m);
+		extract_corresp_pts(sample, m, &pts, &mpts);
+		M = lsq_homog(pts, mpts, m);
+		if (M.empty())
+			goto iteration_end;
+		in = find_consensus(matched, nm, M, err_tol, &consensus);
+		if (in > in_max)
+		{
+			if (consensus_max)
+				delete[] consensus_max;
+			consensus_max = consensus;
+			in_max = in;
+			in_frac = (float)in_max / (float)nm;
+		}
+		else
+			delete[] consensus;
+		M.clear();
+
+	iteration_end:
+		release_mem(pts, mpts, sample);
+		p = pow(1.f - pow(in_frac, m), ++k);
+	}
+
+	if (in_max >= in_min)
+	{
+		extract_corresp_pts(consensus_max, in_max, &pts, &mpts);
+		M = lsq_homog(pts, mpts, in_max);
+		in = find_consensus(matched, nm, M, err_tol, &consensus);
+		M.clear();
+		release_mem(pts, mpts, consensus_max);
+		extract_corresp_pts(consensus, in, &pts, &mpts);
+		fpoint r;
+		for (int a = 0; a < in - 1; a++)
+		{
+			for (int b = a + 1; b < in; b++)
+			{
+				if (pts[a].x > pts[b].x)
+				{
+					r = pts[a];
+					pts[a] = pts[b];
+					pts[b] = r;
+					r = mpts[a];
+					mpts[a] = mpts[b];
+					mpts[b] = r;
+				}
+			}
+		}
+		for (int a = 0; a < in - 1; a++)
+		{
+			for (int b = a + 1; b < in; b++)
+			{
+				if (pts[a].y > pts[b].y)
+				{
+					r = pts[a];
+					pts[a] = pts[b];
+					pts[b] = r;
+					r = mpts[a];
+					mpts[a] = mpts[b];
+					mpts[b] = r;
+				}
+			}
+		}
+		M = lsq_homog(pts, mpts, in);
+		if (inliers)
+		{
+			*inliers = consensus;
+			consensus = NULL;
+		}
+		if (n_in == 0)
+			n_in = in;
+		release_mem(pts, mpts, consensus);
+	}
+	else if (consensus_max)
+	{
+		if (inliers)
+			*inliers = NULL;
+		if (n_in == 0)
+			n_in = 0;
+		delete[] consensus_max;
+	}
+end:
+	for (i = 0; i < nm; i++)
+	{
+		rdata = feat_ransac_data(matched[i]);
+		matched[i]->feature_data = rdata->orig_feat_data;
+		delete rdata;
+	}
+	delete[] matched;
+	return M;
+}
+
+
+
 // 印出箭頭
 void Sift::drawArrow(string name, float ratio){
 	// 臨時圖庫
@@ -555,7 +850,8 @@ void Sift::drawArrow(string name, float ratio){
     ##     ## ##     ##    ##     ######  ##     ##
 */
 Stitching::Stitching(const Sift& desc1, const Sift& desc2):
-	feat1(desc1.FeatStart), feat2(desc2.FeatStart)
+	feat1(desc1.FeatStart), feat2(desc2.FeatStart), 
+	feat1_Count(desc1.feaNum), feat2_Count(desc2.feaNum)
 {
 	const ImgRaw& img1 = desc1.raw_img;
 	const ImgRaw& img2 = desc2.raw_img;
@@ -599,6 +895,22 @@ float Stitching::EuclDist2(float point1[128], float point2[128]) {
 }
 // 匹配相同的特徵點
 void Stitching::Check(float matchTh) {
+	/* kdtree */
+	cout << "f1=" << feat1_Count << ", f2=" << feat2_Count << endl;
+	struct kd_node *kd_root;
+	//cout << "f1=" << feat1_Count << ", f2=" << feat2_Count << endl;
+	kd_root = kdtree_build(feat1, feat1_Count);
+
+
+
+
+
+
+
+
+	/* 暴力找 */
+//#define findFeat
+#ifdef findFeat
 	for (Feature* startlink1 = feat1->nextptr;
 		startlink1 != nullptr;
 		startlink1 = startlink1->nextptr)
@@ -636,5 +948,6 @@ void Stitching::Check(float matchTh) {
 		}
 	}
 	matchImg.bmp("_matchImg.bmp", 24);
+#endif // findFeat
 }
 

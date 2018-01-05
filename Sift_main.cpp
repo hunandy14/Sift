@@ -11,7 +11,6 @@ Final: 2017/07/04
 #include <cmath>
 #include <ctime>
 #include <memory>
-//#include <windows.h>
 
 using namespace std;
 #include "Sift.hpp"
@@ -33,13 +32,20 @@ using namespace cv;
 int main(int argc, char const *argv[]){
 	//srand((unsigned)time(NULL)); rand();
 	// 讀取圖片
-	string name1="sd01.bmp";
-	string name2="sd02.bmp";
+
+	ImgRaw f("kanna.bmp");
+	ImgRaw f2;
+	f.first(f2, f, 4);
+
+#define testpoint1
+#ifdef testpoint1	
+	string name1="Lena.bmp";
+	string name2="Lena4.bmp";
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
 
-#define testpoint1
-#ifdef testpoint1
+
+
 clock_t start,end;
 start = clock();
     // 金字塔1
@@ -50,6 +56,10 @@ start = clock();
 	Sift fea2(img2);
 	fea2.pyramid();
 	fea2.drawArrow("feaArrow2.bmp");
+
+	// KDtree
+
+
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1, fea2);
 	match.Check(0.6);

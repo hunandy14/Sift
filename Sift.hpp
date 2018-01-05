@@ -36,6 +36,7 @@ Final: 2017/07/05
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 #include "Imgraw.hpp"
+#include "imagedata.hpp"
 
 // 論文中的s
 #define SIFT_Sacle 3
@@ -57,22 +58,8 @@ Final: 2017/07/05
 #define SIFT_CURV_THR 10
 
 // 特徵點結構
-struct Feature {
-	float size;//階
-	int kai;//層
-	float sigmaOCT;//高斯模糊係數
-	int x, y;//各所在階層的座標
-	float mm;//強度
-	int sita;//包含主方向與負方向的角度
-	vector<vector<vector<float>>> descrip;// 描述子(舊方法的)
-	Feature* nextptr = nullptr; // 下一點
 
-	float descr[128] = {};// 統計完成後的描述子(robbs的方法)
-	int d=0; // 特徵點長度
-public:
-	float rX() {return x/size;}
-	float rY() {return y/size;}
-};
+//----------------------------------------------------------------
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
 public:
@@ -97,7 +84,6 @@ public:
 	void drawArrow(string name="feaArrow.bmp", float ratio = 10000.f);
 private:
 	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
-
 	// 描述特徵子
 	static bool calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori);
 	static Desc descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n);
@@ -106,12 +92,17 @@ private:
 	static void normalize_descr(Feature* feat);
 	static void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 
-
-	void FeatureDescrip_ori(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
-	
 	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
 	void FeatAppend(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
+
+private:
+	vector<float> ransac_xform(
+		Feature *features, int n, 
+		int m, float p_badxform, float err_tol, 
+		Feature*** inliers, int &n_in);
+
+
 private:
 	bool harris(const vector<float>& p, size_t w, size_t y, size_t x, float r=SIFT_CURV_THR);
 	static void DescripNomal(Desc& descripgroup);
@@ -122,6 +113,7 @@ public:
 	vector<vector<ImgRaw>> pyrs_dog;
 	Feature* FeatStart; // 特徵點
 	Feature* FeatEnd;   // 標記才不用從頭再找
+	size_t feaNum=0;    // 特徵點數量
 };
 //-----------------------------------------------------------------
 class Stitching{
@@ -133,7 +125,8 @@ public:
 	float Stitching::EuclDist2(float point1[128], float point2[128]); // 描述子歐式距離
 	void Check(float matchTh=0.5); // 檢查是否有相同的特徵描述子
 private:
-	const Feature *feat1, *feat2;
-	int Width, Height;
+	Feature *feat1, *feat2;
+	size_t Width, Height;
 	ImgRaw matchImg;
+	size_t feat1_Count, feat2_Count;
 };
