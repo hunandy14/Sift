@@ -39,8 +39,9 @@ int main(int argc, char const *argv[]){
 
 #define testpoint1
 #ifdef testpoint1	
-	string name1="Lena.bmp";
-	string name2="Lena4.bmp";
+	string name1="sd01.bmp", name2="sd01.bmp";
+	//string name1="Lena.bmp", name2="Lena4.bmp";
+	
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
 
@@ -62,7 +63,7 @@ start = clock();
 
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1, fea2);
-	match.Check(0.6);
+	match.Check(0.5);
 end = clock();
 cout << "time is:" << (end - start)/1000.0 << "s" << endl;
 #endif // testpoint1

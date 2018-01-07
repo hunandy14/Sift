@@ -97,10 +97,10 @@ private:
 	void FeatAppend(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
 
 private:
-	vector<float> ransac_xform(
+	/*vector<float> ransac_xform(
 		Feature *features, int n, 
 		int m, float p_badxform, float err_tol, 
-		Feature*** inliers, int &n_in);
+		Feature*** inliers, int &n_in);*/
 
 
 private:

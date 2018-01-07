@@ -1,4 +1,4 @@
-
+ï»¿
 #include <iostream>
 #include <vector>
 #include "imagedata.hpp"
@@ -33,14 +33,14 @@ kd_node* kdtree_build(Feature* features, int n)
 		cout << "Warning: kdtree_build(): no features" << endl;
 		return NULL;
 	}
-	// ªì©l¤Æ¶ñ¹w³]¼Æ¾Ú
+	// åˆå§‹åŒ–å¡«é è¨­æ•¸æ“š
 	kd_root = kd_node_init(features, n);
 
 	expand_kd_node_subtree(kd_root);
 	return kd_root;
 }
 
-// ­pºâ¼Ú¦¡¶ZÂ÷
+// è¨ˆç®—æ­å¼è·é›¢
 float descr_dist_sq(Feature* f1, Feature* f2)
 {
 	float diff, dsq = 0.0;
@@ -139,10 +139,10 @@ void kdtree_release(kd_node* kd_root)
 	delete kd_root;
 }
 /************************ Functions prototyped here **************************/
-// ªì©l¤Æ¶ñ¤J¹w³]¼Æ¾Ú
+// åˆå§‹åŒ–å¡«å…¥é è¨­æ•¸æ“š
 static kd_node* kd_node_init(Feature* features, int n)
 {
-	kd_node* kd_node;
+	kd_node* kd_node = nullptr;
 
 	kd_node = new struct kd_node;
 	memset(kd_node, 0, sizeof(kd_node));
@@ -150,12 +150,22 @@ static kd_node* kd_node_init(Feature* features, int n)
 	kd_node->features = features;
 	kd_node->n = n;
 
+	// e04 robç‚ºä»€éº¼åœ¨é€™è£¡æ²’æœ‰æ­¸é›¶ï¼Œå°¼ç‘ªå‡ºäº†å€‹bugæ‰¾å¥½ä¹…
+	// æˆ‘æŠŠå®ƒæ”¹åˆ° partition_features å…§æ¸›å°‘å…¥æ¬¡æ•¸
+	// kd_node->kd_left = nullptr;
+	// kd_node->kd_right = nullptr;
+
+	//cout << "n=" << n << endl;
+	//cout << endl;
+
 	return kd_node;
 }
-// ÂX®i¤l¾ð
+// æ“´å±•å­æ¨¹
 static void expand_kd_node_subtree(kd_node* kd_node)
 {
 	/* base case: leaf node */
+	// cout << "n=" << kd_node->n << endl;
+
 	if (kd_node->n == 1 || kd_node->n == 0)
 	{
 		kd_node->leaf = 1;
@@ -165,13 +175,17 @@ static void expand_kd_node_subtree(kd_node* kd_node)
 	assign_part_key(kd_node);
 	
 	partition_features(kd_node);
-	if (kd_node->kd_left)
+
+	
+	if (kd_node->kd_left != nullptr){
 		expand_kd_node_subtree(kd_node->kd_left);
-	if (kd_node->kd_right)
+	}
+	if(kd_node->kd_right != nullptr) {
 		expand_kd_node_subtree(kd_node->kd_right);
+	}
 	
 }
-// Àò±o ki(¦ì¸m) »P kv(¤¤¶¡­È)
+// ç²å¾— ki(ä½ç½®) èˆ‡ kv(ä¸­é–“å€¼)
 static void assign_part_key(kd_node* kd_node)
 {
 	Feature* features;
@@ -179,25 +193,18 @@ static void assign_part_key(kd_node* kd_node)
 	float *tmp;
 	int d, n, i, j, ki = 0;
 
-	features = kd_node->features;// ³o¸Ì«ç»ò¬O³o¼Ë°µ!
+	features = kd_node->features;
 
-	n = kd_node->n;     // Á`¦@§ä¨ì´X­Ó¯S¼xÂI
-	d = features[0].d;  // ¯S¼xÂI¤º¦³128­Ó¼Æ¾Ú
-	//d = 128; // ¤£ª¾¹D¬°¤°»ò¼Æ­È©Ç©Çªº¡Aª½±µ¼g¦º
+	n = kd_node->n;     // ç¸½å…±æ‰¾åˆ°å¹¾å€‹ç‰¹å¾µé»ž
+	d = features[0].d;  // ç‰¹å¾µé»žå…§æœ‰128å€‹æ•¸æ“š
 
-	cout << "n=" << n << ", d=" << d << endl;
-	cout << endl;
 	/* partition key index is that along which descriptors have most variance */
 	for (j = 0; j < d; j++)
 	{
 		mean = 0;
 		var = 0;
 		for(i = 0; i < n; i++) {
-
-			// ³o¸Ì«ç»ò¬O³o¼Ë°µ!¯S¼xÂIÀ³¸Ó¬Onew¥X¨Óªº«ç»ò¥Î[]¨ú
-			// ÃC·ç¿o¦bºâ§¹¤§«á¦³­«·s½Æ»s¨ì¡A·sªº°}¦C
 			mean += features[i].descr[j];
-
 			//cout << features[i].descr[j] << endl;
 		}
 
@@ -219,8 +226,6 @@ static void assign_part_key(kd_node* kd_node)
 	tmp = new float[n];
 	for(i = 0; i < n; i++) {
 		tmp[i] = features[i].descr[ki];
-		//tmp[i];
-		//features[i].descr[ki];
 	}
 	kv = median_select(tmp, n); 
 	delete tmp;
@@ -311,6 +316,9 @@ static int partition_array(float *array, int n, float pivot)
 }
 static void partition_features(kd_node* kd_node)
 {
+	/*åœ¨æŒ‡å®šçš„k-dæ ‘èŠ‚ç‚¹ä¸Šåˆ’åˆ†ç‰¹å¾ç‚¹é›† 
+	ä½¿å¾—ç‰¹å¾ç‚¹é›†çš„å‰åŠéƒ¨åˆ†æ˜¯ç¬¬kiç»´å°äºŽæž¢è½´çš„ç‚¹ï¼ŒåŽåŠéƒ¨åˆ†æ˜¯ç¬¬kiç»´å¤§äºŽæž¢è½´çš„ç‚¹ 
+	*/
 	Feature *features, tmp;
 	float kv;
 	int n, ki, p, i, j = -1;
@@ -338,11 +346,18 @@ static void partition_features(kd_node* kd_node)
 	if (j == n - 1)
 	{
 		kd_node->leaf = 1;
+		// ä¿®å¾©bugæ­¸é›¶æŒ‡é‡ (robæ²’æ­¸é›¶)
+		kd_node->kd_left = nullptr;
+		kd_node->kd_right = nullptr;
 		return;
 	}
 
-	kd_node->kd_left = kd_node_init(features, j + 1);
-	kd_node->kd_right = kd_node_init(features + (j + 1), (n - j - 1));
+	int nl = j + 1;
+	int nr = (n - j - 1);
+	// cout << "                  nl=" << nl << ", nr=" << nr << endl;
+
+	kd_node->kd_left = kd_node_init(features, nl);
+	kd_node->kd_right = kd_node_init(features+(j + 1), nr);
 }
 static kd_node* explore_to_leaf(kd_node* kd_node, Feature* feat, min_pq* min_pq)
 {

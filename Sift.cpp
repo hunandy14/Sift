@@ -14,6 +14,7 @@ Final: 2017/07/05
 #include <random>
 #include <limits>
 #include <ctime>
+#include <timer.hpp>
 
 #if defined(_MSC_VER)
 	#define or ||
@@ -177,13 +178,14 @@ void Sift::pyramid() {
 
 
 	// 暫時先這樣(把資料複製到連續的位置上)
+	
 	Feature* temp = new Feature[feaNum];
 	int i = 0;
 	for(Feature* FeatureS = FeatStart->nextptr;// 跳過第一點空點
 		FeatureS != nullptr;
 		FeatureS = FeatureS->nextptr)
 	{
-		memcpy ( &temp[i], FeatureS, sizeof(*FeatureS) );
+		memcpy ( &temp[i++], FeatureS, sizeof(*FeatureS) );
 	}
 	FeatStart = temp;
 
@@ -422,8 +424,8 @@ void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 		hist_to_descr(hist, d, n, FeatureS);
 
 		// 舊規一化方法(不知道為什麼效果比較好)
-		Sift::DescripNomal(hist);
-		FeatureS->descrip = hist;
+		//Sift::DescripNomal(hist);
+		//FeatureS->descrip = hist;
 	}
 	// cout << endl;
 }
@@ -454,18 +456,19 @@ void Sift::DescripNomal(Desc& descripgroup) {
 }
 
 
+/*
 // ransac刪除錯誤的特徵子
 struct ransac_data {
 	void* orig_feat_data;
 	int sampled;
 };
-/* RANSAC error tolerance in pixels */
+// RANSAC error tolerance in pixels
 #define RANSAC_ERR_TOL 3
-/** pessimistic estimate of fraction of inlers for RANSAC */
+// pessimistic estimate of fraction of inlers for RANSAC
 #define RANSAC_INLIER_FRAC_EST 0.25
-/** estimate of the probability that a correspondence supports a bad model */
+// estimate of the probability that a correspondence supports a bad model
 #define RANSAC_PROB_BAD_SUPP 0.10
-/* extracts a feature's RANSAC data */
+// extracts a feature's RANSAC data
 #define feat_ransac_data(feat) ((struct ransac_data*)(feat)->feature_data)
 
 #include <opencv2/opencv.hpp>
@@ -705,9 +708,8 @@ void release_mem(fpoint *pts1, fpoint *pts2, Feature** features)
 	if (features)
 		delete[] features;
 }
-
 // ransac刪除錯誤的特徵子
-vector<float> Sift::ransac_xform(Feature *features, int n, int m, float p_badxform, float err_tol, Feature*** inliers, int &n_in) {
+vector<float> ransac_xform(Feature *features, int n, int m, float p_badxform, float err_tol, Feature*** inliers, int &n_in) {
 
 	Feature **matched, **sample, **consensus, **consensus_max = NULL;
 	ransac_data* rdata;
@@ -821,7 +823,7 @@ end:
 	delete[] matched;
 	return M;
 }
-
+*/
 
 
 // 印出箭頭
@@ -893,40 +895,108 @@ float Stitching::EuclDist2(float point1[128], float point2[128]) {
 	}
 	return sqrtf(sum);
 }
+
+
+
 // 匹配相同的特徵點
+/* the maximum number of keypoint NN candidates to check during BBF search */
+#define KDTREE_BBF_MAX_NN_CHKS 200
+/* threshold on squared ratio of distances between NN and 2nd NN */
+#define NN_SQ_DIST_RATIO_THR 0.4
+
+
+static float descr_dist_sq(Feature* f1, Feature* f2)
+{
+	float diff, dsq = 0.0;
+	float* descr1, *descr2;
+	int i = 0, d = 0;
+
+	d = f1->d;
+	if (f2->d != d)
+		return FLT_MAX;
+	descr1 = f1->descr;
+	descr2 = f2->descr;
+
+	for (i = 0; i < d; i++)
+	{
+		diff = descr1[i] - descr2[i];
+		dsq += diff * diff;
+	}
+	return dsq;
+}
 void Stitching::Check(float matchTh) {
 	/* kdtree */
-	cout << "f1=" << feat1_Count << ", f2=" << feat2_Count << endl;
-	struct kd_node *kd_root;
-	//cout << "f1=" << feat1_Count << ", f2=" << feat2_Count << endl;
-	kd_root = kdtree_build(feat1, feat1_Count);
+	ImgRaw match2 = matchImg;
+	int m = 0;
+	struct kd_node *kd_root = kdtree_build(feat2, feat2_Count);
+	Feature **nbrs;
+	Timer t1;
+	for(int i = 0; i < feat1_Count; i++) {
+		Feature* feat_st = feat1 + i;
+		int k = kdtree_bbf_knn(kd_root, feat_st, 2, &nbrs, KDTREE_BBF_MAX_NN_CHKS);
+		
+		if(k == 2) {
+			float d0 = descr_dist_sq(feat_st, nbrs[0]);
+			float d1 = descr_dist_sq(feat_st, nbrs[1]);
+			if(d0 < d1 * NN_SQ_DIST_RATIO_THR) {
+				m++;
+				feat1[i].fwd_match = nbrs[0];
+				
+				fpoint pt11 = fpoint(round(feat1[i].rX()), round(feat1[i].rY()));
+				fpoint pt22 = fpoint(round(feat1[i].fwd_match->rX()), round(feat1[i].fwd_match->rY()));
 
+				const int& x1 = pt11.x;
+				const int& y1 = pt11.y;
+				const int& x2 = pt22.x + (this->Width / 2);
+				const int& y2 = pt22.y;
+				// 畫線
+				Draw::drawLineRGB_p(match2, y1, x1, y2, x2);
+			}
+		}
+		delete nbrs;
+	}
+	t1.print("kdtree time");
+	match2.bmp("_matchImgkd.bmp", 24);
 
-
-
-
+	// 獲得矩陣
+	vector<float> H;
+	struct Feature** RANSAC_feat;
+	int RANSAC_num = 0;
+	//H = ransac_xform(feat2, feat2_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
 
 
 
 	/* 暴力找 */
 //#define findFeat
 #ifdef findFeat
-	for (Feature* startlink1 = feat1->nextptr;
+	
+	/*for (Feature* startlink1 = feat1->nextptr;
 		startlink1 != nullptr;
 		startlink1 = startlink1->nextptr)
+	{*/
+	t1.start();
+	for(size_t j = 0; j < feat1_Count; j++) 
 	{
+		Feature* startlink1 = &feat1[j];
+	
 		// 初始化最大值
 		float dist1, dist2;
 		dist1 = dist2 = numeric_limits<float>::max();
 		float useX1, useY1;
 		useX1 = useY1 = numeric_limits<float>::max();
-		// 找處距離最近的兩個點
-		for (Feature* startlink2 = feat2->nextptr;
+
+// 找處距離最近的兩個點
+		/*for (Feature* startlink2 = feat2->nextptr;
 			startlink2 != nullptr;
 			startlink2 = startlink2->nextptr)
+		{*/
+		for(size_t j = 0; j < feat2_Count; j++)
 		{
-			//float value = EuclDist2(startlink1->descr, startlink2->descr); // rob方法
-			float value = EuclDist(startlink1->descrip, startlink2->descrip); // 舊函式
+			Feature* startlink2 = &feat2[j];
+
+
+			float value = EuclDist2(startlink1->descr, startlink2->descr); // rob方法
+			//float value = EuclDist(startlink1->descrip, startlink2->descrip); // 舊函式
 			if (value < dist1) {
 				dist2 = dist1;
 				dist1 = value;
@@ -940,13 +1010,15 @@ void Stitching::Check(float matchTh) {
 		// 確認是否匹配成功並畫線
 		if ((dist1 / dist2) < matchTh) {
 			// 閥值越小找到的點越少但越可靠，論文建議 0.4~0.6
-			int x1, y1;
-			x1 = startlink1->rX();
-			y1 = startlink1->rY();
+			int x1 = startlink1->rX();
+			int y1 = startlink1->rY();
+			int x2 = useX1 + (Width / 2);
+			int y2 = useY1;
 			// 畫線
-			Draw::drawLineRGB_p(matchImg, y1, x1, useY1,useX1 + (Width / 2));
+			Draw::drawLineRGB_p(matchImg, y1, x1, y2, x2);
 		}
 	}
+	t1.print("serch time");
 	matchImg.bmp("_matchImg.bmp", 24);
 #endif // findFeat
 }
