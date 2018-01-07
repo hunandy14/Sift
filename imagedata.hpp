@@ -78,10 +78,10 @@ struct Feature {
 	int d = 0; // 特徵點長度
 	// 顏
 	float d_l;// 這個不知道幹嘛的，可能是測試用的
-	Feature* fwd_match;            /**< matching feature from forward image */
+	Feature* fwd_match = nullptr;  /**< matching feature from forward image */
 	fpoint img_pt;				   /**< location in image */
 	fpoint mdl_pt;				   /**< location in model */
-	void* feature_data;            /**< user-definable data */
+	void* feature_data = nullptr;  /**< user-definable data */
 
 
 public:

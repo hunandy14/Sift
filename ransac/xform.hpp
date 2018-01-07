@@ -17,8 +17,8 @@ struct ransac_data
 /** estimate of the probability that a correspondence supports a bad model */
 #define RANSAC_PROB_BAD_SUPP 0.10
 /* extracts a feature's RANSAC data */
-#define feat_ransac_data(feat) ((struct ransac_data*)(feat)->feature_data)
+#define feat_ransac_data(feat) ((ransac_data*)(feat)->feature_data)
 /***************************** Function Prototypes ***************************/
-extern std::vector<float> ransac_xform(Feature *features, int n, int m, float p_badxform, float err_tol, Feature*** inliers, int &n_in);
-extern std::vector<float> _ransac_xform(Feature *features, int n, int m, float p_badxform, float err_tol);
+std::vector<float> ransac_xform(Feature *features, int n, int m, float p_badxform, float err_tol, Feature*** inliers, int &n_in);
+//extern std::vector<float> _ransac_xform(struct feature *features, int n, int m, float p_badxform, float err_tol);
 #endif

@@ -39,7 +39,6 @@ kd_node* kdtree_build(Feature* features, int n)
 	expand_kd_node_subtree(kd_root);
 	return kd_root;
 }
-
 // 計算歐式距離
 float descr_dist_sq(Feature* f1, Feature* f2)
 {
@@ -64,7 +63,7 @@ int kdtree_bbf_knn(kd_node* kd_root, Feature* feat, int k, Feature*** nbrs, int 
 {
 	kd_node *expl;
 	min_pq *min_pq;
-	Feature *tree_feat, **_nbrs;
+	Feature *tree_feat, **_nbrs = nullptr;
 	bbf_data *bbf_data;
 	int i, t = 0, n = 0;
 
@@ -152,8 +151,8 @@ static kd_node* kd_node_init(Feature* features, int n)
 
 	// e04 rob為什麼在這裡沒有歸零，尼瑪出了個bug找好久
 	// 我把它改到 partition_features 內減少入次數
-	// kd_node->kd_left = nullptr;
-	// kd_node->kd_right = nullptr;
+	kd_node->kd_left = nullptr;
+	kd_node->kd_right = nullptr;
 
 	//cout << "n=" << n << endl;
 	//cout << endl;
