@@ -587,11 +587,10 @@ void Stitching::Check(float matchTh) {
 	match2.bmp("_matchImgkd.bmp", 24);
 
 	// 獲得矩陣
-	vector<float> H;
 	struct Feature** RANSAC_feat;
 	int RANSAC_num = 0;
 	// 因為kd樹是放2的關係，所以搜1，搜1的時候有把配對到的點放在1裡面
-	H = ransac_xform(feat1, feat1_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
+	vector<float> H = ransac_xform(feat1, feat1_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
 
 	for(size_t i = 0; i < 9; i++) {
 		cout << H[i] << ", ";

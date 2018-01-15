@@ -27,9 +27,10 @@ vector<float> ransac_xform(
 	int m, float p_badxform, float err_tol, 
 	Feature*** inliers, int &n_in)
 {
-	Feature **matched, **sample, **consensus, **consensus_max = NULL;
-	struct ransac_data* rdata;
-	fpoint *pts, *mpts;
+	Feature **matched = nullptr, **sample = nullptr;
+	Feature **consensus = nullptr, **consensus_max = nullptr;
+	ransac_data* rdata = nullptr;
+	fpoint *pts = nullptr, *mpts = nullptr;
 	vector<float> M;
 	float p, in_frac = (float)RANSAC_INLIER_FRAC_EST;
 	int i, nm, in_min, k = 0, in = 0, in_max = 0;
@@ -51,6 +52,7 @@ vector<float> ransac_xform(
 	{
 		sample = draw_ransac_sample(matched, nm, m);
 		extract_corresp_pts(sample, m, &pts, &mpts);
+		//cout << pts[1].x << ", " << pts[1].y << ", " << mpts[1].x << ", " << mpts[1].y <<endl;
 		M = lsq_homog(pts, mpts, m);
 		if (M.empty())
 			goto iteration_end;
@@ -247,8 +249,10 @@ end:
 */
 
 /************************ Local funciton definitions *************************/
+// 顏自己寫的，輸入兩點匯出變換矩陣 n 是最少點數輸入是 4
 vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
 {
+	/*
 	vector<float> H(9, 0.f);
 	CvMat *A, *B, X;
 	float x[9];
@@ -293,6 +297,60 @@ vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
 	cvReleaseMat(&B);
 
 	return H;
+	*/
+
+	CvMat* H, * A, * B, X;
+	double x[9];
+	int i;
+
+	if(n < 4)
+	{
+		fprintf(stderr, "Warning: too few points in lsq_homog(), %s line %d\n",
+			__FILE__, __LINE__);
+		return vector<float>();
+	}
+
+	/* set up matrices so we can unstack homography into X; AX = B */
+	A = cvCreateMat(2*n, 8, CV_64FC1);
+	B = cvCreateMat(2*n, 1, CV_64FC1);
+	X = cvMat(8, 1, CV_64FC1, x);
+	H = cvCreateMat(3, 3, CV_64FC1);
+	cvZero(A);
+	for(i = 0; i < n; i++)
+	{
+		cvmSet(A, i, 0, pts[i].x);
+		cvmSet(A, i+n, 3, pts[i].x);
+		cvmSet(A, i, 1, pts[i].y);
+		cvmSet(A, i+n, 4, pts[i].y);
+		cvmSet(A, i, 2, 1.0);
+		cvmSet(A, i+n, 5, 1.0);
+		cvmSet(A, i, 6, -pts[i].x * mpts[i].x);
+		cvmSet(A, i, 7, -pts[i].y * mpts[i].x);
+		cvmSet(A, i+n, 6, -pts[i].x * mpts[i].y);
+		cvmSet(A, i+n, 7, -pts[i].y * mpts[i].y);
+		cvmSet(B, i, 0, mpts[i].x);
+		cvmSet(B, i+n, 0, mpts[i].y);
+	}
+	cvSolve(A, B, &X, CV_SVD);
+	x[8] = 1.0;
+	X = cvMat(3, 3, CV_64FC1, x);
+	cvConvert(&X, H);
+
+	
+	vector<float> Hmat(9, 0.f);
+	for(size_t j=0, idx=0; j < 3; j++) {
+		for(size_t i=0; i < 3; i++, idx++) {
+			Hmat[idx] = (H->data.fl[j*3+i]);
+			//cout << x[j*3+i] << ", ";
+		} //cout << endl;
+	} 
+	//cout << endl;
+
+
+	cvReleaseMat(&A);
+	cvReleaseMat(&B);
+	cvReleaseMat(&H);
+	return Hmat;
 }
 float homog_xfer_err(fpoint pt, fpoint mpt, vector<float> &H)
 {
@@ -422,20 +480,26 @@ Feature** draw_ransac_sample(Feature** features, int n, int m)
 }
 void extract_corresp_pts(Feature** features, int n, fpoint** pts, fpoint** mpts)
 {
+	// 提取相應的資訊出來
 	Feature *match = nullptr;
 	fpoint *_pts, *_mpts;
-	int i;
 
 	_pts = new fpoint[n];
 	_mpts = new fpoint[n];
 
-	for (i = 0; i < n; i++)
+	for (int i = 0; i < n; i++)
 	{
+		// 獲取這一點，對應的匹配點
 		match = get_match(features[i]);
 		if (!match)
 			cout << "feature does not have match" << endl;
-		_pts[i] = features[i]->img_pt;
-		_mpts[i] = match->img_pt;
+		// 我的寫法沒有寫這個東西
+		//_pts[i] = features[i]->img_pt;
+		//_mpts[i] = match->img_pt;
+		// 補救方式 
+		_pts[i] = fpoint(features[i]->rX(), features[i]->rY());
+		_mpts[i] = fpoint(match->rX(), match->rY());
+
 	}
 
 	*pts = _pts;
@@ -456,8 +520,13 @@ int find_consensus(Feature** features, int n, vector<float> &M, float err_tol, F
 		match = get_match(features[i]);
 		if (!match)
 			cout << "feature does not have match" << endl;
-		pt = features[i]->img_pt;
-		mpt = match->img_pt;
+		// 我的寫法沒有寫這個東西
+		//pt = features[i]->img_pt;
+		//mpt = match->img_pt;
+		// 補救方式 
+		pt = fpoint(features[i]->rX(), features[i]->rY());
+		mpt = fpoint(match->rX(), match->rY());
+
 		err = homog_xfer_err(pt, mpt, M);
 		if (err <= err_tol)
 			_consensus[in++] = features[i];

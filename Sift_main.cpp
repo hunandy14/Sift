@@ -66,7 +66,7 @@ int main(int argc, char const *argv[]){
 
 	// 匹配特徵點(兩張大小要一樣)
 	Stitching match(fea1, fea2);
-	match.Check(0.5);
+	match.Check(0.4);
 
 #endif // testpoint1
 	return 0;

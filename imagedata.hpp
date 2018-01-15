@@ -79,8 +79,9 @@ struct Feature {
 	// 顏
 	float d_l;// 這個不知道幹嘛的，可能是測試用的
 	Feature* fwd_match = nullptr;  /**< matching feature from forward image */
-	fpoint img_pt;				   /**< location in image */
-	fpoint mdl_pt;				   /**< location in model */
+	//fpoint img_pt;				   /**< location in image 這個只是xy位置，因為有存了就棄用了*/
+	//fpoint mdl_pt;				   /**< location in model 在xform裡面我把它用 rX rY 替換掉，*/
+										/*到時候平時運算可能需要"預"算，先留著*/
 	void* feature_data = nullptr;  /**< user-definable data */
 
 
