@@ -57,6 +57,22 @@ Final: 2017/07/05
 // 主曲率特徵點比例閥值(角點偵測時的閥值)
 #define SIFT_CURV_THR 10
 
+/* maximum steps of keypoint interpolation before failure */
+#define SIFT_MAX_INTERP_STEPS 5
+/* 忽略的邊緣寬度 */
+#define SIFT_IMG_BORDER 5
+
+/** 特徵點比對默認閥值 |D(x)| */
+#define SIFT_CONTR_THR 0.05
+
+
+// 匹配相同的特徵點
+/* the maximum number of keypoint NN candidates to check during BBF search */
+#define KDTREE_BBF_MAX_NN_CHKS 200
+/* threshold on squared ratio of distances between NN and 2nd NN */
+#define NN_SQ_DIST_RATIO_THR 0.4
+
+
 // 特徵點結構
 
 //----------------------------------------------------------------
@@ -92,17 +108,12 @@ private:
 	static void normalize_descr(Feature* feat);
 	static void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 
+	void getHistogramMS(Feature* NweFeat, const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
+		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
+	void FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
 	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
 	void FeatAppend(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
-
-private:
-	/*vector<float> ransac_xform(
-		Feature *features, int n, 
-		int m, float p_badxform, float err_tol, 
-		Feature*** inliers, int &n_in);*/
-
-
 private:
 	bool harris(const vector<float>& p, size_t w, size_t y, size_t x, float r=SIFT_CURV_THR);
 	static void DescripNomal(Desc& descripgroup);
@@ -123,7 +134,7 @@ public:
 	Stitching(const Sift& desc1, const Sift& desc2);
 	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
 	float Stitching::EuclDist2(float point1[128], float point2[128]); // 描述子歐式距離
-	void Check(float matchTh=0.5); // 檢查是否有相同的特徵描述子
+	void Check(float matchTh = NN_SQ_DIST_RATIO_THR); // 檢查是否有相同的特徵描述子
 private:
 	Feature *feat1, *feat2;
 	size_t Width, Height;

@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <time.h>
 #include <vector>
 #include <opencv2/opencv.hpp>
@@ -27,6 +27,7 @@ vector<float> ransac_xform(
 	int m, float p_badxform, float err_tol, 
 	Feature*** inliers, int &n_in)
 {
+	srand((unsigned int)time(NULL));
 	Feature **matched = nullptr, **sample = nullptr;
 	Feature **consensus = nullptr, **consensus_max = nullptr;
 	ransac_data* rdata = nullptr;
@@ -35,44 +36,60 @@ vector<float> ransac_xform(
 	float p, in_frac = (float)RANSAC_INLIER_FRAC_EST;
 	int i, nm, in_min, k = 0, in = 0, in_max = 0;
 
+	// 幾個點是有匹配的
 	nm = get_matched_features(features, n, &matched);
-	if (nm < m)
-	{
+	cout << "nm = " << nm << endl;
+	if (nm < m) {
 		cout << "Warning: not enough matches to compute xform" << endl;
 		goto end;
 	}
 
-	srand((unsigned int)time(NULL));
-
+	//计算保证RANSAC最终计算出的转换矩阵错误的概率小于p_badxform所需的最小内点数目  
 	in_min = calc_min_inliers(nm, m, (float)RANSAC_PROB_BAD_SUPP, p_badxform);
-
+	//当前计算出的模型的错误概率,内点所占比例in_frac越大，错误概率越小；迭代次数k越大，错误概率越小 
 	p = pow(1.f - pow(in_frac, m), k);
 
+	int testC = 0;
 	while (p > p_badxform)
 	{
+		//从样本集matched中随机抽选一个RANSAC样本(即一个4个特征点的数组)，放到样本变量sample中  
 		sample = draw_ransac_sample(matched, nm, m);
+		//从样本中获取特征点和其对应匹配点的二维坐标，分别放到输出参数pts和mpts中  
 		extract_corresp_pts(sample, m, &pts, &mpts);
-		//cout << pts[1].x << ", " << pts[1].y << ", " << mpts[1].x << ", " << mpts[1].y <<endl;
+		//调用参数中传入的函数xform_fn，计算将m个点的数组pts变换为mpts的矩阵，返回变换矩阵给M 
+		//cout << "x=" << pts->x << ", y=" << pts->y << endl;
 		M = lsq_homog(pts, mpts, m);
+
 		if (M.empty())
 			goto iteration_end;
+
+		//给定特征点集，变换矩阵，误差函数，计算出当前一致集consensus，返回一致集中元素个数给in  
 		in = find_consensus(matched, nm, M, err_tol, &consensus);
+		//cout << "in=" << in << endl; // 一直為0
+		//若当前一致集大于历史最优一致集，即当前一致集为最优，则更新最优一致集consensus_max  
 		if (in > in_max)
 		{
-			if (consensus_max)
+			if(consensus_max) { //若之前有最优值，释放其空间  
 				delete[] consensus_max;
-			consensus_max = consensus;
+			}
+			consensus_max = consensus; //更新最优一致集
 			in_max = in;
-			in_frac = (float)in_max / (float)nm;
+			in_frac = (float)in_max / (float)nm; //最优一致集中元素个数占样本总个数的百分比  
+
+			testC++;
 		}
-		else
+		else { //若当前一致集小于历史最优一致集，释放当前一致集  
 			delete[] consensus;
+		}
 		M.clear();
 
 	iteration_end:
 		release_mem(pts, mpts, sample);
 		p = pow(1.f - pow(in_frac, m), ++k);
 	}
+	cout << "testC=" << testC;
+	cout << endl;
+
 
 	if (in_max >= in_min)
 	{
@@ -141,115 +158,9 @@ end:
 	delete[] matched;
 	return M;
 }
-/*
-// �S�Ψ�
-vector<float> _ransac_xform(struct feature *features, int n, int m, float p_badxform, float err_tol)
-{
-	struct feature **matched, **sample, **consensus, **consensus_max = NULL;
-	struct ransac_data* rdata;
-	fpoint *pts, *mpts;
-	vector<float> M;
-	float p, in_frac = (float)RANSAC_INLIER_FRAC_EST;
-	int i, nm, in_min, k = 0, in = 0, in_max = 0;
-
-	nm = get_matched_features(features, n, &matched);
-	if (nm < m)
-	{
-		cout << "Warning: not enough matches to compute xform" << endl;
-		goto end;
-	}
-
-	srand((unsigned int)time(NULL));
-
-	in_min = calc_min_inliers(nm, m, (float)RANSAC_PROB_BAD_SUPP, p_badxform);
-
-	p = pow(1.f - pow(in_frac, m), k);
-
-	while (p > p_badxform)
-	{
-		sample = draw_ransac_sample(matched, nm, m);
-		extract_corresp_pts(sample, m, &pts, &mpts);
-		M = lsq_homog(pts, mpts, m);
-		if (M.empty())
-			goto iteration_end;
-		in = find_consensus(matched, nm, M, err_tol, &consensus);
-		if (in > in_max)
-		{
-			if (consensus_max)
-				delete[] consensus_max;
-			consensus_max = consensus;
-			in_max = in;
-			in_frac = (float)in_max / (float)nm;
-		}
-		else
-			delete[] consensus;
-		M.clear();
-
-	iteration_end:
-		release_mem(pts, mpts, sample);
-		p = pow(1.f - pow(in_frac, m), ++k);
-	}
-
-	if (in_max >= in_min)
-	{
-		extract_corresp_pts(consensus_max, in_max, &pts, &mpts);
-		M = lsq_homog(pts, mpts, in_max);
-		in = find_consensus(matched, nm, M, err_tol, &consensus);
-		M.clear();
-		release_mem(pts, mpts, consensus_max);
-		extract_corresp_pts(consensus, in, &pts, &mpts);
-		fpoint r;
-		for (int a = 0; a < in - 1; a++)
-		{
-			for (int b = a + 1; b < in; b++)
-			{
-				if (pts[a].x > pts[b].x)
-				{
-					r = pts[a];
-					pts[a] = pts[b];
-					pts[b] = r;
-					r = mpts[a];
-					mpts[a] = mpts[b];
-					mpts[b] = r;
-				}
-			}
-		}
-		for (int a = 0; a < in - 1; a++)
-		{
-			for (int b = a + 1; b < in; b++)
-			{
-				if (pts[a].y > pts[b].y)
-				{
-					r = pts[a];
-					pts[a] = pts[b];
-					pts[b] = r;
-					r = mpts[a];
-					mpts[a] = mpts[b];
-					mpts[b] = r;
-				}
-			}
-		}
-		M = lsq_homog(pts, mpts, in);
-		release_mem(pts, mpts, consensus);
-	}
-	else if (consensus_max)
-	{
-		delete[] consensus_max;
-	}
-end:
-	for (i = 0; i < nm; i++)
-	{
-		rdata = feat_ransac_data(matched[i]);
-		matched[i]->feature_data = rdata->orig_feat_data;
-		delete rdata;
-	}
-	delete[] matched;
-	return M;
-}
-*/
 
 /************************ Local funciton definitions *************************/
-// �C�ۤv�g���A��J���I�ץX�ܴ��x�} n �O�̤��I�ƿ�J�O 4
+// 輸入兩點匯出變換矩陣; n 是最少點數輸入是 4
 vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
 {
 	/*
@@ -346,7 +257,6 @@ vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
 	} 
 	//cout << endl;
 
-
 	cvReleaseMat(&A);
 	cvReleaseMat(&B);
 	cvReleaseMat(&H);
@@ -377,14 +287,16 @@ fpoint persp_xform_pt(fpoint pt, vector<float> &T)
 	cvReleaseMat(&_T);
 	return rslt;
 }
+// 獲得這一點的相對匹配點(也可以檢測是否有效).
 Feature* get_match(Feature* feat)
 {
 	return feat->fwd_match;
 }
+// 
 int get_matched_features(Feature *features, int n, Feature ***matched)
 {
 	Feature **_matched;
-	struct ransac_data* rdata;
+	ransac_data* rdata;
 	int i, m = 0;
 
 	_matched = new Feature*[n];
@@ -395,8 +307,9 @@ int get_matched_features(Feature *features, int n, Feature ***matched)
 		{
 			if (get_match(features + i))
 			{
-				rdata = new ransac_data;
-				memset(rdata, 0, sizeof(ransac_data));
+				//cout << (features[i].feature_data==nullptr) << endl;
+				//system("pause");
+				rdata = new ransac_data{};
 				rdata->orig_feat_data = features[i].feature_data;
 				_matched[m] = features + i;
 				_matched[m]->feature_data = rdata;
@@ -404,6 +317,9 @@ int get_matched_features(Feature *features, int n, Feature ***matched)
 			}
 		}
 	}
+	cout << "m=" << m << endl;
+	//system("pause");
+
 	*matched = _matched;
 	return m;
 }
@@ -480,7 +396,7 @@ Feature** draw_ransac_sample(Feature** features, int n, int m)
 }
 void extract_corresp_pts(Feature** features, int n, fpoint** pts, fpoint** mpts)
 {
-	// ������������T�X��
+	// 提取相應的資訊出來.
 	Feature *match = nullptr;
 	fpoint *_pts, *_mpts;
 
@@ -489,16 +405,16 @@ void extract_corresp_pts(Feature** features, int n, fpoint** pts, fpoint** mpts)
 
 	for (int i = 0; i < n; i++)
 	{
-		// ����o�@�I�A�������ǰt�I
+		// 獲取這一點，對應的匹配點.
 		match = get_match(features[i]);
 		if (!match)
 			cout << "feature does not have match" << endl;
-		// �ڪ��g�k�S���g�o�ӪF��
-		//_pts[i] = features[i]->img_pt;
-		//_mpts[i] = match->img_pt;
-		// �ɱϤ覡 
-		_pts[i] = fpoint(features[i]->rX(), features[i]->rY());
-		_mpts[i] = fpoint(match->rX(), match->rY());
+		// 原本寫法.
+		_pts[i] = features[i]->img_pt;
+		_mpts[i] = match->img_pt;
+		// 無偏移的方式.
+		//_pts[i] = fpoint(features[i]->rX()*2, features[i]->rY()*2);
+		//_mpts[i] = fpoint(match->rX()*2, match->rY()*2);
 
 	}
 
@@ -520,16 +436,20 @@ int find_consensus(Feature** features, int n, vector<float> &M, float err_tol, F
 		match = get_match(features[i]);
 		if (!match)
 			cout << "feature does not have match" << endl;
-		// �ڪ��g�k�S���g�o�ӪF��
-		//pt = features[i]->img_pt;
-		//mpt = match->img_pt;
-		// �ɱϤ覡 
-		pt = fpoint(features[i]->rX(), features[i]->rY());
-		mpt = fpoint(match->rX(), match->rY());
+		// 原本寫法.
+		pt = features[i]->img_pt;
+		mpt = match->img_pt;
+		// 無偏移的方式.
+		//pt = fpoint(features[i]->rX()*2, features[i]->rY()*2);
+		//mpt = fpoint(match->rX()*2, match->rY()*2);
 
-		err = homog_xfer_err(pt, mpt, M);
-		if (err <= err_tol)
+		err = homog_xfer_err(pt, mpt, M); //與變形後的點算距離
+		//cout << "err=" << err << ", err_tol=" << err_tol << endl;
+
+		if(err <= err_tol) {
+			cout << "err <= err_tol" << endl;
 			_consensus[in++] = features[i];
+		}
 	}
 
 	*consensus = _consensus;

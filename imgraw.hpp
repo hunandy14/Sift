@@ -25,6 +25,16 @@ public:
 	ImgRaw(uint32_t width, uint32_t height, uint16_t bits) :raw_img(width*height * (bits/8)), 
 		width(width), height(height), bitCount(bits){}
 	ImgRaw(string bmpname);
+	// 複製函式
+	ImgRaw& operator=(const ImgRaw& other) {
+		if (this != &other) {
+			raw_img = other.raw_img;
+			width = other.width;
+			height = other.height;
+			bitCount = other.bitCount;
+		}
+		return *this;
+	}
 	// 隱式轉換
 	operator vector<types>&() { return raw_img; }
 	operator const vector<types>&() const { return raw_img; }

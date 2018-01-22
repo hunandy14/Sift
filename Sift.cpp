@@ -64,9 +64,31 @@ void Sift::comp(vector<ImgRaw>& pyrs, string name) {
         // system(name.c_str());
     }
 };
-void Sift::FeatAppend(int Inx, int Iny, float Insize, int scale_idx, int sigmaOCT, float Inm, int Insita)
+/*void Sift::FeatAppend(int Inx, int Iny, float Insize, int scale_idx, int sigmaOCT, float Inm, int Insita)
 {
 	Feature* newnode = new Feature;
+	newnode->x = Inx;
+	newnode->y = Iny;
+	newnode->mm = Inm;
+	newnode->sita = Insita;
+	newnode->size = Insize;
+	newnode->kai = scale_idx;
+	newnode->sigmaOCT = sigmaOCT;
+	newnode->nextptr = nullptr;
+
+	FeatEnd->nextptr = newnode;// 加入該點
+	FeatEnd = newnode; // 更新結尾點的標記
+	++feaNum; // 計數幾點
+}*/
+void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int scale_idx, int sigmaOCT, float Inm, int Insita)
+{
+	Feature* newnode;
+	if(NweFeat) {
+		newnode = NweFeat;
+	}
+	else {
+		newnode = new Feature;
+	}
 	newnode->x = Inx;
 	newnode->y = Iny;
 	newnode->mm = Inm;
@@ -105,6 +127,8 @@ bool Sift::findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr
 	} return false;
 };
 // 高斯金字塔
+
+#include "matrix.hpp"
 static inline size_t getPyramidOctv(size_t width, size_t height) {
 	// 獲得金字塔八度的長
 	int n = 1;
@@ -144,6 +168,9 @@ void Sift::pyramid() {
 			}
 			//gauDog_imgs[i].bmp("gauDog/gauDog"+to_string(i)+".bmp", 8);
 		}
+
+	/* 尋找特徵點 */
+		
 		// 紀錄當前指針位置開始的位置
 		Feature* CurrFeature = FeatEnd;
 		// 尋找特徵點並累加直方圖
@@ -160,7 +187,12 @@ void Sift::pyramid() {
 						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (curr_sigmaCoef);
 						if (harris(currImg, curr_Width, j, i, r)) { // r=SIFT_CURV_THR=10
 							// 這裡不知道為什麼設置為r效果更好論文所提設置是10
-							getHistogramMS(currImg, curr_size, scale_idx, currSigma, j, i, curr_Width, r);
+							Feature* NweFeat = nullptr;
+							//NweFeat = interp_extremum(gauDog_imgs, curr_Height, curr_Width, ph, scale_idx, j, i, pyWidth-3, SIFT_CONTR_THR);
+							if(NweFeat) {
+								//getHistogramMS(NweFeat, currImg, curr_size, scale_idx, currSigma, j, i, curr_Width, r);
+							}
+							getHistogramMS(nullptr, currImg, curr_size, scale_idx, currSigma, j, i, curr_Width, r);
 							//Herris_img[j*curr_Width + i] = 255 /255.0;
 						}
 						//MaxMin_img[j*curr_Width + i] = 255 /255.0;
@@ -173,22 +205,40 @@ void Sift::pyramid() {
 		}
 		// 描述剛剛才找到的那堆新特徵點(當前的點是舊的)
 		FeatureDescrip(gau_imgs, CurrFeature->nextptr);
+		
 	} // 不同尺度大小的for()
 
 
 
 
+
+
+
+/* 複製到連續空間 */
 	// 暫時先這樣(把資料複製到連續的位置上)
-	
 	Feature* temp = new Feature[feaNum];
+	Feature* preFea = nullptr;
 	int i = 0;
 	for(Feature* FeatureS = FeatStart->nextptr;// 跳過第一點空點
 		FeatureS != nullptr;
-		FeatureS = FeatureS->nextptr)
+		FeatureS = FeatureS->nextptr
+		)
 	{
-		memcpy ( &temp[i++], FeatureS, sizeof(*FeatureS) );
-	}
+		if(preFea) {
+			delete preFea; // 刪除上一點=
+		}
+		// 複製到連續記憶體上=
+		memcpy(&temp[i++], FeatureS, sizeof(*FeatureS));
+		if(i>0) { // 下一個指標也要改成連續記憶體上的=
+			temp[i-1].nextptr = &temp[i];
+		} // 最後一點本來就指向null就不用處理了=
+
+		preFea = FeatureS; // 記住上一點=
+	} delete FeatStart;
+	//　置換過去=
 	FeatStart = temp;
+	temp = nullptr;
+
 
 }
 bool Sift::harris(const vector<float>& p,
@@ -252,7 +302,47 @@ void Sift::getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, flo
 	float maxMag = *max_element(magSum.begin(), magSum.end());
 	for (size_t i = 0; i < 36; i++) {
 		if (magSum[i] >= maxMag*0.8) {// 大於80%的都存下來
-			FeatAppend(Inx, Iny, Insize, scale, sigma, magSum[i], i*10);
+			FeatAppend(nullptr, Inx, Iny, Insize, scale, sigma, magSum[i], i*10);
+		}
+	}
+}
+void Sift::getHistogramMS(Feature* NweFeat, const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
+	size_t Iny, size_t Inx, size_t InWidth, size_t Inr)
+{
+	const size_t matLen = Inr*2 + 1;     // 遮罩長度
+	vector<float> mag(matLen * matLen);  // 儲存強度
+	vector<float> sita(matLen * matLen); // 儲存角度
+										 //做m、sita計算
+	for (int j = (Iny - Inr), idx = 0; j <= (Iny + Inr); j++) {
+		for (int i = (Inx - Inr); i <= (Inx + Inr); i++, idx++) {
+			const float& dx = doImage[(j+0)*InWidth + (i+1)] - doImage[(j+0)*InWidth + (i-1)];
+			const float& dy = doImage[(j+1)*InWidth + (i+0)] - doImage[(j-1)*InWidth + (i+0)];
+			mag[idx] = sqrtf(dx*dx + dy*dy); // 獲得強度
+			sita[idx] = fastAtan2f(dy, dx);  // 獲得角度
+		}
+	}
+	// 高斯矩陣相乘
+	vector<types> gauMat = Gaus::gau_matrix(sigma, matLen); // 一維高斯矩陣
+	for (size_t j = 0; j < matLen; j++) {
+		for (size_t i = 0; i < matLen; i++) {
+			mag[j*matLen + i] *= gauMat [i];
+		}
+	}
+	for (size_t j = 0; j < matLen; j++) {
+		for (size_t i = 0; i < matLen; i++) {
+			mag[j*matLen + i] *= gauMat [j];
+		}
+	}
+	// 遮罩內的強度依照角度分類累加
+	vector<float> magSum(36); // 強度累加陣列
+	for (size_t i = 0; i < mag.size(); i++) {
+		magSum[(sita[i]/10.0)] += mag[i];
+	}
+	// 新增主方向與副方向
+	float maxMag = *max_element(magSum.begin(), magSum.end());
+	for (size_t i = 0; i < 36; i++) {
+		if (magSum[i] >= maxMag*0.8) {// 大於80%的都存下來
+			FeatAppend(NweFeat, Inx, Iny, Insize, scale, sigma, magSum[i], i*10);
 		}
 	}
 }
@@ -550,53 +640,84 @@ static float descr_dist_sq(Feature* f1, Feature* f2)
 	return dsq;
 }
 void Stitching::Check(float matchTh) {
-	/* kdtree */
-	ImgRaw match2 = matchImg;
-	int m = 0;
-	struct kd_node *kd_root = kdtree_build(feat2, feat2_Count);
-	Feature **nbrs;
 	Timer t1;
+/* kdtree */
+	ImgRaw matchOut2 = matchImg;
+	struct kd_node *kd_root = kdtree_build(feat2, feat2_Count);
+	t1.start();
 	for(int i = 0; i < feat1_Count; i++) {
-		Feature* feat_st = feat1 + i;
+		Feature **nbrs, *feat_st = feat1 + i;
 		int k = kdtree_bbf_knn(kd_root, feat_st, 2, &nbrs, KDTREE_BBF_MAX_NN_CHKS);
-		
 		if(k == 2) {
 			float d0 = descr_dist_sq(feat_st, nbrs[0]);
 			float d1 = descr_dist_sq(feat_st, nbrs[1]);
-			if(d0 < d1 * NN_SQ_DIST_RATIO_THR) {
-				m++;
+			if(d0 < d1 * matchTh) {
 				feat1[i].fwd_match = nbrs[0];
-				
+				/*
 				fpoint pt11 = fpoint(round(feat1[i].rX()), round(feat1[i].rY()));
 				fpoint pt22 = fpoint(round(feat1[i].fwd_match->rX()), round(feat1[i].fwd_match->rY()));
-
 				const int& x1 = pt11.x;
 				const int& y1 = pt11.y;
 				const int& x2 = pt22.x + (this->Width / 2);
 				const int& y2 = pt22.y;
 				// 畫線
-				Draw::drawLineRGB_p(match2, y1, x1, y2, x2);
+				Draw::drawLineRGB_p(matchOut2, y1, x1, y2, x2);
+				*/
 			}
-		}
-		else {
+		} else {
 			feat1[i].fwd_match = nullptr;
-		}
-		delete[] nbrs;
+		} delete[] nbrs;
 	}
-	t1.print("kdtree time");
-	match2.bmp("_matchImgkd.bmp", 24);
-
-	// 獲得矩陣
-	struct Feature** RANSAC_feat;
+	t1.print("KD-tree time");
+	matchOut2.bmp("_matchImgkd.bmp", 24);
+/* 畫出連線. */
+	t1.start();
+	matchOut2 = matchImg;
+	for(int i = 0; i < feat1_Count; i++) {
+		if(feat1[i].fwd_match) {
+			fpoint pt11 = fpoint(round(feat1[i].rX()), round(feat1[i].rY()));
+			fpoint pt22 = fpoint(round(feat1[i].fwd_match->rX()), round(feat1[i].fwd_match->rY()));
+			const int& x1 = pt11.x;
+			const int& y1 = pt11.y;
+			const int& x2 = pt22.x + (this->Width / 2);
+			const int& y2 = pt22.y;
+			Draw::drawLineRGB_p(matchOut2, y1, x1, y2, x2);
+		}
+		// 畫線
+	}
+	t1.print("link time");
+	matchOut2.bmp("_matchImg_kdLinkImg.bmp", 24);
+/* ransac */
+	t1.start();
+	// 獲得矩陣.
+	Feature** RANSAC_feat;
 	int RANSAC_num = 0;
-	// 因為kd樹是放2的關係，所以搜1，搜1的時候有把配對到的點放在1裡面
+	// 因為kd樹是放2的關係，所以搜1，搜1的時候有把配對到的點放在1裡面.
 	vector<float> H = ransac_xform(feat1, feat1_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
-
+	t1.print("ransac time");
+	// 查看矩陣.
+	cout << "RANSAC_num=" << RANSAC_num << endl;
 	for(size_t i = 0; i < 9; i++) {
 		cout << H[i] << ", ";
 	} cout << endl;
-
-	/* 暴力找 */
+/* 畫出過濾後連線. */
+	t1.start();
+	matchOut2 = matchImg;
+	for(int i = 0; i < RANSAC_num; i++) {
+		if(RANSAC_feat[0][i].fwd_match) {
+			fpoint pt11 = fpoint(round(RANSAC_feat[0][i].rX()), round(RANSAC_feat[0][i].rY()));
+			fpoint pt22 = fpoint(round(RANSAC_feat[0][i].fwd_match->rX()), round(RANSAC_feat[0][i].fwd_match->rY()));
+			const int& x1 = pt11.x;
+			const int& y1 = pt11.y;
+			const int& x2 = pt22.x + (this->Width / 2);
+			const int& y2 = pt22.y;
+			// 畫線.
+			Draw::drawLineRGB_p(matchOut2, y1, x1, y2, x2);
+		}
+	}
+	t1.print("link time");
+	matchOut2.bmp("_matchImg_RANSACImg.bmp", 24);
+/* 暴力找 */
 //#define findFeat
 #ifdef findFeat
 	
@@ -604,6 +725,8 @@ void Stitching::Check(float matchTh) {
 		startlink1 != nullptr;
 		startlink1 = startlink1->nextptr)
 	{*/
+	//ImgRaw matchOut1 = matchImg;
+	matchOut2 = matchImg;
 	t1.start();
 	for(size_t j = 0; j < feat1_Count; j++) 
 	{
@@ -645,11 +768,11 @@ void Stitching::Check(float matchTh) {
 			int x2 = useX1 + (Width / 2);
 			int y2 = useY1;
 			// 畫線
-			Draw::drawLineRGB_p(matchImg, y1, x1, y2, x2);
+			Draw::drawLineRGB_p(matchOut2, y1, x1, y2, x2);
 		}
 	}
 	t1.print("serch time");
-	matchImg.bmp("_matchImg.bmp", 24);
+	matchOut2.bmp("_matchImg_direct.bmp", 24);
 #endif // findFeat
 }
 

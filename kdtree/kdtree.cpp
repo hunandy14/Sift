@@ -9,8 +9,8 @@ using namespace std;
 
 struct bbf_data
 {
-	float d;
-	void* old_data;
+	float d;  //此特征点到目标点的欧式距离值=
+	void* old_data; //保存此特征点的feature_data域的以前的值=
 };
 /************************* Local Function Prototypes *************************/
 static kd_node* kd_node_init(Feature*, int);
@@ -59,6 +59,7 @@ float descr_dist_sq(Feature* f1, Feature* f2)
 	}
 	return dsq;
 }
+
 int kdtree_bbf_knn(kd_node* kd_root, Feature* feat, int k, Feature*** nbrs, int max_nn_chks)
 {
 	kd_node *expl;
@@ -110,8 +111,16 @@ int kdtree_bbf_knn(kd_node* kd_root, Feature* feat, int k, Feature*** nbrs, int 
 	minpq_release(&min_pq);
 	for (i = 0; i < n; i++)
 	{
-		bbf_data = (struct bbf_data*)_nbrs[i]->feature_data;
+		bbf_data = (struct bbf_data*)_nbrs[i]->feature_data; // 這裡已經是空值
 		_nbrs[i]->feature_data = bbf_data->old_data;
+
+		if(_nbrs[i]->feature_data==nullptr) {
+			//cout << "_nbrs[i]->feature_data = nullptr" << endl;
+		}
+		else {
+			//cout << "_nbrs[i]->feature_data != nullptr" << endl;
+		}
+
 		delete(bbf_data);
 	}
 	*nbrs = _nbrs;
@@ -358,15 +367,17 @@ static void partition_features(kd_node* kd_node)
 	kd_node->kd_left = kd_node_init(features, nl);
 	kd_node->kd_right = kd_node_init(features+(j + 1), nr);
 }
+// 搜索路径和优先级队列的生成函数.
 static kd_node* explore_to_leaf(kd_node* kd_node, Feature* feat, min_pq* min_pq)
 {
-	struct kd_node *unexpl, *expl = kd_node;
-	float kv;
-	int ki;
+	struct kd_node *unexpl; //unexpl中存放着优先级队列的候选特征点.
+	struct kd_node *expl = kd_node; // expl为开始搜索节点.
+	float kv; //kv是分割维度的数据.
+	int ki; //ki是分割维度序号.
 
 	while (expl && !expl->leaf)
 	{
-		ki = expl->ki;
+		ki = expl->ki; //获得分割节点的ki，kv数据.
 		kv = expl->kv;
 
 		if (ki >= feat->d)
@@ -374,17 +385,17 @@ static kd_node* explore_to_leaf(kd_node* kd_node, Feature* feat, min_pq* min_pq)
 			cout << "Warning: comparing imcompatible descriptors" << endl;
 			return NULL;
 		}
-		if (feat->descr[ki] <= kv)
+		if (feat->descr[ki] <= kv) //目标特征和分割节点分割维上的数据比较.
 		{
-			unexpl = expl->kd_right;
-			expl = expl->kd_left;
+			unexpl = expl->kd_right; //小于右子树根节点成为候选节点.
+			expl = expl->kd_left; //并进入左子树搜索.
 		}
 		else
 		{
-			unexpl = expl->kd_left;
-			expl = expl->kd_right;
+			unexpl = expl->kd_left;  //大于左子树根节点成为候选节点.
+			expl = expl->kd_right;   //并进入右子树搜索.
 		}
-
+		//将候选节点unexpl根据目标与分割超平面的距离插入到优先级队列中.
 		if (minpq_insert(min_pq, unexpl, (int)fabs(kv - feat->descr[ki])))
 		{
 			cout << "Warning: unable to insert into PQ" << endl;
@@ -392,60 +403,74 @@ static kd_node* explore_to_leaf(kd_node* kd_node, Feature* feat, min_pq* min_pq)
 		}
 	}
 
-	return expl;
+	return expl; //返回搜索路径中最后的叶子节点.
 }
-static int insert_into_nbr_array(Feature *feat, Feature **nbrs, int n, int k)
-{
-	bbf_data *fdata, *ndata;
-	float dn, df;
-	int i, ret = 0;
 
-	if (n == 0)
-	{
-		nbrs[0] = feat;
-		return 1;
-	}
 
-	/* check at end of array */
-	fdata = (bbf_data*)feat->feature_data;
-	df = fdata->d;
-	ndata = (bbf_data*)nbrs[n - 1]->feature_data;
-	dn = ndata->d;
-	if (df >= dn)
-	{
-		if (n == k)
-		{
-			feat->feature_data = fdata->old_data;
-			delete(fdata);
-			return 0;
-		}
-		nbrs[n] = feat;
-		return 1;
-	}
+/*插入一个特征点到最近邻数组，使数组中的点按到目标点的距离升序排列 
+参数： 
+feat：要插入的特征点，其feature_data域应是指向bbf_data结构的指针，其中的d值时feat和目标点的距离的平方 
+nbrs：最近邻数组 
+n：已在最近邻数组中的元素个数 
+k：最近邻数组元素个数的最大值 
+返回值：若feat成功插入，返回1，否则返回0 
+*/ 
+static int insert_into_nbr_array(Feature* feat, Feature** nbrs, int n, int k )  
+{  
+    struct bbf_data* fdata, * ndata;//fdata是要插入的点的bbf结构，ndata是最近邻数组中的点的bbf结构  
+    double dn, df; //dn是最近邻数组中特征点的bbf结构中的距离值，df是要插入的特征点的bbf结构中的距离值  
+    int i, ret = 0;  
+//原最近邻数组为空  
+    if( n == 0 )  
+    {  
+        nbrs[0] = feat;  
+        return 1;//插入成功，返回1  
+    }  
+/* check at end of array */  
+    fdata = (struct bbf_data*)feat->feature_data;//要插入点的bbf结构  
+    df = fdata->d;//要插入的特征点的bbf结构中的距离值  
+	//cout << "df=" << df << endl;
+    ndata = (struct bbf_data*)nbrs[n-1]->feature_data;//最近邻数组中的点的bbf结构  
+    dn = ndata->d;//最近邻数组中最后一个特征点的bbf结构中的距离值  
+	//cout << "dn=" << dn << endl;
+	//df>=dn，说明要插入在最近邻数组的末尾  
+    if( df >= dn )  
+    {  
+        //最近邻数组中元素个数已达到最大值，无法插入  
+        if( n == k )  
+        {  
+            feat->feature_data = fdata->old_data;//不明白这里是干什么？  
+            free( fdata );  
+            return 0;//插入失败，返回0  
+        }  
+        nbrs[n] = feat;//插入到末尾  
+        return 1;//插入成功，返回1  
+    }  
 
-	/* find the right place in the array */
-	if (n < k)
-	{
-		nbrs[n] = nbrs[n - 1];
-		ret = 1;
-	}
-	else
-	{
-		nbrs[n - 1]->feature_data = ndata->old_data;
-		delete(ndata);
-	}
-	i = n - 2;
-	while (i >= 0)
-	{
-		ndata = (bbf_data*)nbrs[i]->feature_data;
-		dn = ndata->d;
-		if (dn <= df)
-			break;
-		nbrs[i + 1] = nbrs[i];
-		i--;
-	}
-	i++;
-	nbrs[i] = feat;
-
-	return ret;
-}
+/* find the right place in the array */  
+//运行到此处说明插入位置不在数组末尾
+    if( n < k )//最近邻数组中元素个数小于最大值，可插入  
+    {  
+        nbrs[n] = nbrs[n-1];//原数组最后一个点后移  
+        ret = 1;//插入结果设为1  
+    }  
+    else//最近邻数组中元素个数大于或等于最大值，无法插入，插入结果ret还是0  
+    {//其实也不是无法插入，而是最近邻数组中元素个数不变，但值会更新  
+        nbrs[n-1]->feature_data = ndata->old_data;  
+        free( ndata );  
+    }  
+    i = n-2;  
+    //在最近邻数组中查找要插入的位置  
+    while( i >= 0 )  
+    {  
+        ndata = (struct bbf_data*)nbrs[i]->feature_data;  
+        dn = ndata->d;  
+        if( dn <= df )//找到插入点  
+            break;  
+        nbrs[i+1] = nbrs[i];//一次后移  
+        i--;  
+    }  
+    i++;  
+    nbrs[i] = feat;//插入  
+    return ret;//返回结果  
+}  
