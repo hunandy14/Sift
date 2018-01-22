@@ -669,7 +669,7 @@ void Stitching::Check(float matchTh) {
 		} delete[] nbrs;
 	}
 	t1.print("KD-tree time");
-	matchOut2.bmp("_matchImgkd.bmp", 24);
+	//matchOut2.bmp("_matchImgkd.bmp", 24);
 /* 畫出連線. */
 	t1.start();
 	matchOut2 = matchImg;
