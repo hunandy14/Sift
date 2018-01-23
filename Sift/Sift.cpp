@@ -88,6 +88,9 @@ void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int scal
 	}
 	else {
 		newnode = new Feature;
+		// 新增原點
+		newnode->img_pt.x = Inx/Insize;
+		newnode->img_pt.y = Iny/Insize;
 	}
 	newnode->x = Inx;
 	newnode->y = Iny;
@@ -546,7 +549,7 @@ void Sift::drawArrow(string name, float ratio){
 	// 臨時圖庫
 	ImgRaw img = raw_img;
 	for (Feature* feaPoint = FeatStart;
-		feaPoint->nextptr != NULL;
+		feaPoint->nextptr != nullptr;
 		feaPoint = feaPoint->nextptr)
 	{
 		size_t x = feaPoint->x/feaPoint->size;
@@ -690,9 +693,10 @@ void Stitching::Check(float matchTh) {
 /* ransac */
 	t1.start();
 	// 獲得矩陣.
-	Feature** RANSAC_feat;
+	Feature** RANSAC_feat=nullptr;
 	int RANSAC_num = 0;
 	// 因為kd樹是放2的關係，所以搜1，搜1的時候有把配對到的點放在1裡面.
+//	vector<float> H = ransac_xform(feat1, feat1_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
 	vector<float> H = ransac_xform(feat1, feat1_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
 	t1.print("ransac time");
 	// 查看矩陣.
@@ -700,21 +704,42 @@ void Stitching::Check(float matchTh) {
 	for(size_t i = 0; i < 9; i++) {
 		cout << H[i] << ", ";
 	} cout << endl;
+
+
+	/*測試*/
+	int eff_num = 0;
+	for(size_t i = 0; i < RANSAC_num; i++) {
+		if(RANSAC_feat[i]->fwd_match) {
+			eff_num++;
+		}
+	}
+	cout<< "eff_num2=" << eff_num << endl;
+
+
 /* 畫出過濾後連線. */
 	t1.start();
 	matchOut2 = matchImg;
+	int ran_c = 0;
 	for(int i = 0; i < RANSAC_num; i++) {
-		if(RANSAC_feat[0][i].fwd_match) {
+		if(RANSAC_feat[i]->fwd_match) {
+			fpoint pt11 = fpoint(round(RANSAC_feat[i]->rX()), round(RANSAC_feat[i]->rY()));
+			fpoint pt22 = fpoint(round(RANSAC_feat[i]->fwd_match->rX()), round(RANSAC_feat[i]->fwd_match->rY()));
+
+			/* 馬的不知道為什麼這個是錯的
 			fpoint pt11 = fpoint(round(RANSAC_feat[0][i].rX()), round(RANSAC_feat[0][i].rY()));
 			fpoint pt22 = fpoint(round(RANSAC_feat[0][i].fwd_match->rX()), round(RANSAC_feat[0][i].fwd_match->rY()));
+			*/
 			const int& x1 = pt11.x;
 			const int& y1 = pt11.y;
 			const int& x2 = pt22.x + (this->Width / 2);
 			const int& y2 = pt22.y;
 			// 畫線.
 			Draw::drawLineRGB_p(matchOut2, y1, x1, y2, x2);
+			ran_c++;
 		}
 	}
+	cout << "ran_c=" << ran_c << endl;
+	
 	t1.print("link time");
 	matchOut2.bmp("_matchImg_RANSACImg.bmp", 24);
 /* 暴力找 */

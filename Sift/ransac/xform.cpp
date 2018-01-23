@@ -56,8 +56,10 @@ vector<float> ransac_xform(
 		sample = draw_ransac_sample(matched, nm, m);
 		//从样本中获取特征点和其对应匹配点的二维坐标，分别放到输出参数pts和mpts中  
 		extract_corresp_pts(sample, m, &pts, &mpts);
-		//调用参数中传入的函数xform_fn，计算将m个点的数组pts变换为mpts的矩阵，返回变换矩阵给M 
-		//cout << "x=" << pts->x << ", y=" << pts->y << endl;
+		//调用参数中传入的函数xform_fn，计算将m个点的数组pts变换为mpts的矩阵，返回变换矩阵给M.
+
+		cout << "## x=" << pts->x << ", y=" << pts->y << endl;
+
 		M = lsq_homog(pts, mpts, m);
 
 		if (M.empty())
@@ -65,7 +67,7 @@ vector<float> ransac_xform(
 
 		//给定特征点集，变换矩阵，误差函数，计算出当前一致集consensus，返回一致集中元素个数给in  
 		in = find_consensus(matched, nm, M, err_tol, &consensus);
-		//cout << "in=" << in << endl; // 一直為0
+		//cout << "in=" << in << endl;
 		//若当前一致集大于历史最优一致集，即当前一致集为最优，则更新最优一致集consensus_max  
 		if (in > in_max)
 		{
@@ -87,17 +89,39 @@ vector<float> ransac_xform(
 		release_mem(pts, mpts, sample);
 		p = pow(1.f - pow(in_frac, m), ++k);
 	}
-	cout << "testC=" << testC;
+	cout << "testC=" << testC << ", in_max=" << in_max;
 	cout << endl;
 
-
-	if (in_max >= in_min)
-	{
+	// 根据最优一致集计算最终的变换矩阵  
+	/* calculate final transform based on best consensus set */  
+	// 若最优一致集中元素个数大于最低标准，即符合要求  .
+	if (in_max >= in_min) {
+		//从最优一致集中获取特征点和其对应匹配点的二维坐标，分别放到输出参数pts和mpts中  .
 		extract_corresp_pts(consensus_max, in_max, &pts, &mpts);
+		//调用参数中传入的函数xform_fn，计算将in_max个点的数组pts变换为mpts的矩阵，返回变换矩阵给M  .
 		M = lsq_homog(pts, mpts, in_max);
+
+		/***********下面会再进行一次迭代**********/  
+		//根据变换矩阵M从样本集matched中计算出一致集consensus，返回一致集中元素个数给in.
+		cout << "==========最後===============" << in << endl;
 		in = find_consensus(matched, nm, M, err_tol, &consensus);
+		cout << "	lsq_homog in=" << in << endl;
+
+
+
+		/*測試*/
+		int eff_num = 0;
+		for(size_t i = 0; i < in; i++) {
+			if(consensus[i]->fwd_match) {
+				eff_num++;
+			}
+		}
+		cout<< "eff_num=" << eff_num << endl;
+
+
 		M.clear();
 		release_mem(pts, mpts, consensus_max);
+		//从一致集中获取特征点和其对应匹配点的二维坐标，分别放到输出参数pts和mpts中  .
 		extract_corresp_pts(consensus, in, &pts, &mpts);
 		fpoint r;
 		for (int a = 0; a < in - 1; a++)
@@ -130,18 +154,21 @@ vector<float> ransac_xform(
 				}
 			}
 		}
+		//调用参数中传入的函数xform_fn，计算将in个点的数组pts变换为mpts的矩阵，返回变换矩阵给M  .
 		M = lsq_homog(pts, mpts, in);
 		if (inliers)
 		{
-			*inliers = consensus;
+			*inliers = consensus; //将最优一致集赋值给输出参数：inliers，即内点集合 .
 			consensus = NULL;
 		}
 		if (n_in == 0)
-			n_in = in;
+			n_in = in; //将最优一致集中元素个数赋值给输出参数：n_in，即内点个数 .
 		release_mem(pts, mpts, consensus);
-	}
-	else if (consensus_max)
-	{
+	} //in_max >= in_min
+
+
+	//没有计算出符合要求的一致集 .
+	else if (consensus_max){
 		if (inliers)
 			*inliers = NULL;
 		if (n_in == 0)
@@ -149,9 +176,12 @@ vector<float> ransac_xform(
 		delete[] consensus_max;
 	}
 end:
+	//RANSAC算法结束：恢复特征点中被更改的数据域feature_data，并返回变换矩阵M .
 	for (i = 0; i < nm; i++)
 	{
+		//利用宏feat_ransac_data来提取matched[i]中的feature_data成员并转换为ransac_data格式的指针 .
 		rdata = feat_ransac_data(matched[i]);
+		//恢复feature_data成员的以前的值
 		matched[i]->feature_data = rdata->orig_feat_data;
 		delete rdata;
 	}
@@ -160,10 +190,9 @@ end:
 }
 
 /************************ Local funciton definitions *************************/
-// 輸入兩點匯出變換矩陣; n 是最少點數輸入是 4
+// 輸入兩點匯出變換矩陣; n 是最少點數輸入是 4.
 vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
 {
-	/*
 	vector<float> H(9, 0.f);
 	CvMat *A, *B, X;
 	float x[9];
@@ -207,9 +236,16 @@ vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
 	cvReleaseMat(&A);
 	cvReleaseMat(&B);
 
-	return H;
-	*/
+	vector<float> Hmat(9, 0.f);
+	for(size_t j=0, idx=0; j < 3; j++) {
+		for(size_t i=0; i < 3; i++, idx++) {
+			//cout << H[j*3+i] << ", ";
+		} //cout << endl;
+	} 
 
+	return H;
+
+	/*
 	CvMat* H, * A, * B, X;
 	double x[9];
 	int i;
@@ -221,7 +257,7 @@ vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
 		return vector<float>();
 	}
 
-	/* set up matrices so we can unstack homography into X; AX = B */
+	// set up matrices so we can unstack homography into X; AX = B
 	A = cvCreateMat(2*n, 8, CV_64FC1);
 	B = cvCreateMat(2*n, 1, CV_64FC1);
 	X = cvMat(8, 1, CV_64FC1, x);
@@ -260,7 +296,7 @@ vector<float> lsq_homog(fpoint * pts, fpoint * mpts, int n)
 	cvReleaseMat(&A);
 	cvReleaseMat(&B);
 	cvReleaseMat(&H);
-	return Hmat;
+	return Hmat;*/
 }
 float homog_xfer_err(fpoint pt, fpoint mpt, vector<float> &H)
 {
@@ -394,6 +430,8 @@ Feature** draw_ransac_sample(Feature** features, int n, int m)
 
 	return sample;
 }
+
+//从一致集中获取特征点和其对应匹配点的二维坐标，分别放到输出参数pts和mpts中  
 void extract_corresp_pts(Feature** features, int n, fpoint** pts, fpoint** mpts)
 {
 	// 提取相應的資訊出來.
@@ -403,55 +441,69 @@ void extract_corresp_pts(Feature** features, int n, fpoint** pts, fpoint** mpts)
 	_pts = new fpoint[n];
 	_mpts = new fpoint[n];
 
+
+	int ii = 0;
 	for (int i = 0; i < n; i++)
 	{
 		// 獲取這一點，對應的匹配點.
 		match = get_match(features[i]);
 		if (!match)
 			cout << "feature does not have match" << endl;
-		// 原本寫法.
-		_pts[i] = features[i]->img_pt;
-		_mpts[i] = match->img_pt;
-		// 無偏移的方式.
-		//_pts[i] = fpoint(features[i]->rX()*2, features[i]->rY()*2);
-		//_mpts[i] = fpoint(match->rX()*2, match->rY()*2);
-
+		else if(match) {
+			// 原本寫法.
+			//_pts[i] = features[i]->img_pt;
+			//_mpts[i] = match->img_pt;
+			// 無偏移的方式.
+			_pts[i] = fpoint(features[i]->rX(), features[i]->rY());
+			_mpts[i] = fpoint(match->rX(), match->rY());
+			ii++;
+		}
 	}
+	cout << "ii = " << ii;
+	cout << endl;
 
 	*pts = _pts;
 	*mpts = _mpts;
 }
 int find_consensus(Feature** features, int n, vector<float> &M, float err_tol, Feature*** consensus)
 {
+	// 這裡帶入的 features 已經過濾過了一定有匹配點
 	Feature** _consensus;
 	Feature* match;
 	fpoint pt, mpt;
 	float err;
 	int i, in = 0;
 
+	int ii = 0;
 	_consensus = new Feature*[n];
 
 	for (i = 0; i < n; i++)
 	{
 		match = get_match(features[i]);
-		if (!match)
+		if(!match) {
 			cout << "feature does not have match" << endl;
-		// 原本寫法.
-		pt = features[i]->img_pt;
-		mpt = match->img_pt;
-		// 無偏移的方式.
-		//pt = fpoint(features[i]->rX()*2, features[i]->rY()*2);
-		//mpt = fpoint(match->rX()*2, match->rY()*2);
+		}
+		else if (match) {
+			// 原本寫法.
+			//pt = features[i]->img_pt;
+			//mpt = match->img_pt;
+			// 無偏移的方式.
+			pt = fpoint(features[i]->rX(), features[i]->rY());
+			mpt = fpoint(match->rX(), match->rY());
 
-		err = homog_xfer_err(pt, mpt, M); //與變形後的點算距離
-		//cout << "err=" << err << ", err_tol=" << err_tol << endl;
+			err = homog_xfer_err(pt, mpt, M); //與變形後的點算距離
+			//cout << "err=" << err << ", err_tol=" << err_tol << endl;
 
-		if(err <= err_tol) {
-			cout << "err <= err_tol" << endl;
-			_consensus[in++] = features[i];
+
+			if(err <= err_tol) {
+				//cout << "err <= err_tol" << endl;
+				++ii;
+				_consensus[in++] = features[i];
+			}
 		}
 	}
 
+	cout << "最後加入有幾點" << ii << endl;
 	*consensus = _consensus;
 	return in;
 }

@@ -40,8 +40,9 @@ int main(int argc, char const *argv[]){
 
 #define testpoint1
 #ifdef testpoint1	
+	//string name1="kanna.bmp", name2="kanna2.bmp";
+	//string name1="ball_01.bmp", name2="ball_02.bmp";
 	string name1="sd01.bmp", name2="sd02.bmp";
-	//string name1="Lena.bmp", name2="Lena4.bmp";
 	
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
@@ -51,17 +52,15 @@ int main(int argc, char const *argv[]){
 	Timer t1;
 	Sift fea1(img1);
 	fea1.pyramid();
-	fea1.drawArrow("feaArrow1.bmp");
+	//fea1.drawArrow("feaArrow1.bmp");
 	t1.print("feat1");
 
 	// 金字塔2
 	t1.start();
 	Sift fea2(img2);
 	fea2.pyramid();
-	fea2.drawArrow("feaArrow2.bmp");
+	//fea2.drawArrow("feaArrow2.bmp");
 	t1.print("feat2");
-
-	// KDtree
 
 
 	// 匹配特徵點(兩張大小要一樣)
@@ -69,6 +68,7 @@ int main(int argc, char const *argv[]){
 	match.Check(0.5);
 
 #endif // testpoint1
+	system("pause");
 	return 0;
 }
 
