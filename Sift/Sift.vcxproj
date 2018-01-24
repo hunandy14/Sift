@@ -150,7 +150,6 @@
     <ClCompile Include="Imgraw.cpp" />
     <ClCompile Include="kdtree\kdtree.cpp" />
     <ClCompile Include="kdtree\minpq.cpp" />
-    <ClCompile Include="ransac\utils.cpp" />
     <ClCompile Include="ransac\xform.cpp" />
     <ClCompile Include="Raw2Img\Raw2img.cpp" />
     <ClCompile Include="Sift.cpp" />
@@ -163,7 +162,6 @@
     <ClInclude Include="kdtree\kdtree.hpp" />
     <ClInclude Include="kdtree\minpq.hpp" />
     <ClInclude Include="matrix.hpp" />
-    <ClInclude Include="ransac\utils.hpp" />
     <ClInclude Include="ransac\xform.hpp" />
     <ClInclude Include="Raw2Img\Raw2img.hpp" />
     <ClInclude Include="Raw2Img\Raw2img_type.hpp" />

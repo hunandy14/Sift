@@ -5,6 +5,7 @@ By   : CharlotteHonG
 Final: 2018/01/04
 *****************************************************************/
 #pragma once
+#include <vector>
 using std::vector;
 
 struct fpoint{

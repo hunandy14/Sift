@@ -1,13 +1,13 @@
 #include <iostream>
-#include <vector>
 
 #include "minpq.hpp"
 #include "imagedata.hpp"
-#include "utils.hpp"
 
 /************************* Local Function Prototypes *************************/
 static void restore_minpq_order(struct pq_node*, int, int);
 static void decrease_pq_node_key(struct pq_node*, int, int);
+
+
 /************************** Local Inline Functions ***************************/
 /* returns the array index of element i's parent */
 static inline int parent(int i)
@@ -24,6 +24,26 @@ static inline int left(int i)
 {
 	return 2 * i + 1;
 }
+
+/* Doubles the size of an array with error checking */
+static int array_double(void** array, int n, int size)
+{
+	void* tmp;
+
+	tmp = realloc(*array, 2 * n * size);
+	if (!tmp)
+	{
+		std::cout << "Warning: unable to allocate memory in array_double()" << std::endl;
+		if (*array)
+			free(*array);
+		*array = NULL;
+		return 0;
+	}
+	*array = tmp;
+	return n * 2;
+}
+
+
 /********************** Functions prototyped in minpq.h **********************/
 struct min_pq* minpq_init()
 {

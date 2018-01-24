@@ -1,6 +1,5 @@
 ﻿
 #include <iostream>
-#include <vector>
 #include "imagedata.hpp"
 #include "minpq.hpp"
 #include "kdtree.hpp"

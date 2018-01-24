@@ -6,7 +6,6 @@ using namespace std;
 using namespace cv;
 
 #include "xform.hpp"
-#include "utils.hpp"
 
 /********************************** Structures *******************************/
 struct ransac_data {
@@ -243,14 +242,14 @@ int get_matched_features(Feature *features, int n, Feature ***matched) {
 	return m;
 }
 
-float _log_factorial(int n, int m) {
+static float _log_factorial(int n, int m) {
 	float f = 0.f;
 	for(int i = n; i <= m; i++){
 		f += log((float)i);
 	}
 	return f;
 }
-float log_factorial(int n) {
+static float log_factorial(int n) {
 	float f = 0.f;
 	for(int i = 1; i <= n; i++){
 		f += log((float)i);
@@ -331,9 +330,14 @@ void extract_corresp_pts(Feature** features, int n, fpoint** pts, fpoint** mpts)
 	*mpts = _mpts;
 }
 
-/* 找出一致集. */
-fpoint persp_xform_pt(fpoint pt, vector<float> &T)
-{
+static float dist_sq_2D(fpoint p1, fpoint p2) {
+// 兩點距離.
+	float x_diff = p1.x - p2.x;
+	float y_diff = p1.y - p2.y;
+	return x_diff * x_diff + y_diff * y_diff;
+}
+static fpoint persp_xform_pt(fpoint pt, vector<float> &T) {
+// pt經變換矩陣H變換後的點xpt, 即H乘以x對應的向量.
 	CvMat* _T;
 	_T = cvCreateMat(3, 3, CV_32FC1);
 	for(int i = 0; i < 9; i++) {
@@ -351,11 +355,12 @@ fpoint persp_xform_pt(fpoint pt, vector<float> &T)
 	cvReleaseMat(&_T);
 	return rslt;
 }
-float homog_xfer_err(fpoint pt, fpoint mpt, vector<float> &H) {
+static float homog_xfer_err(fpoint pt, fpoint mpt, vector<float> &H) {
+// 對於給定的單應性矩陣H，計算輸入點pt精H變換後的點與其匹配點mpt之間的誤差 
 	fpoint xpt = persp_xform_pt(pt, H);
 	return sqrt(dist_sq_2D(xpt, mpt));
 }
-//對於給定的模型和錯誤度量函數，從特徵點集和中找出一致集.
+// 對於給定的模型和錯誤度量函數，從特徵點集和中找出一致集.
 int find_consensus(Feature** features, int n, vector<float> &M, float err_tol, Feature*** consensus) {
 	// 這裡帶入的 features 已經過濾過了一定有匹配點
 	Feature** _consensus;

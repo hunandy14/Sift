@@ -39,11 +39,11 @@ int main(int argc, char const *argv[]){
 	f.first(f2, f, 4);
 
 #define testpoint1
-#ifdef testpoint1	
+#ifdef testpoint1
 	//string name1="kanna.bmp", name2="kanna2.bmp";
 	//string name1="ball_01.bmp", name2="ball_02.bmp";
-	//string name1="sd01.bmp", name2="sd02.bmp";
-	string name1="kanna.bmp", name2="kanna3.bmp";
+	string name1="sd01.bmp", name2="sd02.bmp";
+	//string name1="kanna.bmp", name2="kanna3.bmp";
 	
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
