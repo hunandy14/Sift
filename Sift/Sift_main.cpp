@@ -32,14 +32,7 @@ using namespace cv;
 //================================================================
 int main(int argc, char const *argv[]){
 	//srand((unsigned)time(NULL)); rand();
-	// 讀取圖片
 
-	ImgRaw f("kanna.bmp");
-	ImgRaw f2;
-	f.first(f2, f, 4);
-
-#define testpoint1
-#ifdef testpoint1
 	//string name1="kanna.bmp", name2="kanna2.bmp";
 	//string name1="ball_01.bmp", name2="ball_02.bmp";
 	//string name1="sd01.bmp", name2="sd02.bmp";
@@ -47,8 +40,8 @@ int main(int argc, char const *argv[]){
 	
 	ImgRaw img1(name1, "testImg");
 	ImgRaw img2(name2, "testImg");
-
-
+#define testpoint1
+#ifdef testpoint1
     // 金字塔1
 	Timer t1;
 	Sift fea1(img1);

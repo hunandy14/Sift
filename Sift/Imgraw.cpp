@@ -57,6 +57,7 @@ float fastAtan2f(float dy, float dx){
 ImgRaw::ImgRaw(string bmpname, string path){
 	if(path!="") {
 		bmpname = path+"\\"+bmpname;
+		std::cout << "bmpname=" << bmpname << std::endl;
 	}
 	vector<unsigned char> img;
 	uint32_t width, height;
