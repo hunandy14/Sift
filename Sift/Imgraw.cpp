@@ -54,7 +54,10 @@ float fastAtan2f(float dy, float dx){
 
 
 // ImgRaw «Øºc¤l
-ImgRaw::ImgRaw(string bmpname){
+ImgRaw::ImgRaw(string bmpname, string path){
+	if(path!="") {
+		bmpname = path+"\\"+bmpname;
+	}
 	vector<unsigned char> img;
 	uint32_t width, height;
 	uint16_t bits;

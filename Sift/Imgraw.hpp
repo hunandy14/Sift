@@ -24,7 +24,7 @@ public:
 		raw_img(img), width(width), height(height), bitCount(bits) {}
 	ImgRaw(uint32_t width, uint32_t height, uint16_t bits) :raw_img(width*height * (bits/8)), 
 		width(width), height(height), bitCount(bits){}
-	ImgRaw(string bmpname);
+	ImgRaw(string bmpname, string path="");
 	// ½Æ»s¨ç¦¡
 	ImgRaw& operator=(const ImgRaw& other) {
 		if (this != &other) {

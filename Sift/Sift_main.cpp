@@ -45,8 +45,8 @@ int main(int argc, char const *argv[]){
 	//string name1="sd01.bmp", name2="sd02.bmp";
 	string name1="kanna.bmp", name2="kanna3.bmp";
 	
-	ImgRaw img1(name1);
-	ImgRaw img2(name2);
+	ImgRaw img1(name1, "testImg");
+	ImgRaw img2(name2, "testImg");
 
 
     // 金字塔1
