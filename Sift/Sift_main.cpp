@@ -42,7 +42,8 @@ int main(int argc, char const *argv[]){
 #ifdef testpoint1	
 	//string name1="kanna.bmp", name2="kanna2.bmp";
 	//string name1="ball_01.bmp", name2="ball_02.bmp";
-	string name1="sd01.bmp", name2="sd02.bmp";
+	//string name1="sd01.bmp", name2="sd02.bmp";
+	string name1="kanna.bmp", name2="kanna3.bmp";
 	
 	ImgRaw img1(name1);
 	ImgRaw img2(name2);
@@ -68,7 +69,7 @@ int main(int argc, char const *argv[]){
 	match.Check(0.5);
 
 #endif // testpoint1
-	system("pause");
+	//system("pause");
 	return 0;
 }
 

@@ -655,24 +655,15 @@ void Stitching::Check(float matchTh) {
 			float d0 = descr_dist_sq(feat_st, nbrs[0]);
 			float d1 = descr_dist_sq(feat_st, nbrs[1]);
 			if(d0 < d1 * matchTh) {
+				// 把匹配點存入
 				feat1[i].fwd_match = nbrs[0];
-				/*
-				fpoint pt11 = fpoint(round(feat1[i].rX()), round(feat1[i].rY()));
-				fpoint pt22 = fpoint(round(feat1[i].fwd_match->rX()), round(feat1[i].fwd_match->rY()));
-				const int& x1 = pt11.x;
-				const int& y1 = pt11.y;
-				const int& x2 = pt22.x + (this->Width / 2);
-				const int& y2 = pt22.y;
-				// 畫線
-				Draw::drawLineRGB_p(matchOut2, y1, x1, y2, x2);
-				*/
 			}
 		} else {
 			feat1[i].fwd_match = nullptr;
 		} delete[] nbrs;
 	}
 	t1.print("KD-tree time");
-	//matchOut2.bmp("_matchImgkd.bmp", 24);
+
 /* 畫出連線. */
 	t1.start();
 	matchOut2 = matchImg;
@@ -690,13 +681,14 @@ void Stitching::Check(float matchTh) {
 	}
 	t1.print("link time");
 	matchOut2.bmp("_matchImg_kdLinkImg.bmp", 24);
+
+
 /* ransac */
 	t1.start();
 	// 獲得矩陣.
 	Feature** RANSAC_feat=nullptr;
 	int RANSAC_num = 0;
 	// 因為kd樹是放2的關係，所以搜1，搜1的時候有把配對到的點放在1裡面.
-//	vector<float> H = ransac_xform(feat1, feat1_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
 	vector<float> H = ransac_xform(feat1, feat1_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
 	t1.print("ransac time");
 	// 查看矩陣.
@@ -704,16 +696,6 @@ void Stitching::Check(float matchTh) {
 	for(size_t i = 0; i < 9; i++) {
 		cout << H[i] << ", ";
 	} cout << endl;
-
-
-	/*測試*/
-	int eff_num = 0;
-	for(size_t i = 0; i < RANSAC_num; i++) {
-		if(RANSAC_feat[i]->fwd_match) {
-			eff_num++;
-		}
-	}
-	cout<< "eff_num2=" << eff_num << endl;
 
 
 /* 畫出過濾後連線. */
@@ -738,11 +720,11 @@ void Stitching::Check(float matchTh) {
 			ran_c++;
 		}
 	}
-	cout << "ran_c=" << ran_c << endl;
-	
 	t1.print("link time");
 	matchOut2.bmp("_matchImg_RANSACImg.bmp", 24);
-/* 暴力找 */
+
+
+/* 暴力找匹配點 */
 //#define findFeat
 #ifdef findFeat
 	

@@ -36,10 +36,10 @@
     <ClCompile Include="kdtree\minpq.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
-    <ClCompile Include="kdtree\utils.cpp">
+    <ClCompile Include="ransac\xform.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
-    <ClCompile Include="ransac\xform.cpp">
+    <ClCompile Include="ransac\utils.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
   </ItemGroup>
@@ -68,9 +68,6 @@
     <ClInclude Include="kdtree\minpq.hpp">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="kdtree\utils.hpp">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
     <ClInclude Include="imagedata.hpp">
       <Filter>標頭檔</Filter>
     </ClInclude>
@@ -78,6 +75,9 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="matrix.hpp">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ransac\utils.hpp">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
