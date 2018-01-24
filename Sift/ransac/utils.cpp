@@ -29,34 +29,7 @@ float dist_sq_2D(fpoint p1, fpoint p2)
 
 	return x_diff * x_diff + y_diff * y_diff;
 }
-/*
-Image_Data stack_imgs(Image_Data &img1, Image_Data &img2)
-{
-	Image_Data stacked((img1.getCol() + img2.getCol()), std::max(img1.getRow(), img2.getRow()));
 
-	int Row = stacked.getRow();
-	int Col = stacked.getCol();
-	int i = 0, j = 0;
-	for (i = 0; i < Row; i++)
-	{
-		for (j = 0; j < img1.getCol() * 3; j++)
-		{
-			if (i < img1.getRow())
-				stacked.RGB[i * Col * 3 + j] = img1.RGB[i * img1.getCol() * 3 + j];
-			else
-				stacked.RGB[i * Col * 3 + j] = 0x00;
-		}
-		for (; j < Col * 3; j++)
-		{
-			if (i < img2.getRow())
-				stacked.RGB[i * Col * 3 + j] = img2.RGB[i * img2.getCol() * 3 + (j - (img1.getCol() * 3))];
-			else
-				stacked.RGB[i * Col * 3 + j] = 0x00;
-		}
-	}
-	return stacked;
-}
-*/
 /*
 void KeyPointImg(char *name, Image_Data &src, struct feature **feat, int n)
 {
