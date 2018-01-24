@@ -132,12 +132,10 @@ private:
 	using Desc = std::vector<std::vector<std::vector<float>>>;
 public:
 	Stitching(const Sift& desc1, const Sift& desc2);
-	static float EuclDist(const Desc& point1, const Desc& point2); // 描述子歐式距離
-	float Stitching::EuclDist2(float point1[128], float point2[128]); // 描述子歐式距離
 	void Check(float matchTh = NN_SQ_DIST_RATIO_THR); // 檢查是否有相同的特徵描述子
 private:
 	Feature *feat1, *feat2;
 	size_t Width, Height;
-	ImgRaw matchImg;
+	ImgRaw stackImg;
 	size_t feat1_Count, feat2_Count;
 };

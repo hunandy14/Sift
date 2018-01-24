@@ -87,8 +87,8 @@ struct Feature {
 
 
 public:
-	float rX() {return x/size;}
-	float rY() {return y/size;}
+	float rX() const {return x/size;}
+	float rY() const {return y/size;}
 };
 
 /** 保存檢測的相關數據 */

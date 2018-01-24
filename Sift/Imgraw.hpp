@@ -79,6 +79,7 @@ public:
 	ImgRaw ConverGray() const;
 	// 寫 BMP 檔
 	void bmp(string name, uint32_t bits=0);
+	void bmp(string name, uint32_t bits=0) const;
 	// 取出旋轉後的圖片
 	ImgRaw rotateImg(size_t x, size_t y, float radius, float sita);
 public: // 放大縮小 (覺得累贅想拿掉)
@@ -119,6 +120,11 @@ inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
 }
 // 寫 BMP 檔
 inline void ImgRaw::bmp(string name, uint32_t bits) {
+	if (bits == 0) { bits = this->bitCount; }
+	vector<unsigned char> img = (*this);// 有重載轉換函式
+	Raw2Img::raw2bmp(name, img, width, height, bits);
+}
+inline void ImgRaw::bmp(string name, uint32_t bits) const {
 	if (bits == 0) { bits = this->bitCount; }
 	vector<unsigned char> img = (*this);// 有重載轉換函式
 	Raw2Img::raw2bmp(name, img, width, height, bits);
