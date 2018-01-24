@@ -74,7 +74,7 @@ Final: 2017/07/05
 
 
 // 特徵點結構
-
+using Desc = std::vector<std::vector<std::vector<float>>>;
 //----------------------------------------------------------------
 // 尺寸大小不合
 class Size_error : public std::runtime_error {
@@ -93,30 +93,21 @@ private:
 	using Desc = vector<vector<vector<float>>>;
 public:
     Sift(ImgRaw img, size_t intvls=6);
-
-public:
-	void pyramid();
+public: // 其他方法
     void comp(vector<ImgRaw>& pyrs, string name="");
 	void drawArrow(string name="feaArrow.bmp", float ratio = 10000.f);
-private:
-	bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x);
-	// 描述特徵子
-	static bool calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori);
-	static Desc descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n);
-	static void interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, float mag, int d, int n);
-	static void hist_to_descr(const Desc &hist, int d, int n, Feature* feat);
-	static void normalize_descr(Feature* feat);
-	static void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 
-	void getHistogramMS(Feature* NweFeat, const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
-		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
+public: // 主要方法
+	void pyramid();
+private:// 獲取特徵點
 	void FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
-	void getHistogramMS(const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
-		size_t Iny, size_t Inx, size_t InWidth, size_t Inr);
-	void FeatAppend(int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
+	void getHistogramMS(Feature* NweFeat, const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
+		size_t Iny, size_t Inx, size_t Inr);
+private:// 描述特徵點
+	static Desc descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n);
+	static void hist_to_descr(const Desc &hist, int d, int n, Feature* feat);
+	static void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 private:
-	bool harris(const vector<float>& p, size_t w, size_t y, size_t x, float r=SIFT_CURV_THR);
-	static void DescripNomal(Desc& descripgroup);
 public:
     ImgRaw raw_img;    // 原圖
 	size_t pyWidth=6;  // 塔高(放大縮小)

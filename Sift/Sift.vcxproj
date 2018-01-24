@@ -101,7 +101,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\OpenCV_vc15\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\OpenCV_vc15\include;$(LocalDebuggerWorkingDirectory)\kdtree;$(LocalDebuggerWorkingDirectory);$(LocalDebuggerWorkingDirectory)\ransac</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
