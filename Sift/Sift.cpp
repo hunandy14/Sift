@@ -44,7 +44,7 @@ using namespace std;
      ######  #### ##          ##
 */
 // Sift建構子.
-Sift::Sift(ImgRaw img, size_t intvls): raw_img(img), pyWidth(intvls) {
+Sift::Sift(ImgRaw img, size_t intvls): raw_img(img), pyWidth(intvls+SIFT_INTVLS_DIFF) {
 	FeatStart = new Feature; // 第一點為空
 	FeatEnd = FeatStart;
 }
@@ -79,12 +79,12 @@ void Sift::drawArrow(string name, float ratio){
 
 
 /* 高斯金字塔. */
-static bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t scale_idx, size_t curr_Width, size_t y, size_t x) {
-	const float& Val = gauDog_imgs[scale_idx][y*curr_Width + x];
+static bool findMaxMin(vector<ImgRaw>& gauDog_imgs, size_t intvl_idx, size_t curr_Width, size_t y, size_t x) {
+	const float& Val = gauDog_imgs[intvl_idx][y*curr_Width + x];
 	// 過濾變化率過小的特徵點
 	if (fabs(Val) > SIFT_Dx/2.0) {
 		// 找極值
-		for (int k = (scale_idx - 1); k <= (scale_idx + 1); k++) {
+		for (int k = (intvl_idx - 1); k <= (intvl_idx + 1); k++) {
 			const ImgRaw& currImg = gauDog_imgs[k];
 			for (int j = (y - 1); j <= (y + 1); j++) {
 				size_t currIdx = j*curr_Width+x;
@@ -135,10 +135,10 @@ static size_t getPyramidOctv(size_t width, size_t height) {
 }
 void Sift::pyramid() {
 	ImgRaw gray_img = raw_img.ConverGray();
-	size_t octv = getPyramidOctv(gray_img.width, gray_img.height);
+	size_t octvs = getPyramidOctv(gray_img.width, gray_img.height);
 	float curr_size=2.f; // 尺度倍率.
 	float curr_sigmaCoef=1.f; // 模糊度倍率.
-	for (size_t ph = 0; ph < octv; ph++, curr_size /= 2.f, curr_sigmaCoef*=2.f) {
+	for (size_t ph = 0; ph < octvs; ph++, curr_size /= 2.f, curr_sigmaCoef*=2.f) {
 		const size_t curr_Width = gray_img.width*curr_size;
 		const size_t curr_Height = gray_img.height*curr_size;
 		ImgRaw currSize_img(curr_Width ,curr_Height, 8);
@@ -166,39 +166,41 @@ void Sift::pyramid() {
 		// 紀錄當前指針位置開始的位置.
 		Feature* CurrFeature = FeatEnd;
 		// 尋找特徵點並累加直方圖.
-		for (size_t scale_idx = 1; scale_idx < pyWidth-1-1; scale_idx++) {
+		for (size_t intvl_idx = 1; intvl_idx < pyWidth-1-1; intvl_idx++) {
 			//ImgRaw MaxMin_img(curr_Width, curr_Height, 8);
 			//ImgRaw Herris_img(curr_Width, curr_Height, 8);
 			// 特徵直方圖累加半徑.
-			const size_t r = curr_size * 3. * 1.5 * (scale_idx+1);
+			const size_t r = curr_size * 3. * 1.5 * (intvl_idx+1);
 			for (size_t j = r+1; j < curr_Height-r-1; j++) {
 				for (size_t i = r+1; i < curr_Width-r-1; i++) {
 					// 尋找極值點.
-					if (findMaxMin(gauDog_imgs, scale_idx, curr_Width, j, i)) {
-						const ImgRaw& currImg = gauDog_imgs[scale_idx];
-						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),scale_idx) * (curr_sigmaCoef);
+					if (findMaxMin(gauDog_imgs, intvl_idx, curr_Width, j, i)) {
+						const ImgRaw& currImg = gauDog_imgs[intvl_idx];
+						const float currSigma = SIFT_GauSigma * powf(sqrt(2.0),intvl_idx) * (curr_sigmaCoef);
 						if (harris_corner(currImg, curr_Width, j, i, r)) { // r=SIFT_CURV_THR=10
 							// 這裡不知道為什麼設置為r效果更好論文所提設置是10.
 							Feature* NweFeat = nullptr;
-							//NweFeat = interp_extremum(gauDog_imgs, curr_Height, curr_Width, ph, scale_idx, j, i, pyWidth-3, SIFT_CONTR_THR);
+							//NweFeat = interp_extremum(gauDog_imgs, curr_Height, curr_Width, ph, intvl_idx, j, i, pyWidth-3, SIFT_CONTR_THR);
 							if(NweFeat) {
-								//getHistogramMS(NweFeat, currImg, curr_size, scale_idx, currSigma, j, i, r);
+								//getHistogramMS(NweFeat, currImg, curr_size, intvl_idx, currSigma, j, i, r);
 							}
-							getHistogramMS(nullptr, currImg, curr_size, scale_idx, currSigma, j, i, r);
+							getHistogramMS(nullptr, currImg, curr_size, intvl_idx, currSigma, j, i, r);
 							//Herris_img[j*curr_Width + i] = 255 /255.0;
 						}
 						//MaxMin_img[j*curr_Width + i] = 255 /255.0;
 					}
 				}
 			}
-			//MaxMin_img.bmp("MaxMin/MaxMin_"+to_string(scale_idx)+".bmp", 8);
-			//Herris_img.bmp("Herris/Herris_"+to_string(scale_idx)+".bmp", 8);
+			//MaxMin_img.bmp("MaxMin/MaxMin_"+to_string(intvl_idx)+".bmp", 8);
+			//Herris_img.bmp("Herris/Herris_"+to_string(intvl_idx)+".bmp", 8);
 		}
 		// 描述剛剛才找到的那堆新特徵點(當前的點是舊的).
 		FeatureDescrip(gau_imgs, CurrFeature->nextptr);
 	} // 不同尺度大小的for()
-/* 複製到連續空間. */
-	// 暫時先這樣(把資料複製到連續的位置上).
+
+
+
+	// 複製到連續的位置上.
 	Feature* temp = new Feature[feaNum];
 	int i = 0;
 	for(Feature *preFea = nullptr, 
@@ -209,7 +211,7 @@ void Sift::pyramid() {
 		memcpy(&temp[i++], fea, sizeof(*fea));
 		if(preFea) {
 			delete preFea; // 刪除上一點.
-			temp[i-1].nextptr = &temp[i]; // next 改成連續記憶體上的.
+			// temp[i-1].nextptr = &temp[i]; // next 改成連續記憶體上的.
 		}
 		preFea = fea; // 迴圈記住上一點.
 	} delete FeatStart;
@@ -219,8 +221,8 @@ void Sift::pyramid() {
 }
 
 
-// 獲取特徵點.
-void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int scale_idx, int sigmaOCT, float Inm, int Insita) {
+/* 獲取特徵點. */
+void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int intvl_idx, int sigmaOCT, float Inm, int Insita) {
 	Feature* newnode;
 	if(NweFeat) {
 		newnode = NweFeat;
@@ -236,7 +238,7 @@ void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int scal
 	newnode->mm = Inm;
 	newnode->sita = Insita;
 	newnode->size = Insize;
-	newnode->kai = scale_idx;
+	newnode->kai = intvl_idx;
 	newnode->sigmaOCT = sigmaOCT;
 	newnode->nextptr = nullptr;
 
@@ -244,18 +246,18 @@ void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int scal
 	FeatEnd = newnode; // 更新結尾點的標記
 	++feaNum; // 計數幾點
 }
-void Sift::getHistogramMS(Feature* NweFeat, const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
+void Sift::getHistogramMS(Feature* NweFeat, const ImgRaw& img, float Insize, size_t intvl_idx, float sigma, 
 	size_t Iny, size_t Inx, size_t Inr)
 {
 	const size_t matLen = Inr*2 + 1;     // 遮罩長度
 	vector<float> mag(matLen * matLen);  // 儲存強度
 	vector<float> sita(matLen * matLen); // 儲存角度
-	const size_t InWidth = doImage.width;// 圖片寬度
+	const size_t InWidth = img.width;// 圖片寬度
 	//做m、sita計算
 	for (int j = (Iny - Inr), idx = 0; j <= (Iny + Inr); j++) {
 		for (int i = (Inx - Inr); i <= (Inx + Inr); i++, idx++) {
-			const float& dx = doImage[(j+0)*InWidth + (i+1)] - doImage[(j+0)*InWidth + (i-1)];
-			const float& dy = doImage[(j+1)*InWidth + (i+0)] - doImage[(j-1)*InWidth + (i+0)];
+			const float& dx = img[(j+0)*InWidth + (i+1)] - img[(j+0)*InWidth + (i-1)];
+			const float& dy = img[(j+1)*InWidth + (i+0)] - img[(j-1)*InWidth + (i+0)];
 			mag[idx] = sqrtf(dx*dx + dy*dy); // 獲得強度
 			sita[idx] = fastAtan2f(dy, dx);  // 獲得角度
 		}
@@ -281,20 +283,21 @@ void Sift::getHistogramMS(Feature* NweFeat, const ImgRaw& doImage, float Insize,
 	float maxMag = *max_element(magSum.begin(), magSum.end());
 	for (size_t i = 0; i < 36; i++) {
 		if (magSum[i] >= maxMag*0.8) {// 大於80%的都存下來
-			FeatAppend(NweFeat, Inx, Iny, Insize, scale, sigma, magSum[i], i*10);
+			FeatAppend(NweFeat, Inx, Iny, Insize, intvl_idx, sigma, magSum[i], i*10);
 		}
 	}
 }
 
 
 /* 描述特徵子(rob方法). */
-static bool calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int r, int c, float &mag, float &ori) {
-	float dx = 0.0, dy = 0.0;
-	int Col = COL;
-	if (r > 0 && r < ROW - 1 && c > 0 && c < COL - 1) {
-		dx = img[(r)* Col + (c + 1)] - img[(r)* Col + (c - 1)];
-		dy = img[(r - 1) * Col + (c)] - img[(r + 1) * Col + (c)];
-		mag = sqrt(dx * dx + dy * dy);
+static bool calc_grad_mag_ori(const ImgRaw& img, int r, int c, float &mag, float &ori) {
+	int col = img.width;
+	int row = img.height;
+
+	if (r > 0 && r < row - 1 && c > 0 && c < col - 1) {
+		float dx = img[(r  )*col + (c+1)] - img[(r  )*col + (c-1)];
+		float dy = img[(r-1)*col + (c  )] - img[(r+1)*col + (c  )];
+		mag = sqrt(dx*dx + dy*dy);
 		//mag = dx > dy ? max(0.875f*dx+0.5f*dy, dx) : max(0.875f*dy + 0.5f*dx, dy);
 		ori = atan2(dy, dx);
 		return true;
@@ -303,15 +306,12 @@ static bool calc_grad_mag_ori(const vector<float> &img, int &COL, int &ROW, int 
 	}
 }
 static void interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, float mag, int d, int n) {
-	float d_r, d_c, d_o;
-	int r0, c0, o0;
-
-	r0 = (int)floor(rbin);
-	c0 = (int)floor(cbin);
-	o0 = (int)floor(obin);
-	d_r = rbin - r0;
-	d_c = cbin - c0;
-	d_o = obin - o0;
+	int r0 = (int)floor(rbin);
+	int c0 = (int)floor(cbin);
+	int o0 = (int)floor(obin);
+	float d_r = rbin - r0;
+	float d_c = cbin - c0;
+	float d_o = obin - o0;
 
 	for (int r = 0; r <= 1; r++) {
 		int rb = r0 + r;
@@ -333,38 +333,35 @@ static void interp_hist_entry(Desc &hist, float rbin, float cbin, float obin, fl
 		}
 	}
 }
-Sift::Desc Sift::descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n) {
-	vector<vector<vector<float>>> hist;
-	float cos_t, sin_t, hist_width, exp_denom, r_rot, c_rot, grad_mag,
-		grad_ori, w, rbin, cbin, obin, bins_per_rad, PI2 = 2.f * M_PI;
-	int radius, i, j;
-
-	hist.resize(d);
-	for (i = 0; i < d; i++) {
+Sift::Desc Sift::descr_hist(const ImgRaw &img, int r, int c, float ori, float scl, int d, int n) {
+	vector<vector<vector<float>>> hist(d);
+	for (int i = 0; i < d; i++) {
 		hist[i].resize(d);
-		for (j = 0; j < d; j++) {
+		for (int j = 0; j < d; j++) {
 			hist[i][j].resize(n);
 		}
 	}
 
-	cos_t = cos(ori);
-	sin_t = sin(ori);
-	bins_per_rad = n / PI2;
-	exp_denom = d * d * 0.5f;
-	hist_width = (float)SIFT_DESCR_SCL_FCTR * scl;
-	radius = (int)(hist_width * sqrt(2.f) * (d + 1.f) * 0.5f + 0.5f);
+	float cos_t = cos(ori);
+	float sin_t = sin(ori);
+	float PI2 = 2.f * M_PI;
+	float bins_per_rad = n / PI2;
+	float exp_denom = d * d * 0.5f;
+	float hist_width = (float)SIFT_DESCR_SCL_FCTR * scl;
+	int radius = (int)(hist_width * sqrt(2.f) * (d + 1.f) * 0.5f + 0.5f);
 
-	for (i = -radius; i <= radius; i++) {
-		for (j = -radius; j <= radius; j++) {
+	for (int i = -radius; i <= radius; i++) {
+		for (int j = -radius; j <= radius; j++) {
 			// 把位置縮放到 [0~4)
-			c_rot = (j * cos_t - i * sin_t) / hist_width;
-			r_rot = (j * sin_t + i * cos_t) / hist_width;
-			rbin = r_rot + d / 2.f - 0.5f;
-			cbin = c_rot + d / 2.f - 0.5f;
+			float c_rot = (j * cos_t - i * sin_t) / hist_width;
+			float r_rot = (j * sin_t + i * cos_t) / hist_width;
+			float rbin = r_rot + d / 2.f - 0.5f;
+			float cbin = c_rot + d / 2.f - 0.5f;
 			// 確保位置 [0~4) 刪除超出原圖指定半徑外的點
 			if (rbin > -1.f  &&  rbin < d  &&  cbin > -1.f  &&  cbin < d) {
 				// 計算成功回傳1 並修改數值
-				if (calc_grad_mag_ori(img, COL, ROW, r + i, c + j, grad_mag, grad_ori)) {
+				float grad_mag, grad_ori;
+				if (calc_grad_mag_ori(img, r + i, c + j, grad_mag, grad_ori)) {
 					grad_ori -= ori;
 					// 修正0~360
 					while (grad_ori < 0.f) {
@@ -373,9 +370,8 @@ Sift::Desc Sift::descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c
 					while (grad_ori >= PI2) {
 						grad_ori -= PI2;
 					}
-
-					obin = grad_ori * bins_per_rad;// 高斯加權分布
-					w = exp(-(c_rot * c_rot + r_rot * r_rot) / exp_denom); // 計算權值
+					float obin = grad_ori * bins_per_rad;// 高斯加權分布
+					float w = exp(-(c_rot * c_rot + r_rot * r_rot) / exp_denom); // 計算權值
 					interp_hist_entry(hist, rbin, cbin, obin, grad_mag * w, d, n); //插補
 				}
 			}
@@ -461,17 +457,15 @@ void Sift::FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow) {
 	{
 		// 轉換為 rob hess 函式可用的數據
 		ImgRaw& curryImg = kaidaImag[FeatureS->kai];
-		int col = curryImg.width;
-		int row = curryImg.height;
+		int r = FeatureS->y;
+		int c = FeatureS->x;
 		int ori = FeatureS->sita;
-		int d=4;
-		int r=FeatureS->y;
-		int c=FeatureS->x;
-		int n=SIFT_DESCR_HIST_BINS;
-		int scl_octv = FeatureS->sigmaOCT;
+		int scl = FeatureS->sigmaOCT;
+		int d = SIFT_DESCR_HIST_RADIUS;
+		int n = SIFT_DESCR_HIST_BINS; 
 
 		// 描述這當前一點特徵子.
-		hist = descr_hist(curryImg, col, row, r, c, ori, scl_octv, d, n);
+		hist = descr_hist(curryImg, r, c, ori, scl, d, n);
 		// rob hess normalize.
 		hist_to_descr(hist, d, n, FeatureS);
 		// normalize2 (不知道為什麼，match比較好).

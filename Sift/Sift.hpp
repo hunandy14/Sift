@@ -39,15 +39,17 @@ Final: 2017/07/05
 #include "imagedata.hpp"
 
 // 論文中的s
-#define SIFT_Sacle 3
+#define SIFT_INTVLS 3
 // 找極值捨去前後兩張 + 差分圖少1張
-#define SIFT_SacleDiff 3
+#define SIFT_INTVLS_DIFF 3
 // 高斯模糊的初始係數
 #define SIFT_GauSigma 1.6f
 // 去除不穩定特徵點
 #define SIFT_Dx 0.03f
 // 原論文給的 3*1.5*sigma
 #define SIFT_DESCR_SCL_FCTR 3.f
+// 特徵描述子半徑 4x4 區塊
+#define SIFT_DESCR_HIST_RADIUS 4
 // 特徵描述子8個角度
 #define SIFT_DESCR_HIST_BINS 8
 // 特徵點向量元素的閥值
@@ -92,7 +94,7 @@ private:
     using types = float;
 	using Desc = vector<vector<vector<float>>>;
 public:
-    Sift(ImgRaw img, size_t intvls=6);
+    Sift(ImgRaw img, size_t intvls = SIFT_INTVLS);
 public: // 其他方法
     void comp(vector<ImgRaw>& pyrs, string name="");
 	void drawArrow(string name="feaArrow.bmp", float ratio = 10000.f);
@@ -104,18 +106,18 @@ private:// 獲取特徵點
 	void getHistogramMS(Feature* NweFeat, const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t Inr);
 private:// 描述特徵點
-	static Desc descr_hist(vector<float> &img, int &COL, int &ROW, int r, int c, float ori, float scl, int d, int n);
+	static Desc descr_hist(const ImgRaw &img, int r, int c, float ori, float scl, int d, int n);
 	static void hist_to_descr(const Desc &hist, int d, int n, Feature* feat);
 	static void FeatureDescrip(vector<ImgRaw>& kaidaImag, Feature* FeatureNow);
 private:
 public:
-    ImgRaw raw_img;    // 原圖
-	size_t pyWidth=6;  // 塔高(放大縮小)
+    ImgRaw raw_img;			// 原圖.
+	size_t pyWidth = 3+2+1;	// 金字塔寬(模糊幾次).
     vector<vector<ImgRaw>> pyrs;
 	vector<vector<ImgRaw>> pyrs_dog;
-	Feature* FeatStart; // 特徵點
-	Feature* FeatEnd;   // 標記才不用從頭再找
-	size_t feaNum=0;    // 特徵點數量
+	Feature* FeatStart;		// 特徵點.
+	Feature* FeatEnd;		// 標記才不用從頭再找.
+	size_t feaNum=0;		// 特徵點數量.
 };
 //-----------------------------------------------------------------
 class Stitching{
