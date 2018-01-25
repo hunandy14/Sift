@@ -10,11 +10,10 @@ Final: 2017/07/05
 #include <vector>
 #include <cmath>
 #include <algorithm>
-#include <memory>
-#include <random>
-#include <limits>
-#include <ctime>
-#include <timer.hpp>
+//#include <memory>
+//#include <random>
+//#include <limits>
+using namespace std;
 
 #if defined(_MSC_VER)
 	#define or ||
@@ -25,10 +24,10 @@ Final: 2017/07/05
 #define M_PI 3.14159265358979323846
 #define SQUARE2 1.4142135623730951f
 
+#include "timer.hpp"
 #include "Sift.hpp"
 #include "kdtree.hpp"
 #include "xform.hpp"
-using namespace std;
 
 
 
@@ -222,7 +221,7 @@ void Sift::pyramid() {
 
 
 /* 獲取特徵點. */
-void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int intvl_idx, int sigmaOCT, float Inm, int Insita) {
+static Feature* FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int intvl_idx, int sigmaOCT, float Inm, int Insita) {
 	Feature* newnode;
 	if(NweFeat) {
 		newnode = NweFeat;
@@ -230,8 +229,8 @@ void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int intv
 	else {
 		newnode = new Feature;
 		// 新增原點
-		newnode->img_pt.x = Inx/Insize;
-		newnode->img_pt.y = Iny/Insize;
+		//newnode->img_pt.x = Inx/Insize;
+		//newnode->img_pt.y = Iny/Insize;
 	}
 	newnode->x = Inx;
 	newnode->y = Iny;
@@ -241,10 +240,7 @@ void Sift::FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int intv
 	newnode->kai = intvl_idx;
 	newnode->sigmaOCT = sigmaOCT;
 	newnode->nextptr = nullptr;
-
-	FeatEnd->nextptr = newnode;// 加入該點
-	FeatEnd = newnode; // 更新結尾點的標記
-	++feaNum; // 計數幾點
+	return newnode;
 }
 void Sift::getHistogramMS(Feature* NweFeat, const ImgRaw& img, float Insize, size_t intvl_idx, float sigma, 
 	size_t Iny, size_t Inx, size_t Inr)
@@ -283,7 +279,12 @@ void Sift::getHistogramMS(Feature* NweFeat, const ImgRaw& img, float Insize, siz
 	float maxMag = *max_element(magSum.begin(), magSum.end());
 	for (size_t i = 0; i < 36; i++) {
 		if (magSum[i] >= maxMag*0.8) {// 大於80%的都存下來
-			FeatAppend(NweFeat, Inx, Iny, Insize, intvl_idx, sigma, magSum[i], i*10);
+			Feature* newnode = FeatAppend(NweFeat, Inx, Iny, Insize, intvl_idx, sigma, magSum[i], i*10);
+			if(newnode) {
+				FeatEnd->nextptr = newnode;// 加入該點
+				FeatEnd = newnode; // 更新結尾點的標記
+				++feaNum; // 計數幾點
+			}
 		}
 	}
 }

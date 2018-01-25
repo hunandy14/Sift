@@ -33,6 +33,9 @@ Final: 2017/07/05
 #pragma warning(disable : 4819)
 #pragma once
 
+#include <string>
+#include <vector>
+#include <cmath>
 #include "imglib\imglib.hpp"
 #include "Raw2Img\Raw2Img.hpp"
 #include "Imgraw.hpp"
@@ -102,7 +105,6 @@ public: // 其他方法
 public: // 主要方法
 	void pyramid();
 private:// 獲取特徵點
-	void FeatAppend(Feature* NweFeat, int Inx, int Iny, float Insize, int kai, int sigmaOCT, float Inm, int Insita);
 	void getHistogramMS(Feature* NweFeat, const ImgRaw& doImage, float Insize, size_t scale, float sigma, 
 		size_t Iny, size_t Inx, size_t Inr);
 private:// 描述特徵點
