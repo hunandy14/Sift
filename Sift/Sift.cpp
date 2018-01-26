@@ -24,6 +24,9 @@ using namespace std;
 #define M_PI 3.14159265358979323846
 #define SQUARE2 1.4142135623730951f
 
+#include "opencv2/opencv.hpp"
+using namespace cv;
+
 #include "timer.hpp"
 #include "Sift.hpp"
 #include "kdtree.hpp"
@@ -581,8 +584,13 @@ static void featDrawLine(string name, const ImgRaw& stackImg, const Feature* fea
 	ImgRaw outImg = stackImg;
 	for(int i = 0; i < featNum; i++) {
 		if(feat[i].fwd_match) {
+			/*
 			fpoint pt11 = fpoint(round(feat[i].rX()), round(feat[i].rY()));
 			fpoint pt22 = fpoint(round(feat[i].fwd_match->rX()), round(feat[i].fwd_match->rY()));
+			*/
+			fpoint pt11 = fpoint(round(feat[i].fwd_match->rX()), round(feat[i].fwd_match->rY()));
+			fpoint pt22 = fpoint(round(feat[i].rX()), round(feat[i].rY()));
+
 			const int& x1 = pt11.x;
 			const int& y1 = pt11.y;
 			const int& x2 = pt22.x + (outImg.width *.5);
@@ -598,8 +606,13 @@ static void featDrawLine(string name, const ImgRaw& stackImg, Feature const* con
 	ImgRaw outImg = stackImg;
 	for(int i = 0; i < RANfeatNum; i++) {
 		if(RANfeat[i]->fwd_match) {
+			/*
 			fpoint pt11 = fpoint(round(RANfeat[i]->rX()), round(RANfeat[i]->rY()));
 			fpoint pt22 = fpoint(round(RANfeat[i]->fwd_match->rX()), round(RANfeat[i]->fwd_match->rY()));
+			*/
+			fpoint pt11 = fpoint(round(RANfeat[i]->fwd_match->rX()), round(RANfeat[i]->fwd_match->rY()));
+			fpoint pt22 = fpoint(round(RANfeat[i]->rX()), round(RANfeat[i]->rY()));
+
 			const int& x1 = pt11.x;
 			const int& y1 = pt11.y;
 			const int& x2 = pt22.x + (outImg.width *.5);
@@ -611,27 +624,101 @@ static void featDrawLine(string name, const ImgRaw& stackImg, Feature const* con
 	}
 	outImg.bmp(name, 24);
 }
+
+
+
+
+
+
+// 取出旋轉後的圖片
+ImgRaw imgWarpAffine(const ImgRaw& Img, size_t x, size_t y, float radius, float sita) {
+	// 新圖長寬半徑
+	float maxRadius = radius;
+	int rotH = floor(maxRadius);
+	int rotW = floor(maxRadius);
+	ImgRaw rotate(rotW*2, rotH*2, 8);
+	// 預算
+	sita *= -1; // 把新圖轉回0度
+	float cos_t = cosf(sita*(float)(M_PI/180));  
+	float sin_t = sinf(sita*(float)(M_PI/180));
+	// 跑新圖
+	for (int j = -rotH; j < rotH; j++) {
+		for (int i = -rotW; i < rotW; i++) {
+			// 輸入新圖座標返回舊圖座標(已0, 0為圓心旋轉)
+			float r_rot = (j)*sin_t + (i)*cos_t; // 原圖X座標
+			float c_rot = (j)*cos_t - (i)*sin_t; // 原圖Y座標
+												 // 矯正回指定位置
+			float rbin = r_rot + x; 
+			float cbin = c_rot + y;
+			// 去除原圖外的點
+			if (cbin < Img.height - 1 and cbin > 0) {
+				if (rbin < Img.width - 1 and rbin > 0) {
+					// 雙線姓插補
+					rotate.at2d(j+rotH, i+rotW) = Img.atBilinear(cbin, rbin); 
+				}
+			}
+		}
+	}
+	return rotate;
+}
 void Stitching::Check(float matchTh) {
 	Timer t1;
 /* kdtree */
 	t1.start();
-	kdtreeMatchFeat(feat1, feat1_Count, feat2, feat2_Count, matchTh);
+	kdtreeMatchFeat(feat2, feat2_Count, feat1, feat1_Count, matchTh);
 	//forceMatchFeat(feat1, feat1_Count, feat2, feat2_Count, matchTh);
 	t1.print("KD-tree match time");
 	// 畫出連線.
-	featDrawLine("_matchImg_kdLinkImg.bmp", stackImg, feat1, feat1_Count);
+	featDrawLine("_matchImg_kdLinkImg.bmp", stackImg, feat2, feat2_Count);
 /* ransac */
 	// 獲得矩陣.
 	Feature** RANSAC_feat=nullptr;
 	int RANSAC_num = 0;
 	t1.start();
-	vector<float> H = ransac_xform(feat1, feat1_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
+	vector<float> HomogMat = ransac_xform(feat2, feat2_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
 	t1.print("ransac time");
 	// 查看矩陣.
 	cout << "RANSAC_num=" << RANSAC_num << endl;
-	for(size_t i = 0; i < 9; i++) {
-		cout << H[i] << ", ";
+	for(size_t j = 0; j < 3; j++) {
+		for(size_t i = 0; i < 3; i++) {
+			cout << HomogMat[j*3 + i] << ", ";
+		} cout << endl;
 	} cout << endl;
 	// 畫出連線.
 	featDrawLine("_matchImg_RANSACImg.bmp", stackImg, RANSAC_feat, RANSAC_num);
+
+
+
+
+	
+
+
+
+	Mat src1 = cv::imread("testImg\\mm07.bmp");
+	Mat src2 = cv::imread("testImg\\mm08.bmp");
+	Mat dst;
+
+	//定义平移矩阵  
+	Mat t_mat = Mat::zeros(2, 3, CV_32FC1);  
+	t_mat.at<float>(0, 0) = HomogMat[0];
+	t_mat.at<float>(0, 1) = HomogMat[1];
+	t_mat.at<float>(0, 2) = HomogMat[2];
+	t_mat.at<float>(1, 0) = HomogMat[3]; 
+	t_mat.at<float>(1, 1) = HomogMat[4]; 
+	t_mat.at<float>(1, 2) = HomogMat[5];
+
+	warpAffine(src2, dst, t_mat, src2.size());  
+
+	//显示平移效果  
+	imshow("image1", src1);
+	imwrite("image1.bmp", src1);
+	//imshow("image2", src2);
+	imshow("result", dst);  
+	imwrite("image2.bmp", dst);
+
+
+
+
+
+	waitKey(0);
 }
