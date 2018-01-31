@@ -22,6 +22,13 @@ public:
 	ImgRaw() = default;
 	ImgRaw(vector<types> img, uint32_t width, uint32_t height, uint16_t bits) :
 		raw_img(img), width(width), height(height), bitCount(bits) {}
+	ImgRaw(vector<unsigned char> img, uint32_t width, uint32_t height, uint16_t bits) :
+		width(width), height(height), bitCount(bits)
+	{
+		raw_img.resize(img.size());
+		for(unsigned i = 0; i < img.size(); ++i)
+			raw_img[i] = img[i]/255.0;
+	}
 	ImgRaw(uint32_t width, uint32_t height, uint16_t bits) :raw_img(width*height * (bits/8)), 
 		width(width), height(height), bitCount(bits){}
 	ImgRaw(string bmpname, string path="");

@@ -132,5 +132,6 @@ private:
 	Feature *feat1, *feat2;
 	size_t Width, Height;
 	ImgRaw stackImg;
+	ImgRaw img1, img2;
 	size_t feat1_Count, feat2_Count;
 };

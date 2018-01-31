@@ -11,7 +11,7 @@ Final: 2017/07/04
 #include <cmath>
 #include <ctime>
 #include <memory>
-#include <Timer.hpp>
+#include <timer.hpp>
 
 using namespace std;
 #include "Sift.hpp"
@@ -40,24 +40,26 @@ int main(int argc, char const *argv[]){
 	//string name1="kanna.bmp", name2="kanna2.bmp";
 	//string name1="kanna_L.bmp", name2="kanna_R.bmp";
 	//string name1="sm01.bmp", name2="sm02.bmp";
-	string name1="mm07.bmp", name2="mm08.bmp";
+	string name1="mm05.bmp", name2="mm06.bmp";
+	//string name1="mm07.bmp", name2="mm08.bmp";
 	
 	ImgRaw img1(name1, "testImg");
 	ImgRaw img2(name2, "testImg");
+
 #define testpoint1
 #ifdef testpoint1
     // 金字塔1
 	Timer t1;
 	Sift fea1(img1);
 	fea1.pyramid();
-	fea1.drawArrow("feaArrow1.bmp");
+	//fea1.drawArrow("feaArrow1.bmp");
 	t1.print("feat1");
 
 	// 金字塔2
 	t1.start();
 	Sift fea2(img2);
 	fea2.pyramid();
-	fea2.drawArrow("feaArrow2.bmp");
+	//fea2.drawArrow("feaArrow2.bmp");
 	t1.print("feat2");
 
 

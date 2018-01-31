@@ -10,9 +10,9 @@ Final: 2017/07/05
 #include <vector>
 #include <cmath>
 #include <algorithm>
-//#include <memory>
-//#include <random>
-//#include <limits>
+#include <memory>
+#include <random>
+#include <limits>
 using namespace std;
 
 #if defined(_MSC_VER)
@@ -31,7 +31,7 @@ using namespace cv;
 #include "Sift.hpp"
 #include "kdtree.hpp"
 #include "xform.hpp"
-
+#include "stitch.hpp"
 
 
 
@@ -153,7 +153,7 @@ void Sift::pyramid() {
 			const float curr_Sigma = SIFT_GauSigma * powf(sqrt(2.0),i) * (curr_sigmaCoef); // 這裡的2是 S+3 的 S
 			gau_imgs[i].resize(curr_Width, curr_Height, 8);
 			Gaus::GauBlur(gau_imgs[i], gau_imgs[i-1], curr_Width, curr_Height, curr_Sigma);
-			//gau_imgs[i].bmp("gau/gau"+to_string(i)+".bmp", 8);
+			//gau_imgs[j].bmp("gau/gau"+to_string(j)+".bmp", 8);
 		}
 		// 高斯差分
 		vector<ImgRaw> gauDog_imgs(pyWidth-1);
@@ -162,7 +162,7 @@ void Sift::pyramid() {
 			for (size_t idx = 0; idx < curr_Width*curr_Height; idx++) {
 				gauDog_imgs[i][idx] = gau_imgs[i][idx] - gau_imgs[i+1][idx];
 			}
-			//gauDog_imgs[i].bmp("gauDog/gauDog"+to_string(i)+".bmp", 8);
+			//gauDog_imgs[j].bmp("gauDog/gauDog"+to_string(j)+".bmp", 8);
 		}
 	/* 尋找特徵點. */
 		// 紀錄當前指針位置開始的位置.
@@ -182,14 +182,14 @@ void Sift::pyramid() {
 						if (harris_corner(currImg, curr_Width, j, i, r)) { // r=SIFT_CURV_THR=10
 							// 這裡不知道為什麼設置為r效果更好論文所提設置是10.
 							Feature* NweFeat = nullptr;
-							//NweFeat = interp_extremum(gauDog_imgs, curr_Height, curr_Width, ph, intvl_idx, j, i, pyWidth-3, SIFT_CONTR_THR);
+							//NweFeat = interp_extremum(gauDog_imgs, curr_Height, curr_Width, ph, intvl_idx, j, j, pyWidth-3, SIFT_CONTR_THR);
 							if(NweFeat) {
-								//getHistogramMS(NweFeat, currImg, curr_size, intvl_idx, currSigma, j, i, r);
+								//getHistogramMS(NweFeat, currImg, curr_size, intvl_idx, currSigma, j, j, r);
 							}
 							getHistogramMS(nullptr, currImg, curr_size, intvl_idx, currSigma, j, i, r);
-							//Herris_img[j*curr_Width + i] = 255 /255.0;
+							//Herris_img[j*curr_Width + j] = 255 /255.0;
 						}
-						//MaxMin_img[j*curr_Width + i] = 255 /255.0;
+						//MaxMin_img[j*curr_Width + j] = 255 /255.0;
 					}
 				}
 			}
@@ -213,7 +213,7 @@ void Sift::pyramid() {
 		memcpy(&temp[i++], fea, sizeof(*fea));
 		if(preFea) {
 			delete preFea; // 刪除上一點.
-			// temp[i-1].nextptr = &temp[i]; // next 改成連續記憶體上的.
+			// temp[j-1].nextptr = &temp[j]; // next 改成連續記憶體上的.
 		}
 		preFea = fea; // 迴圈記住上一點.
 	} delete FeatStart;
@@ -252,7 +252,7 @@ void Sift::getHistogramMS(Feature* NweFeat, const ImgRaw& img, float Insize, siz
 	vector<float> mag(matLen * matLen);  // 儲存強度
 	vector<float> sita(matLen * matLen); // 儲存角度
 	const size_t InWidth = img.width;// 圖片寬度
-	//做m、sita計算
+	//做curr_m、sita計算
 	for (int j = (Iny - Inr), idx = 0; j <= (Iny + Inr); j++) {
 		for (int i = (Inx - Inr); i <= (Inx + Inr); i++, idx++) {
 			const float& dx = img[(j+0)*InWidth + (i+1)] - img[(j+0)*InWidth + (i-1)];
@@ -302,7 +302,7 @@ static bool calc_grad_mag_ori(const ImgRaw& img, int r, int c, float &mag, float
 		float dx = img[(r  )*col + (c+1)] - img[(r  )*col + (c-1)];
 		float dy = img[(r-1)*col + (c  )] - img[(r+1)*col + (c  )];
 		mag = sqrt(dx*dx + dy*dy);
-		//mag = dx > dy ? max(0.875f*dx+0.5f*dy, dx) : max(0.875f*dy + 0.5f*dx, dy);
+		//mag = Align_dx > Align_dy ? max(0.875f*Align_dx+0.5f*Align_dy, Align_dx) : max(0.875f*Align_dy + 0.5f*Align_dx, Align_dy);
 		ori = atan2(dy, dx);
 		return true;
 	} else {
@@ -495,8 +495,8 @@ Stitching::Stitching(const Sift& desc1, const Sift& desc2):
 	feat1(desc1.FeatStart), feat2(desc2.FeatStart), 
 	feat1_Count(desc1.feaNum), feat2_Count(desc2.feaNum)
 {
-	const ImgRaw& img1 = desc1.raw_img;
-	const ImgRaw& img2 = desc2.raw_img;
+	img1 = desc1.raw_img;
+	img2 = desc2.raw_img;
 	this->Width  = img1.width+img2.width;
 	this->Height = img1.height;
 	// 合併兩張圖
@@ -585,8 +585,8 @@ static void featDrawLine(string name, const ImgRaw& stackImg, const Feature* fea
 	for(int i = 0; i < featNum; i++) {
 		if(feat[i].fwd_match) {
 			/*
-			fpoint pt11 = fpoint(round(feat[i].rX()), round(feat[i].rY()));
-			fpoint pt22 = fpoint(round(feat[i].fwd_match->rX()), round(feat[i].fwd_match->rY()));
+			fpoint pt11 = fpoint(round(feat[j].rX()), round(feat[j].rY()));
+			fpoint pt22 = fpoint(round(feat[j].fwd_match->rX()), round(feat[j].fwd_match->rY()));
 			*/
 			fpoint pt11 = fpoint(round(feat[i].fwd_match->rX()), round(feat[i].fwd_match->rY()));
 			fpoint pt22 = fpoint(round(feat[i].rX()), round(feat[i].rY()));
@@ -597,7 +597,7 @@ static void featDrawLine(string name, const ImgRaw& stackImg, const Feature* fea
 			const int& y2 = pt22.y;
 			Draw::drawLineRGB_p(outImg, y1, x1, y2, x2);
 		} else {
-			// cerr << "feat[i].fwd_match is nullptr" << endl;
+			// cerr << "feat[j].fwd_match is nullptr" << endl;
 		}
 	}
 	outImg.bmp(name, 24);
@@ -607,8 +607,8 @@ static void featDrawLine(string name, const ImgRaw& stackImg, Feature const* con
 	for(int i = 0; i < RANfeatNum; i++) {
 		if(RANfeat[i]->fwd_match) {
 			/*
-			fpoint pt11 = fpoint(round(RANfeat[i]->rX()), round(RANfeat[i]->rY()));
-			fpoint pt22 = fpoint(round(RANfeat[i]->fwd_match->rX()), round(RANfeat[i]->fwd_match->rY()));
+			fpoint pt11 = fpoint(round(RANfeat[j]->rX()), round(RANfeat[j]->rY()));
+			fpoint pt22 = fpoint(round(RANfeat[j]->fwd_match->rX()), round(RANfeat[j]->fwd_match->rY()));
 			*/
 			fpoint pt11 = fpoint(round(RANfeat[i]->fwd_match->rX()), round(RANfeat[i]->fwd_match->rY()));
 			fpoint pt22 = fpoint(round(RANfeat[i]->rX()), round(RANfeat[i]->rY()));
@@ -661,6 +661,99 @@ ImgRaw imgWarpAffine(const ImgRaw& Img, size_t x, size_t y, float radius, float 
 	}
 	return rotate;
 }
+
+static void focalsFromHomography(const vector<float> &Hmg, float &f0, float &f1, bool &f0_ok, bool &f1_ok)
+{
+	float d1, d2; // Denominators. 分母. 
+	float v1, v2; // Focal squares value candidates. Focal平方值候選.
+
+	f1_ok = true;
+	d1 = Hmg[6] * Hmg[7];
+	d2 = (Hmg[7] - Hmg[6]) * (Hmg[7] + Hmg[6]);
+	v1 = -(Hmg[0] * Hmg[1] + Hmg[3] * Hmg[4]) / d1;
+	v2 = (Hmg[0] * Hmg[0] + Hmg[3] * Hmg[3] - Hmg[1] * Hmg[1] - Hmg[4] * Hmg[4]) / d2;
+
+	if (v1 < v2) {
+		swap(v1, v2);
+	}
+	if (v1 > 0 && v2 > 0) {
+		f1 = sqrt(abs(d1) > abs(d2) ? v1 : v2);
+	} else if (v1 > 0) {
+		f1 = sqrt(v1);
+	} else {
+		f1_ok = false;
+	}
+
+	f0_ok = true;
+	d1 = Hmg[0] * Hmg[3] + Hmg[1] * Hmg[4];
+	d2 = Hmg[0] * Hmg[0] + Hmg[1] * Hmg[1] - Hmg[3] * Hmg[3] - Hmg[4] * Hmg[4];
+	v1 = -Hmg[2] * Hmg[5] / d1;
+	v2 = (Hmg[5] * Hmg[5] - Hmg[2] * Hmg[2]) / d2;
+
+	if (v1 < v2) {
+		swap(v1, v2);
+	}
+	if (v1 > 0 && v2 > 0) {
+		f0 = sqrt(abs(d1) > abs(d2) ? v1 : v2);
+	} else if (v1 > 0) {
+		f0 = sqrt(v1);
+	} else {
+		f0_ok = false;
+	}
+}
+static void alignMatch(
+	const Raw &img1, const Raw &img2,
+	 Feature const* const* good_match, int gm_num,
+	vector<int> &x, vector<int> &y, 
+	float FL)
+{
+	int i = 0;
+	int cal_dx = 0;
+	int cal_dy = 0;
+	float avg_dx = 0.f;
+	float avg_dy = 0.f;
+	float mid_x1 = 0.f, mid_x2 = 0.f;
+	float mid_y1 = 0.f, mid_y2 = 0.f;
+	float fL1 = 0.f, fL2 = 0.f;
+	float theta1 = 0.f, theta2 = 0.f;
+	float h1 = 0.f, h2 = 0.f;
+	int x1 = 0, x2 = 0;
+	int y1 = 0, y2 = 0;
+	int distance = 0, distancey1 = 0;
+	for (i = 0; i < gm_num; i++)
+	{
+		Feature const* const& curr_m = good_match[i];
+		if (i == gm_num - 1){
+			avg_dx = (float)cal_dx / (float)(gm_num - 1);
+			x.push_back(int(avg_dx));
+			avg_dy = (float)cal_dy / (float)(gm_num - 1);
+			y.push_back(int(avg_dy));
+		} else {
+			mid_x1 = (float)img1.getCol() / 2.f;
+			mid_x2 = (float)img2.getCol() / 2.f;
+			mid_y1 = (float)img1.getRow() / 2.f;
+			mid_y2 = (float)img2.getRow() / 2.f;
+
+			fL1 = FL;
+			theta1 = atan((curr_m->fwd_match->x - mid_x1) / fL1);
+			h1 = (curr_m->fwd_match->y - mid_y1) / pow(pow((curr_m->fwd_match->x - mid_x1), 2) + pow(fL1, 2), 0.5f);
+			x1 = (int)(fL1 * theta1 + mid_x1 + 0.5f);
+			y1 = (int)(fL1 * h1 + mid_y1 + 0.5f);
+
+			fL2 = FL;
+			theta2 = atan((curr_m->x - mid_x2) / fL2);
+			h2 = (float)(curr_m->y - mid_y2) / pow(pow((curr_m->x - mid_x2), 2) + pow(fL2, 2), 0.5f);
+			x2 = (int)(fL2 * theta2 + mid_x2 + img1.getCol() + 0.5f);
+			y2 = (int)(fL2 * h2 + mid_y2 + 0.5f);
+
+			distance = x2 - x1;
+			distancey1 = img1.getRow() - y1 + y2;
+
+			cal_dx = cal_dx + distance;
+			cal_dy = cal_dy + distancey1;
+		}
+	}
+}
 void Stitching::Check(float matchTh) {
 	Timer t1;
 /* kdtree */
@@ -672,10 +765,10 @@ void Stitching::Check(float matchTh) {
 	featDrawLine("_matchImg_kdLinkImg.bmp", stackImg, feat2, feat2_Count);
 /* ransac */
 	// 獲得矩陣.
-	Feature** RANSAC_feat=nullptr;
+	Feature** RANSAC_feat = nullptr;
 	int RANSAC_num = 0;
 	t1.start();
-	vector<float> HomogMat = ransac_xform(feat2, feat2_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
+	const vector<float> HomogMat = ransac_xform(feat2, feat2_Count, 4, 0.005f, 3.f, &RANSAC_feat, RANSAC_num);
 	t1.print("ransac time");
 	// 查看矩陣.
 	cout << "RANSAC_num=" << RANSAC_num << endl;
@@ -688,14 +781,9 @@ void Stitching::Check(float matchTh) {
 	featDrawLine("_matchImg_RANSACImg.bmp", stackImg, RANSAC_feat, RANSAC_num);
 
 
-
-
-	
-
-
-
-	Mat src1 = cv::imread("testImg\\mm07.bmp");
-	Mat src2 = cv::imread("testImg\\mm08.bmp");
+	// 輸出仿射轉換圖
+	Mat src1 = cv::imread("testImg\\mm07.bmp"), src2 = cv::imread("testImg\\mm08.bmp");
+	//Mat src1 = cv::imread("testImg\\mm05.bmp"), src2 = cv::imread("testImg\\mm06.bmp");
 	Mat dst;
 
 	//定义平移矩阵  
@@ -710,15 +798,124 @@ void Stitching::Check(float matchTh) {
 	warpAffine(src2, dst, t_mat, src2.size());  
 
 	//显示平移效果  
-	imshow("image1", src1);
+	//imshow("image1", src1);
 	imwrite("image1.bmp", src1);
 	//imshow("image2", src2);
-	imshow("result", dst);  
+	//imshow("result", dst);  
 	imwrite("image2.bmp", dst);
-
-
-
-
-
 	waitKey(0);
+
+
+
+// 縫合圖片
+// Get F
+	int img_total = 2;
+	std::cout << "-----------------------------------------------------" << endl;
+	float f0 = 0.f, f1 = 0.f, ft = 0.f;
+	bool f0ok = false, f1ok = false;
+	vector<float> all_focals;
+	if(!HomogMat.empty()) {
+		focalsFromHomography(HomogMat, f0, f1, f0ok, f1ok);
+		if(f0ok && f1ok) {
+			all_focals.push_back(sqrtf(f0 * f1));
+		}
+	}
+
+	if(all_focals.size() >= img_total - 1) {
+		sort(all_focals.begin(), all_focals.end());
+		if(all_focals.size() % 2 == 1) {
+			ft = all_focals[all_focals.size() / 2];
+		} else {
+			ft = (all_focals[all_focals.size() / 2 - 1] + all_focals[all_focals.size() / 2]) * 0.5f;
+		}
+	} else {
+		float focals_sum = 0.f;
+		focals_sum += img1.size()+img2.size();
+		ft = focals_sum / (float)img_total;
+	}
+	cout << ft << endl;
+	//------------------------------------------------------------------------
+	auto raw_to_imgraw = [](const Raw& src){
+		ImgRaw dst(src.RGB, src.getCol(), src.getRow(), 24);
+		return dst;
+	};
+	//Align
+	vector<int> Align_dx, Align_dy;
+	Raw InputImage1(img1.width, img1.height), InputImage2(img2.width, img2.height);
+	vector<Raw> InputImage = {Raw(img1.width, img1.height), Raw(img2.width, img2.height)};
+	InputImage[0].RGB = img1; // 這裡會呼叫重載函式轉uch
+	InputImage[1].RGB = img2; // 這裡會呼叫重載函式轉uch
+	alignMatch(InputImage[0], InputImage[1], RANSAC_feat, RANSAC_num, Align_dx, Align_dy, ft);
+	//------------------------------------------------------------------------
+	// WarpPerspective
+	Raw warpImg(InputImage[1].getCol()*1.6, InputImage[1].getRow()*1.1);
+	//Raw warpImg(InputImage[1].getCol(), InputImage[1].getRow());
+	_WarpPerspective(InputImage[1], warpImg, HomogMat);
+
+	ImgRaw warpImg2 = raw_to_imgraw(warpImg);
+	warpImg2.bmp("_warpImg2.bmp");
+
+	ImgRaw matchImg=warpImg2;
+	for(size_t j = 0; j < img1.height; j++) {
+		int start = img1.width;
+		int end = img1.width;
+		for(size_t i = 0; i <= (img1.width-1); i++) {
+			if(warpImg2[j*warpImg2.width*3 + i*3+0] == 0 and 
+				warpImg2[j*warpImg2.width*3 + i*3+1] == 0 and
+				warpImg2[j*warpImg2.width*3 + i*3+2] == 0)
+			{
+				// 這裡要補原圖a的
+				matchImg[j*matchImg.width*3 + i*3+0] = img1[j*img1.width*3 + i*3+0];
+				matchImg[j*matchImg.width*3 + i*3+1] = img1[j*img1.width*3 + i*3+1];
+				matchImg[j*matchImg.width*3 + i*3+2] = img1[j*img1.width*3 + i*3+2];
+			} else {
+				// 這裡是重疊處
+				// 比例
+				if(start==end) {
+					start=i;
+					matchImg[j*matchImg.width*3 + i*3+0] = 100;
+					matchImg[j*matchImg.width*3 + i*3+1] = 100;
+					matchImg[j*matchImg.width*3 + i*3+2] = 100;
+				}
+				if(start<end) {
+					float len = end-start;
+					float ratioR = (i-start)/len;
+					float ratioL = 1.0 - ratioR;
+					matchImg[j*matchImg.width*3 + i*3+0] = //100;
+						img1[j*img1.width*3 + i*3+0]*ratioL + warpImg2[j*warpImg2.width*3 + i*3+0]*ratioR;
+						//img1[j*img1.width*3 + i*3+0]*.5 + warpImg2[j*warpImg2.width*3 + i*3+0]*.5;
+						//warpImg2[j*warpImg2.width*3 + i+0]*.5;
+					matchImg[j*matchImg.width*3 + i*3+1] = //100;
+						img1[j*img1.width*3 + i*3+1]*ratioL + warpImg2[j*warpImg2.width*3 + i*3+1]*ratioR;
+						//img1[j*img1.width*3 + i*3+1]*.5 + warpImg2[j*warpImg2.width*3 + i*3+1]*.5;
+						//warpImg2[j*warpImg2.width*3 + i+1]*.5;
+					matchImg[j*matchImg.width*3 + i*3+2] = //100;
+						img1[j*img1.width*3 + i*3+2]*ratioL + warpImg2[j*warpImg2.width*3 + i*3+2]*ratioR;
+						//img1[j*img1.width*3 + i*3+2]*.5 + warpImg2[j*warpImg2.width*3 + i*3+2]*.5;
+						//warpImg2[j*warpImg2.width*3 + i+2]*.5;
+				}
+				
+				
+			}
+		}
+	}
+	matchImg.bmp("_matchImg_Warp.bmp");
+	//------------------------------------------------------------------------
+	// Warping
+	vector<fpoint> upedge;
+	vector<fpoint> downedge;
+	vector<Raw> warpingImg;
+	warping(InputImage, ft, warpingImg, upedge, downedge);
+
+	ImgRaw a=raw_to_imgraw(warpingImg[0]);
+	ImgRaw b=raw_to_imgraw(warpingImg[1]);
+	a.bmp("_a.bmp");
+	b.bmp("_b.bmp");
+
+	vector<int> asd(10);
+	cout << "upedge=" << upedge.size() << endl;
+	cout << "downedge=" << downedge.size() << endl;
+	//-------------------------------------------------------------------------
+
+
 }
