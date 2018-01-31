@@ -5,6 +5,7 @@ using namespace std;
 #include <opencv2/opencv.hpp>
 using namespace cv;
 
+#include "imagedata.hpp"
 #include "xform.hpp"
 
 /********************************** Structures *******************************/

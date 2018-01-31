@@ -5,8 +5,6 @@ By   : CharlotteHonG
 Final: 2018/01/04
 *****************************************************************/
 #pragma once
-#include <vector>
-using std::vector;
 
 struct fpoint{
 public:
@@ -15,27 +13,21 @@ public:
 	float x;
 	float y;
 };
+
 class Raw {
 public:
-	Raw() {}
-	Raw(size_t w, size_t h) : RGB(w * h * 3, 0), col(w), row(h) {}
-	~Raw()
-	{
-		RGB.clear();
-	}
-	int getCol()
-	{
-		return (int)col;
-	}
-	int getRow()
-	{
-		return (int)row;
-	}
+	Raw() = default;
+	Raw(size_t w, size_t h) :
+		RGB(w*h * 3), col(w), row(h) {}
+	int getCol() const { return (int)col; }
+	int getRow() const { return (int)row; }
+public:
 	std::vector<unsigned char> RGB;
 protected:
 	size_t col;
 	size_t row;
 };
+
 class Image_Data {
 public:
 	Image_Data() {}
@@ -59,31 +51,31 @@ public:
 		return (int)row;
 	}
 private:
-	vector<float> array;
+	std::vector<float> array;
 	size_t col;
 	size_t row;
 };
 
 struct Feature {
 private:
-	using Desc = vector<vector<vector<float>>>;
+	using Desc = std::vector<std::vector<std::vector<float>>>;
 public:
-	float size;						// 階
-	int kai;						// 層
-	float sigmaOCT;					// 高斯模糊係數
-	int x, y;						// 各所在階層的座標
-	float mm;						// 強度
-	int sita;						// 包含主方向與負方向的角度
-	Feature* nextptr = nullptr;		// 下一個鏈結點
-	// 描述子相關
-	float descr[128] = {};			// 統計完成後的描述子
-	int d = 0;						// 描述子長度					
-	Feature* fwd_match = nullptr;	// 匹配點
-	fpoint img_pt;					// 縮放回原圖的點
-	fpoint mdl_pt;					// 
-	void* feature_data = nullptr;	// rob函式運算時的暫存
-	// 顏穎
-	float d_l;						// 這個不知道幹嘛的，可能是測試用的
+	float size;                     // 階
+	int kai;                        // 層
+	float sigmaOCT;                 // 高斯模糊係數
+	int x, y;                       // 各所在階層的座標
+	float mm;                       // 強度
+	int sita;                       // 包含主方向與負方向的角度
+	Feature* nextptr = nullptr;     // 下一個鏈結點
+									// 描述子相關
+	float descr[128] = {};          // 統計完成後的描述子
+	int d = 0;                      // 描述子長度                    
+	Feature* fwd_match = nullptr;   // 匹配點
+	fpoint img_pt;                  // 縮放回原圖的點
+	fpoint mdl_pt;                  // 
+	void* feature_data = nullptr;   // rob函式運算時的暫存
+									// 顏穎
+	float d_l;                      // 這個不知道幹嘛的，可能是測試用的
 public:
 	float rX() const {return x/size;}
 	float rY() const {return y/size;}
@@ -98,4 +90,13 @@ struct detection_data
 	int intvl;
 	float subintvl;
 	float scl_octv;
+};
+
+
+// Blend
+struct Blend_Image
+{
+	int width;
+	int height;
+	float *RGB;
 };

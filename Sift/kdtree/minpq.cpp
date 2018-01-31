@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <vector>
 #include "minpq.hpp"
 #include "imagedata.hpp"
 

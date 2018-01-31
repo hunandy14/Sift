@@ -13,65 +13,89 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="stitch">
+      <UniqueIdentifier>{8eb5e81c-e143-43b3-8c48-c49aa13f1d83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="log dirty">
+      <UniqueIdentifier>{dc1ef122-0226-4fba-ab1e-0fd74c1d3ec7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="stitch\kdtree">
+      <UniqueIdentifier>{28bf96f6-2e31-4f5c-a623-39e98c6b6662}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="stitch\ransac">
+      <UniqueIdentifier>{2dc0f72e-8681-4ad4-b7fa-995d7186803a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Imgraw">
+      <UniqueIdentifier>{fbe8a92b-425e-4971-b5ba-781e4801aacc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Imgraw\imglib">
+      <UniqueIdentifier>{e8b684f7-f190-44e1-9247-e5f4276d3039}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Imgraw\Raw2img">
+      <UniqueIdentifier>{7be4e755-0bc1-4d27-bafc-1b21f8bfde8c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Sift.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
     <ClCompile Include="Sift_main.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
-    <ClCompile Include="imglib\imglib.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
-    <ClCompile Include="Raw2Img\Raw2img.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
-    <ClCompile Include="Imgraw.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
     <ClCompile Include="kdtree\kdtree.cpp">
-      <Filter>原始程式檔</Filter>
+      <Filter>stitch\kdtree</Filter>
     </ClCompile>
     <ClCompile Include="kdtree\minpq.cpp">
-      <Filter>原始程式檔</Filter>
+      <Filter>stitch\kdtree</Filter>
     </ClCompile>
     <ClCompile Include="ransac\xform.cpp">
+      <Filter>stitch\ransac</Filter>
+    </ClCompile>
+    <ClCompile Include="imglib\imglib.cpp">
+      <Filter>Imgraw\imglib</Filter>
+    </ClCompile>
+    <ClCompile Include="stitch\stitch.cpp">
+      <Filter>stitch</Filter>
+    </ClCompile>
+    <ClCompile Include="Imgraw.cpp">
+      <Filter>Imgraw</Filter>
+    </ClCompile>
+    <ClCompile Include="Raw2Img\Raw2img.cpp">
+      <Filter>Imgraw\Raw2img</Filter>
+    </ClCompile>
+    <ClCompile Include="Sift.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Sift.hpp">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="imglib\imglib.hpp">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Raw2Img\Raw2img.hpp">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Raw2Img\Raw2img_type.hpp">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Imgraw.hpp">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="kdtree\kdtree.hpp">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="kdtree\minpq.hpp">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="imagedata.hpp">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="ransac\xform.hpp">
-      <Filter>標頭檔</Filter>
+    <ClInclude Include="kdtree\kdtree.hpp">
+      <Filter>stitch\kdtree</Filter>
     </ClInclude>
-    <ClInclude Include="matrix.hpp">
+    <ClInclude Include="kdtree\minpq.hpp">
+      <Filter>stitch\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="ransac\xform.hpp">
+      <Filter>stitch\ransac</Filter>
+    </ClInclude>
+    <ClInclude Include="imglib\imglib.hpp">
+      <Filter>Imgraw\imglib</Filter>
+    </ClInclude>
+    <ClInclude Include="stitch\stitch.hpp">
+      <Filter>stitch</Filter>
+    </ClInclude>
+    <ClInclude Include="Imgraw.hpp">
+      <Filter>Imgraw</Filter>
+    </ClInclude>
+    <ClInclude Include="Raw2Img\Raw2img.hpp">
+      <Filter>Imgraw\Raw2img</Filter>
+    </ClInclude>
+    <ClInclude Include="Raw2Img\Raw2img_type.hpp">
+      <Filter>Imgraw\Raw2img</Filter>
+    </ClInclude>
+    <ClInclude Include="Sift.hpp">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
@@ -86,6 +110,11 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="update.md" />
+    <None Include="update.md">
+      <Filter>log dirty</Filter>
+    </None>
+    <None Include="log.md">
+      <Filter>log dirty</Filter>
+    </None>
   </ItemGroup>
 </Project>
