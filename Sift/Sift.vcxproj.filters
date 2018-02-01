@@ -19,12 +19,6 @@
     <Filter Include="log dirty">
       <UniqueIdentifier>{dc1ef122-0226-4fba-ab1e-0fd74c1d3ec7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="stitch\kdtree">
-      <UniqueIdentifier>{28bf96f6-2e31-4f5c-a623-39e98c6b6662}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="stitch\ransac">
-      <UniqueIdentifier>{2dc0f72e-8681-4ad4-b7fa-995d7186803a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Imgraw">
       <UniqueIdentifier>{fbe8a92b-425e-4971-b5ba-781e4801aacc}</UniqueIdentifier>
     </Filter>
@@ -34,19 +28,31 @@
     <Filter Include="Imgraw\Raw2img">
       <UniqueIdentifier>{7be4e755-0bc1-4d27-bafc-1b21f8bfde8c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="feat">
+      <UniqueIdentifier>{b1ed5191-af5a-49df-afa2-2fb69d92e3ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="feat\kdtree">
+      <UniqueIdentifier>{28bf96f6-2e31-4f5c-a623-39e98c6b6662}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="feat\ransac">
+      <UniqueIdentifier>{2dc0f72e-8681-4ad4-b7fa-995d7186803a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blend">
+      <UniqueIdentifier>{230d7aa8-878f-44e0-999f-491c4db2252a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sift_main.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
     <ClCompile Include="kdtree\kdtree.cpp">
-      <Filter>stitch\kdtree</Filter>
+      <Filter>feat\kdtree</Filter>
     </ClCompile>
     <ClCompile Include="kdtree\minpq.cpp">
-      <Filter>stitch\kdtree</Filter>
+      <Filter>feat\kdtree</Filter>
     </ClCompile>
     <ClCompile Include="ransac\xform.cpp">
-      <Filter>stitch\ransac</Filter>
+      <Filter>feat\ransac</Filter>
     </ClCompile>
     <ClCompile Include="imglib\imglib.cpp">
       <Filter>Imgraw\imglib</Filter>
@@ -63,6 +69,9 @@
     <ClCompile Include="Sift.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
+    <ClCompile Include="stitch\Blend.cpp">
+      <Filter>blend</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -72,13 +81,13 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="kdtree\kdtree.hpp">
-      <Filter>stitch\kdtree</Filter>
+      <Filter>feat\kdtree</Filter>
     </ClInclude>
     <ClInclude Include="kdtree\minpq.hpp">
-      <Filter>stitch\kdtree</Filter>
+      <Filter>feat\kdtree</Filter>
     </ClInclude>
     <ClInclude Include="ransac\xform.hpp">
-      <Filter>stitch\ransac</Filter>
+      <Filter>feat\ransac</Filter>
     </ClInclude>
     <ClInclude Include="imglib\imglib.hpp">
       <Filter>Imgraw\imglib</Filter>
@@ -97,6 +106,9 @@
     </ClInclude>
     <ClInclude Include="Sift.hpp">
       <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="stitch\Blend.hpp">
+      <Filter>blend</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -101,7 +101,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(LocalDebuggerWorkingDirectory)\kdtree;$(LocalDebuggerWorkingDirectory);$(LocalDebuggerWorkingDirectory)\ransac</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(LocalDebuggerWorkingDirectory);$(LocalDebuggerWorkingDirectory)\kdtree;$(LocalDebuggerWorkingDirectory)\ransac;$(LocalDebuggerWorkingDirectory)\stitch</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,6 +156,7 @@
     <ClCompile Include="Raw2Img\Raw2img.cpp" />
     <ClCompile Include="Sift.cpp" />
     <ClCompile Include="Sift_main.cpp" />
+    <ClCompile Include="stitch\Blend.cpp" />
     <ClCompile Include="stitch\stitch.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -169,6 +170,7 @@
     <ClInclude Include="Raw2Img\Raw2img_type.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Sift.hpp" />
+    <ClInclude Include="stitch\Blend.hpp" />
     <ClInclude Include="stitch\stitch.hpp" />
   </ItemGroup>
   <ItemGroup>

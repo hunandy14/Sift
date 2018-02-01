@@ -70,13 +70,13 @@ void Gaus::GauBlur3x3(vector<types>& img_gau, const vector<types>& img_ori,
 }
 // 高斯模糊
 void Gaus::GauBlur(vector<types>& img_gau, const vector<types>& img_ori,
-    size_t width, size_t height, float p)
+    size_t width, size_t height, float p, size_t mat_len)
 {
     // 來源不可相同
     if (&img_gau == &img_ori) {
         throw file_same("## Erroe! in and out is same.");
     }
-	vector<types> gau_mat = gau_matrix(p, 0);
+	vector<types> gau_mat = gau_matrix(p, mat_len);
 	img_gau.resize(height*width);
     // 緩存
     vector<types> img_gauX(img_ori.size());

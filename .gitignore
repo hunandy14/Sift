@@ -6,6 +6,7 @@
 *.jpg
 *.ini
 *.lnk
+opencvInstaller*
 
 
 # GithubDefine

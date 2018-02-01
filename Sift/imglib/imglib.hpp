@@ -20,7 +20,7 @@ private:
     using types = float;
 public:
 	static void GauBlur(vector<types>& img_gau, const vector<types>& img_ori,
-		size_t width, size_t height, float p);
+		size_t width, size_t height, float p, size_t mat_len = 0);
 	static void GauBlur3x3(vector<types>& img_gau, const vector<types>& img_ori,
 		size_t width, size_t height, float p);
     static vector<float> gau_matrix(float p, size_t mat_len = 0);

@@ -1,15 +1,23 @@
-#include "Blend.hpp"
+
 // #include "gaussian.hpp"
 // #include "Bmp.hpp"
 // #include "bicubic.hpp"
 // #include "First_order_GPU.hpp"
 // #include "Convolution.hpp"
 
-#include <time.h>
 #include <iostream>
 #include <algorithm>
 #include <fstream>
+#include <time.h>
+#include <vector>
+#include <string>
 
+#include "imagedata.hpp"
+#include "Blend.hpp"
+#include "imglib\imglib.hpp"
+
+#define RIGHT 1
+#define LEFT 0
 //----------------------------------------
 // 層數
 #define PYR_OCTAVE 5
@@ -299,22 +307,17 @@ float *GaussianKernel1D(int length, float sigma)
 //	float *img_dst, *img_src;
 //	float *Buffer_R, *Buffer_G, *Buffer_B;
 //
-//	for(int i = 0; i < COL_Y; ++i)
-//	{
+//	for(int i = 0; i < COL_Y; ++i) {
 //		Buffer_R = &img_Buffer_R[i * ROW_X];
 //		Buffer_G = &img_Buffer_G[i * ROW_X];
 //		Buffer_B = &img_Buffer_B[i * ROW_X];
 //		img_src = &img.RGB[i * imageW * 3];
-//		for(int j = 0; j < ROW_X; ++j)
-//		{
-//			if(i < imageH && j < imageW)
-//			{
+//		for(int j = 0; j < ROW_X; ++j) {
+//			if(i < imageH && j < imageW) {
 //				Buffer_R[j] = img_src[j * 3 + 0];
 //				Buffer_G[j] = img_src[j * 3 + 1];
 //				Buffer_B[j] = img_src[j * 3 + 2];
-//			}
-//			else
-//			{
+//			} else {
 //				Buffer_R[j] = 0.0;
 //				Buffer_G[j] = 0.0;
 //				Buffer_B[j] = 0.0;
@@ -358,14 +361,11 @@ float *GaussianKernel1D(int length, float sigma)
 //	);
 //	/* ------------------------------------------------------------------------------*/
 //	checkCudaErrors(cudaMemcpy(GPU_Output, d_Output, ROW_X * COL_Y * sizeof(float), cudaMemcpyDeviceToHost));
-//	for(int i = 0; i < ROW_Y; i++)
-//	{
+//	for(int i = 0; i < ROW_Y; i++) {
 //		img_dst = &dst.RGB[i * imageW * 3];
 //		img_src = &GPU_Output[i * ROW_X];
-//		for(int j = 0; j < COL_X; j++)
-//		{
-//			if(i < imageH && j < imageW)
-//			{
+//		for(int j = 0; j < COL_X; j++) {
+//			if(i < imageH && j < imageW) {
 //				img_dst[j * 3 + 0] = img_src[j];
 //			}
 //		}
@@ -394,14 +394,11 @@ float *GaussianKernel1D(int length, float sigma)
 //	);
 //	/* ------------------------------------------------------------------------------*/
 //	checkCudaErrors(cudaMemcpy(GPU_Output, d_Output, ROW_X * COL_Y * sizeof(float), cudaMemcpyDeviceToHost));
-//	for(int i = 0; i < ROW_Y; i++)
-//	{
+//	for(int i = 0; i < ROW_Y; i++) {
 //		img_dst = &dst.RGB[i * imageW * 3];
 //		img_src = &GPU_Output[i * ROW_X];
-//		for(int j = 0; j < COL_X; j++)
-//		{
-//			if(i < imageH && j < imageW)
-//			{
+//		for(int j = 0; j < COL_X; j++) {
+//			if(i < imageH && j < imageW) {
 //				img_dst[j * 3 + 1] = img_src[j];
 //			}
 //		}
@@ -430,14 +427,11 @@ float *GaussianKernel1D(int length, float sigma)
 //	);
 //	/* ------------------------------------------------------------------------------*/
 //	checkCudaErrors(cudaMemcpy(GPU_Output, d_Output, ROW_X * COL_Y * sizeof(float), cudaMemcpyDeviceToHost));
-//	for(int i = 0; i < ROW_Y; i++)
-//	{
+//	for(int i = 0; i < ROW_Y; i++) {
 //		img_dst = &dst.RGB[i * imageW * 3];
 //		img_src = &GPU_Output[i * ROW_X];
-//		for(int j = 0; j < COL_X; j++)
-//		{
-//			if(i < imageH && j < imageW)
-//			{
+//		for(int j = 0; j < COL_X; j++) {
+//			if(i < imageH && j < imageW) {
 //				img_dst[j * 3 + 2] = img_src[j];
 //			}
 //		}
@@ -454,7 +448,15 @@ float *GaussianKernel1D(int length, float sigma)
 //
 //	return dst;
 //}
-//
+
+
+
+
+
+
+
+
+// todo 這個沒有替代的 gpu 函式 QuQ 不過看起來只是高斯模糊，可以自幹出來
 //Blend_Image BlurImage_GG(Blend_Image &img, float sigma, int r)
 //{
 //	Blend_Image dst;
@@ -481,18 +483,13 @@ float *GaussianKernel1D(int length, float sigma)
 //	float *d_Input;
 //	d_Input = new float[ROW_X * COL_Y * 3];
 //
-//	for (int i = 0; i < COL_Y; ++i)
-//	{
-//		for (int j = 0; j < ROW_X; ++j)
-//		{
-//			if (i < imageH && j < imageW)
-//			{
+//	for(int i = 0; i < COL_Y; ++i) {
+//		for(int j = 0; j < ROW_X; ++j) {
+//			if(i < imageH && j < imageW) {
 //				d_Input[(i * ROW_X + j) * 3 + 0] = img.RGB[(i * imageW + j) * 3 + 0];
 //				d_Input[(i * ROW_X + j) * 3 + 1] = img.RGB[(i * imageW + j) * 3 + 1];
 //				d_Input[(i * ROW_X + j) * 3 + 2] = img.RGB[(i * imageW + j) * 3 + 2];
-//			}
-//			else
-//			{
+//			} else {
 //				d_Input[(i * ROW_X + j) * 3 + 0] = 0.f;
 //				d_Input[(i * ROW_X + j) * 3 + 1] = 0.f;
 //				d_Input[(i * ROW_X + j) * 3 + 2] = 0.f;
@@ -500,67 +497,94 @@ float *GaussianKernel1D(int length, float sigma)
 //		}
 //	}
 //
+//
+//	// 宣告顯示卡內存空間+複製.
 //	float *img_Buffer;
-//	checkCudaErrors(cudaMalloc((void **)&img_Buffer, ROW_X * COL_Y * 3 * sizeof(float)));
+//	//checkCudaErrors(cudaMalloc((void **)&img_Buffer, ROW_X * COL_Y * 3 * sizeof(float)));
 //
 //	//setInputDataRGB(img_Buffer, src, imageW, imageH, ROW_X, COL_Y);
-//	checkCudaErrors(cudaMemcpy(img_Buffer, d_Input, ROW_X * COL_Y * 3 * sizeof(float), cudaMemcpyHostToDevice));
+//	//checkCudaErrors(cudaMemcpy(img_Buffer, d_Input, ROW_X * COL_Y * 3 * sizeof(float), cudaMemcpyHostToDevice));
 //
 //	float *convkernel;
-//	convkernel = GaussianKernel1D(length, sigma);
-//	setConvolutionKernel(convkernel);
+//	//convkernel = GaussianKernel1D(length, sigma);
+//	// 把數數據複製到為顯示卡 const 記憶體內.
+//	//setConvolutionKernel(convkernel);
 //
 //	/* ROW */
 //	float *d_Buffer;
-//	checkCudaErrors(cudaMalloc((void **)&d_Buffer, ROW_X * COL_Y * 3 * sizeof(float)));
+//	//checkCudaErrors(cudaMalloc((void **)&d_Buffer, ROW_X * COL_Y * 3 * sizeof(float)));
 //
-//	convolutionRowGPU_RGB(
+//	// 捲積
+//	/*convolutionRowGPU_RGB(
 //		d_Buffer,
 //		img_Buffer,
 //		ROW_X,
 //		ROW_Y,
 //		radius,
 //		ROW_X
-//	);
+//	);*/
 //	/* ------------------------------------------------------------------------------*/
 //	/* COL */
 //	float *d_Output;
-//	checkCudaErrors(cudaMalloc((void **)&d_Output, ROW_X * COL_Y * 3 * sizeof(float)));
+//	//checkCudaErrors(cudaMalloc((void **)&d_Output, ROW_X * COL_Y * 3 * sizeof(float)));
 //
-//	convolutionColGPU_RGB(
+//	// 捲積
+//	/*convolutionColGPU_RGB(
 //		d_Output,
 //		d_Buffer,
 //		COL_X,
 //		COL_Y,
 //		radius,
 //		ROW_X
-//	);
+//	);*/
 //
 //	/* ------------------------------------------------------------------------------*/
-//	float *dd_Output;
+//	// 把資料複製出來
+//	/*float *dd_Output;
 //	dd_Output = new float[ROW_X * COL_Y * 3];
 //	checkCudaErrors(cudaMemcpy(dd_Output, d_Output, ROW_X * COL_Y * 3 * sizeof(float), cudaMemcpyDeviceToHost));
-//	for (int i = 0; i < imageH; ++i)
-//	{
-//		for (int j = 0; j < imageW; ++j)
-//		{
+//	for(int i = 0; i < imageH; ++i) {
+//		for(int j = 0; j < imageW; ++j) {
 //			dst.RGB[(i * imageW + j) * 3 + 0] = dd_Output[(i * ROW_X + j) * 3 + 0];
 //			dst.RGB[(i * imageW + j) * 3 + 1] = dd_Output[(i * ROW_X + j) * 3 + 1];
 //			dst.RGB[(i * imageW + j) * 3 + 2] = dd_Output[(i * ROW_X + j) * 3 + 2];
 //		}
-//	}
+//	}*/
 //	/* ------------------------------------------------------------------------------*/
 //	free(convkernel);
-//	checkCudaErrors(cudaFree(img_Buffer));
+//	/*checkCudaErrors(cudaFree(img_Buffer));
 //	checkCudaErrors(cudaFree(d_Buffer));
-//	checkCudaErrors(cudaFree(d_Output));
+//	checkCudaErrors(cudaFree(d_Output));*/
 //
 //	return dst;
 //}
 
 
+Blend_Image BlurImage_GG(Blend_Image &img, float sigma, int r) {
+	size_t w = img.width;
+	size_t h = img.height;
+
+	vector<float> img_ori(w*h);
+	for(size_t i = 0; i < img_ori.size(); i++) {
+		img_ori[i] = img.RGB[i];
+	}
+
+	vector<float> img_gau;
+	Gaus::GauBlur(img_gau, img_ori, w, h, sigma, (r*2 + 1));
+
+
+	Blend_Image dst;
+	dst.width = img.width;
+	dst.height = img.height;
+	dst.RGB = new float[dst.width * dst.height * 3];
+	for(size_t i = 0; i < img_gau.size(); i++) {
+		dst.RGB[i] = img_gau[i] ;
+	}
+	return dst;
+}
 
 /*********************** Functions prototyped in Blend.h **********************/
+/*
 vector<unsigned char> MultiBandBlending(vector<unsigned char> left, vector<unsigned char> right, int width, int height)
 {
 	int Col = width;
@@ -977,113 +1001,92 @@ vector<unsigned char> MultiBandBlending(vector<unsigned char> left, vector<unsig
 	L_T.clear();
 	return I;
 }
+*/
 
-//void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
-//{
-//	if (dx % 2 == 0)
-//	{
-//		if (dx + 1 <= limg.getCol() && dx + 1 <= rimg.getCol())
-//		{
-//			dx += 1;
-//		}
-//		else
-//		{
-//			dx -= 1;
-//		}
-//	}
-//	if (dy % 2 == 0)
-//	{
-//		if (dy + 1 <= limg.getRow() && dy + 1 <= rimg.getRow())
-//		{
-//			dy += 1;
-//		}
-//		else
-//		{
-//			dy -= 1;
-//		}
-//	}
-//
-//	vector<Blend_Image> llpyr, rlpyr;
-//	vector<bool> bol, bor;
-//	bol = buildLaplacianMap(limg, llpyr, dx, dy, LEFT);
-//	bor = buildLaplacianMap(rimg, rlpyr, dx, dy, RIGHT);
-//
-//
-//
-//	int center = 0;
-//	int i, c;
-//	vector<Blend_Image> LS(PYR_OCTAVE);
-//	vector<float> k = getGaussianKernel_rr(llpyr[llpyr.size() - 1].width, llpyr[llpyr.size() - 1].height, llpyr[llpyr.size() - 1].width, 0);
-//	for (int a = 0; a < llpyr.size(); a++)
-//	{
-//		LS[a].width = llpyr[a].width;
-//		LS[a].height = llpyr[a].height;
-//		LS[a].RGB = new float[LS[a].width * LS[a].height * 3];
-//		center = (int)(llpyr[a].width / 2);
-//
-//		for (int j = 0; j < LS[a].height; j++)
-//		{
-//			for (i = 0; i < LS[a].width; i++)
-//			{
-//				for (c = 0; c < 3; c++)
-//				{
-//					if (a == llpyr.size() - 1)
-//					{
-//						LS[a].RGB[(j * LS[a].width + i) * 3 + c]  = llpyr[a].RGB[(j * llpyr[a].width + i) * 3 + c] * k[j * llpyr[a].width + i];
-//						LS[a].RGB[(j * LS[a].width + i) * 3 + c] += rlpyr[a].RGB[(j * rlpyr[a].width + i) * 3 + c] * (1.f - k[j * llpyr[a].width + i]);
-//					}
-//					else
-//					{
-//						if (i == center)
-//						{
-//							LS[a].RGB[(j * LS[a].width + i) * 3 + c] = (llpyr[a].RGB[(j * llpyr[a].width + i) * 3 + c] + rlpyr[a].RGB[(j * rlpyr[a].width + i) * 3 + c]) / 2.f;
-//						}
-//						else if (i > center)
-//						{
-//							LS[a].RGB[(j * LS[a].width + i) * 3 + c] = rlpyr[a].RGB[(j * rlpyr[a].width + i) * 3 + c];
-//						}
-//						else
-//						{
-//							LS[a].RGB[(j * LS[a].width + i) * 3 + c] = llpyr[a].RGB[(j * llpyr[a].width + i) * 3 + c];
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
-//	float transMat_2[3][3] = { { 2.0f, 0.f, 0.f },{ 0.f, 2.0f, 0.f },{ 0.f, 0.f, 1.f } };
-//	Blend_Image result;
-//	for (int a = PYR_OCTAVE - 1; a > 0; a--)
-//	{
-//		result = Bicubic(LS[a], transMat_2);
-//
-//		for (int j = 0; j < LS[a - 1].height; j++)
-//		{
-//			for (i = 0; i < LS[a - 1].width; i++)
-//			{
-//				for (c = 0; c < 3; c++)
-//				{
-//					if (j < result.height && i < result.width)
-//					{
-//						LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] = LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] + result.RGB[(j * result.width + i) * 3 + c];
-//						LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] = LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] < 0.f ? 0.f : LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] > 255.f ? 255.f : LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c];
-//					}
-//				}
-//			}
-//		}
-//	}
-//
-//	result = LS[0];
-//
-//	blendImg(limg, result, dx, dy, LEFT, bol, bor);
-//	//RawToBmp("lt", limg.RGB, limg.getCol(), limg.getRow());
-//	//system("pause");
-//	blendImg(rimg, result, dx, dy, RIGHT, bol, bor);
-//	//RawToBmp("rt", rimg.RGB, rimg.getCol(), rimg.getRow());
-//	//system("pause");
-//}
-/*void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
+
+void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
 {
+	if(dx % 2 == 0) {
+		if(dx + 1 <= limg.getCol() && dx + 1 <= rimg.getCol()) {
+			dx += 1;
+		} else {
+			dx -= 1;
+		}
+	}
+	if(dy % 2 == 0) {
+		if(dy + 1 <= limg.getRow() && dy + 1 <= rimg.getRow()) {
+			dy += 1;
+		} else {
+			dy -= 1;
+		}
+	}
+
+	vector<Blend_Image> llpyr, rlpyr;
+	vector<bool> bol, bor;
+	bol = buildLaplacianMap(limg, llpyr, dx, dy, LEFT);
+	bor = buildLaplacianMap(rimg, rlpyr, dx, dy, RIGHT);
+
+
+
+	int center = 0;
+	int i, c;
+	vector<Blend_Image> LS(PYR_OCTAVE);
+	vector<float> k = getGaussianKernel_rr(llpyr[llpyr.size() - 1].width, llpyr[llpyr.size() - 1].height, llpyr[llpyr.size() - 1].width, 0);
+	for (int a = 0; a < llpyr.size(); a++)
+	{
+		LS[a].width = llpyr[a].width;
+		LS[a].height = llpyr[a].height;
+		LS[a].RGB = new float[LS[a].width * LS[a].height * 3];
+		center = (int)(llpyr[a].width / 2);
+
+		for(int j = 0; j < LS[a].height; j++) {
+			for(i = 0; i < LS[a].width; i++) {
+				for(c = 0; c < 3; c++) {
+					if(a == llpyr.size() - 1) {
+						LS[a].RGB[(j * LS[a].width + i) * 3 + c] = llpyr[a].RGB[(j * llpyr[a].width + i) * 3 + c] * k[j * llpyr[a].width + i];
+						LS[a].RGB[(j * LS[a].width + i) * 3 + c] += rlpyr[a].RGB[(j * rlpyr[a].width + i) * 3 + c] * (1.f - k[j * llpyr[a].width + i]);
+					} else {
+						if(i == center) {
+							LS[a].RGB[(j * LS[a].width + i) * 3 + c] = (llpyr[a].RGB[(j * llpyr[a].width + i) * 3 + c] + rlpyr[a].RGB[(j * rlpyr[a].width + i) * 3 + c]) / 2.f;
+						} else if(i > center) {
+							LS[a].RGB[(j * LS[a].width + i) * 3 + c] = rlpyr[a].RGB[(j * rlpyr[a].width + i) * 3 + c];
+						} else {
+							LS[a].RGB[(j * LS[a].width + i) * 3 + c] = llpyr[a].RGB[(j * llpyr[a].width + i) * 3 + c];
+						}
+					}
+				}
+			}
+		}
+	}
+	float transMat_2[3][3] = { { 2.0f, 0.f, 0.f },{ 0.f, 2.0f, 0.f },{ 0.f, 0.f, 1.f } };
+	Blend_Image result;
+	for(int a = PYR_OCTAVE - 1; a > 0; a--) {
+		result = Bicubic(LS[a], transMat_2);
+
+		for(int j = 0; j < LS[a - 1].height; j++) {
+			for(i = 0; i < LS[a - 1].width; i++) {
+				for(c = 0; c < 3; c++) {
+					if(j < result.height && i < result.width) {
+						LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] = LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] + result.RGB[(j * result.width + i) * 3 + c];
+						LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] = LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] < 0.f ? 0.f : LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] > 255.f ? 255.f : LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c];
+					}
+				}
+			}
+		}
+	}
+
+	result = LS[0];
+
+	blendImg(limg, result, dx, dy, LEFT, bol, bor);
+	//RawToBmp("lt", limg.RGB, limg.getCol(), limg.getRow());
+	//system("pause");
+	blendImg(rimg, result, dx, dy, RIGHT, bol, bor);
+	//RawToBmp("rt", rimg.RGB, rimg.getCol(), rimg.getRow());
+	//system("pause");
+}
+
+/*void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
+{ // 這個本來就註解.
 	if (dx % 2 == 0)
 	{
 		if (dx + 1 <= limg.getCol() && dx + 1 <= rimg.getCol())
@@ -1323,6 +1326,9 @@ vector<struct X_S> getXsize(Blend_Image input)
 	return temp;
 }
 //----------------------------------------
+
+
+// todo 這個裡面的 BlurImage_GG 要重寫cpu版本的.
 vector<bool> buildLaplacianMap(Raw &inputArray, vector<Blend_Image> &outputArrays, int dx, int dy, int lr)
 {
 	vector<bool> bo;
@@ -1338,18 +1344,13 @@ vector<bool> buildLaplacianMap(Raw &inputArray, vector<Blend_Image> &outputArray
 	if (disx < 0) { disx = 0; }
 
 	bool flag = false;
-	for (int j = 0; j < tmp.height; j++)
-	{
-		for (int i = 0; i < tmp.width; i++)
-		{
+	for(int j = 0; j < tmp.height; j++) {
+		for(int i = 0; i < tmp.width; i++) {
 			flag = false;
-			if ((j + disy) < inputArray.getRow() && (i + disx) < inputArray.getCol())
-			{
-				for (int c = 0; c < 3; c++)
-				{
+			if((j + disy) < inputArray.getRow() && (i + disx) < inputArray.getCol()) {
+				for(int c = 0; c < 3; c++) {
 					tmp.RGB[(j * tmp.width + i) * 3 + c] = (float)inputArray.RGB[((j + disy) * inputArray.getCol() + (i + disx)) * 3 + c];
-					if (inputArray.RGB[((j + disy) * inputArray.getCol() + (i + disx)) * 3 + c] != 0)
-					{
+					if(inputArray.RGB[((j + disy) * inputArray.getCol() + (i + disx)) * 3 + c] != 0) {
 						flag = true;
 					}
 				}
@@ -1360,33 +1361,26 @@ vector<bool> buildLaplacianMap(Raw &inputArray, vector<Blend_Image> &outputArray
 
 	int set_r = 1;
 	int ur = 0, dr = 0;
-	for (int j = 0; j < tmp.width; j++)
-	{
-		for (int i = 0; i < tmp.height; i++)
-		{
-			if (tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f)
-			{
+	for(int j = 0; j < tmp.width; j++) {
+		for(int i = 0; i < tmp.height; i++) {
+			if(tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f) {
 				ur = i;
 				break;
 			}
 		}
-		for (int i = ur; i >= 0; i--)
-		{
+		for(int i = ur; i >= 0; i--) {
 			tmp.RGB[(i * tmp.width + j) * 3 + 0] = tmp.RGB[((ur + set_r) * tmp.width + j) * 3 + 0];
 			tmp.RGB[(i * tmp.width + j) * 3 + 1] = tmp.RGB[((ur + set_r) * tmp.width + j) * 3 + 1];
 			tmp.RGB[(i * tmp.width + j) * 3 + 2] = tmp.RGB[((ur + set_r) * tmp.width + j) * 3 + 2];
 		}
-		for (int i = tmp.height - 1; i >= 0; i--)
-		{
-			if (tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f)
-			{
+		for(int i = tmp.height - 1; i >= 0; i--) {
+			if(tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f) {
 				dr = i;
 				break;
 			}
 		}
 		dr = dr < 1 ? 1 : dr;
-		for (int i = dr; i < tmp.height; i++)
-		{
+		for(int i = dr; i < tmp.height; i++) {
 			tmp.RGB[(i * tmp.width + j) * 3 + 0] = tmp.RGB[((dr - set_r) * tmp.width + j) * 3 + 0];
 			tmp.RGB[(i * tmp.width + j) * 3 + 1] = tmp.RGB[((dr - set_r) * tmp.width + j) * 3 + 1];
 			tmp.RGB[(i * tmp.width + j) * 3 + 2] = tmp.RGB[((dr - set_r) * tmp.width + j) * 3 + 2];
@@ -1394,33 +1388,26 @@ vector<bool> buildLaplacianMap(Raw &inputArray, vector<Blend_Image> &outputArray
 		//-------------------------------------------------------------------------------------------------------------------------------------------------
 	}
 
-	for (int i = 0; i < tmp.height; i++)
-	{
-		for (int j = 0; j < tmp.width; j++)
-		{
-			if (tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f)
-			{
+	for(int i = 0; i < tmp.height; i++) {
+		for(int j = 0; j < tmp.width; j++) {
+			if(tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f) {
 				ur = j;
 				break;
 			}
 		}
-		for (int j = ur; j >= 0; j--)
-		{
+		for(int j = ur; j >= 0; j--) {
 			tmp.RGB[(i * tmp.width + j) * 3 + 0] = tmp.RGB[(i * tmp.width + (ur + set_r)) * 3 + 0];
 			tmp.RGB[(i * tmp.width + j) * 3 + 1] = tmp.RGB[(i * tmp.width + (ur + set_r)) * 3 + 1];
 			tmp.RGB[(i * tmp.width + j) * 3 + 2] = tmp.RGB[(i * tmp.width + (ur + set_r)) * 3 + 2];
 		}
-		for (int j = tmp.width - 1; j >= 0; j--)
-		{
-			if (tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f)
-			{
+		for(int j = tmp.width - 1; j >= 0; j--) {
+			if(tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f) {
 				dr = j;
 				break;
 			}
 		}
 		dr = dr < 1 ? 1 : dr;
-		for (int j = dr; j < tmp.width; j++)
-		{
+		for(int j = dr; j < tmp.width; j++) {
 			tmp.RGB[(i * tmp.width + j) * 3 + 0] = tmp.RGB[(i * tmp.width + (dr - set_r)) * 3 + 0];
 			tmp.RGB[(i * tmp.width + j) * 3 + 1] = tmp.RGB[(i * tmp.width + (dr - set_r)) * 3 + 1];
 			tmp.RGB[(i * tmp.width + j) * 3 + 2] = tmp.RGB[(i * tmp.width + (dr - set_r)) * 3 + 2];
@@ -1430,26 +1417,35 @@ vector<bool> buildLaplacianMap(Raw &inputArray, vector<Blend_Image> &outputArray
 
 
 	float sigma = sqrt((-1) * pow(2.f, 2.f) / (2.f * log(0.5f)));
-	float transMat_0_5[3][3] = { { 0.5f, 0.f, 0.f },{ 0.f, 0.5f, 0.f },{ 0.f, 0.f, 1.f } };
-	float transMat_2[3][3] = { { 2.0f, 0.f, 0.f },{ 0.f, 2.0f, 0.f },{ 0.f, 0.f, 1.f } };
+	float transMat_0_5[3][3] = {
+		{ 0.5f,  0.f, 0.f },
+		{  0.f, 0.5f, 0.f },
+		{  0.f,  0.f, 1.f }
+	};
+	float transMat_2[3][3] = {
+		{ 2.0f,  0.f, 0.f },
+		{  0.f, 2.0f, 0.f },
+		{  0.f,  0.f, 1.f }
+	};
 
 	outputArrays.clear();
 	outputArrays.resize(PYR_OCTAVE);
 	outputArrays[0] = tmp;
 
-	for (int i = 1; i < PYR_OCTAVE; i++)
-	{
+	for(int i = 1; i < PYR_OCTAVE; i++) {
 		outputArrays[i] = Bicubic(BlurImage_GG(outputArrays[i - 1], sigma, PYR_R), transMat_0_5);
+
+		// 這裡本來就註解了.
 		//outputArrays[i] = Bicubic(BlurImage(outputArrays[i - 1], sigma, PYR_R), transMat_0_5);
 	}
 
-	for (int a = 0; a < PYR_OCTAVE - 1; a++)
-	{
+	for(int a = 0; a < PYR_OCTAVE - 1; a++) {
 		outputArrays[a] = sub(outputArrays[a], Bicubic(outputArrays[a + 1], transMat_2));
 	}
 
 	return bo;
 }
+
 
 vector<float> getGaussianKernel_rr(int x, int y, int dx, int dy = 0)
 {
