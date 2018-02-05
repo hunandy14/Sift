@@ -703,7 +703,7 @@ static void focalsFromHomography(const vector<float> &Hmg, float &f0, float &f1,
 }
 static void alignMatch(
 	const Raw &img1, const Raw &img2,
-	 Feature const* const* good_match, int gm_num,
+	Feature const* const* good_match, int gm_num,
 	vector<int> &x, vector<int> &y, 
 	float FL)
 {
@@ -722,7 +722,6 @@ static void alignMatch(
 	int distance = 0, distancey1 = 0;
 	for (i = 0; i < gm_num; i++)
 	{
-		// todo 我的 xy 是沒有導正的
 		Feature const* const& curr_m = good_match[i];
 		if (i == gm_num - 1){
 			avg_dx = (float)cal_dx / (float)(gm_num - 1);
@@ -784,73 +783,52 @@ void Stitching::Check(float matchTh) {
 
 	// 輸出仿射轉換圖.
 	//Mat src1 = cv::imread("testImg\\mm07.bmp"), src2 = cv::imread("testImg\\mm08.bmp");
-	Mat src1 = cv::imread("testImg\\mm05.bmp"), src2 = cv::imread("testImg\\mm06.bmp");
-	Mat dst;
+	//Mat src1 = cv::imread("testImg\\mm05.bmp"), src2 = cv::imread("testImg\\mm06.bmp");
+	//Mat dst;
 
 	//定义平移矩阵.
-	Mat t_mat = Mat::zeros(2, 3, CV_32FC1);  
-	t_mat.at<float>(0, 0) = HomogMat[0];
-	t_mat.at<float>(0, 1) = HomogMat[1];
-	t_mat.at<float>(0, 2) = HomogMat[2];
-	t_mat.at<float>(1, 0) = HomogMat[3]; 
-	t_mat.at<float>(1, 1) = HomogMat[4]; 
-	t_mat.at<float>(1, 2) = HomogMat[5];
+	//Mat t_mat = Mat::zeros(2, 3, CV_32FC1);  
+	//t_mat.at<float>(0, 0) = HomogMat[0];
+	//t_mat.at<float>(0, 1) = HomogMat[1];
+	//t_mat.at<float>(0, 2) = HomogMat[2];
+	//t_mat.at<float>(1, 0) = HomogMat[3]; 
+	//t_mat.at<float>(1, 1) = HomogMat[4]; 
+	//t_mat.at<float>(1, 2) = HomogMat[5];
 
-	warpAffine(src2, dst, t_mat, src2.size());  
+	//warpAffine(src2, dst, t_mat, src2.size());  
 
 	//显示平移效果.
 	//imshow("image1", src1);
-	imwrite("image1.bmp", src1);
+	//imwrite("image1.bmp", src1);
 	//imshow("image2", src2);
 	//imshow("result", dst);  
 	//imwrite("image2.bmp", dst);
-	waitKey(0);
+	//waitKey(0);
 
 
 
 // 縫合圖片.
-// Get F
-	int img_total = 2;
-	std::cout << "-----------------------------------------------------" << endl;
-	float f0 = 0.f, f1 = 0.f, ft = 0.f;
-	bool f0ok = false, f1ok = false;
-	vector<float> all_focals;
-	if(!HomogMat.empty()) {
-		focalsFromHomography(HomogMat, f0, f1, f0ok, f1ok);
-		if(f0ok && f1ok) {
-			all_focals.push_back(sqrtf(f0 * f1));
-		}
-	}
-
-	if(all_focals.size() >= img_total - 1) {
-		sort(all_focals.begin(), all_focals.end());
-		if(all_focals.size() % 2 == 1) {
-			ft = all_focals[all_focals.size() / 2];
-		} else {
-			ft = (all_focals[all_focals.size() / 2 - 1] + all_focals[all_focals.size() / 2]) * 0.5f;
-		}
-	} else {
-		float focals_sum = 0.f;
-		focals_sum += img1.size()+img2.size();
-		ft = focals_sum / (float)img_total;
-	}
-	cout << ft << endl;
 	//------------------------------------------------------------------------
-	auto raw_to_imgraw = [](const Raw& src){
+	// 轉換用函式.
+	auto&& raw_to_imgraw = [](const Raw& src){
 		ImgRaw dst(src.RGB, src.getCol(), src.getRow(), 24);
 		return dst;
 	};
-	//Align
-	vector<int> Align_dx(0);
-	vector<int> Align_dy(0);
+	auto&& imgraw_to_raw = [](const ImgRaw& src){
+		Raw dst(src.width, src.height);
+		dst.RGB = src; // 這裡會呼叫重載函式轉uch
+		return dst;
+	};
+	// 宣告所需資料項目.
+	vector<Raw> InputImage = {
+		imgraw_to_raw(img1),
+		imgraw_to_raw(img2)
+	};
 
-	Raw InputImage1(img1.width, img1.height), InputImage2(img2.width, img2.height);
-	vector<Raw> InputImage = {Raw(img1.width, img1.height), Raw(img2.width, img2.height)};
-	InputImage[0].RGB = img1; // 這裡會呼叫重載函式轉uch
-	InputImage[1].RGB = img2; // 這裡會呼叫重載函式轉uch
-	alignMatch(InputImage[0], InputImage[1], RANSAC_feat, RANSAC_num, Align_dx, Align_dy, ft);
+
 	//------------------------------------------------------------------------
 	// WarpPerspective
+	// todo 這裡的長寬沒有算出來，有空讓他自動算出完整的大小
 	Raw warpImg(InputImage[1].getCol()*1.6, InputImage[1].getRow()*1.1);
 	//Raw warpImg(InputImage[1].getCol(), InputImage[1].getRow());
 	_WarpPerspective(InputImage[1], warpImg, HomogMat);
@@ -903,8 +881,36 @@ void Stitching::Check(float matchTh) {
 		}
 	}
 	matchImg.bmp("_matchImg_Warp.bmp");
+
+
 	//------------------------------------------------------------------------
-	// Warping
+	// 獲得焦距.
+	int img_total = 2;
+	float f0 = 0.f, f1 = 0.f, ft = 0.f;
+	bool f0ok = false, f1ok = false;
+	vector<float> all_focals;
+	if(!HomogMat.empty()) {
+		focalsFromHomography(HomogMat, f0, f1, f0ok, f1ok);
+		if(f0ok && f1ok) {
+			all_focals.push_back(sqrtf(f0 * f1));
+		}
+	}
+
+	if(all_focals.size() >= img_total - 1) {
+		sort(all_focals.begin(), all_focals.end());
+		if(all_focals.size() % 2 == 1) {
+			ft = all_focals[all_focals.size() / 2];
+		} else {
+			ft = (all_focals[all_focals.size() / 2 - 1] + all_focals[all_focals.size() / 2]) * 0.5f;
+		}
+	} else {
+		float focals_sum = 0.f;
+		focals_sum += img1.size()+img2.size();
+		ft = focals_sum / (float)img_total;
+	}
+	cout << "ft = " << ft << endl;
+
+	// Warping 圓柱投影.
 	vector<fpoint> upedge;
 	vector<fpoint> downedge;
 	vector<Raw> warpingImg;
@@ -913,32 +919,33 @@ void Stitching::Check(float matchTh) {
 	raw_to_imgraw(warpingImg[0]).bmp("_Warp1.bmp");
 	raw_to_imgraw(warpingImg[1]).bmp("_Warp2.bmp");
 
-	vector<int> asd(10);
-	cout << "upedge=" << upedge.size() << endl;
-	cout << "downedge=" << downedge.size() << endl;
+
 	//-------------------------------------------------------------------------
-	// Blend
+	//Align 對齊.
+	vector<int> Align_dx, Align_dy; // 第二張圖整張的偏移量
+	alignMatch(InputImage[0], InputImage[1], RANSAC_feat, RANSAC_num, Align_dx, Align_dy, ft);
+	cout << "dxSize = " << Align_dx.size() << ", dx = " << Align_dx[0] << endl;
+	cout << "dySize = " << Align_dy.size() << ", dy = " << Align_dy[0] << endl;
+	
+
+	//-------------------------------------------------------------------------
+	// Blend 多頻段混合.
 	for(int num = 0; num < warpingImg.size() - 1; num++) {
-		int dyy;
-		if(Align_dy[num] > warpingImg[num].getRow()) {
-			//Align_dy[num] += -83; // -是右邊下降.
-			dyy = -1 * (warpingImg[num].getRow() - abs(warpingImg[num].getRow() - Align_dy[num]));
-
-		} else {
-			cerr << "!!!!!!!!!!!" << endl;
-			dyy = Align_dy[num];
+		if(Align_dy[num] > warpingImg[num].getRow()) { // 假如 y 的偏移量大於圖片高
+			cout << "!!!!!!!!!!!!!!" << endl;
+			int dyy = (warpingImg[num].getRow() - abs(warpingImg[num].getRow() - Align_dy[num]))  *(-1);
+			multiBandBlend(warpingImg[num], warpingImg[num + 1], Align_dx[num], dyy);
+		} else { // 通常情況
+			multiBandBlend(warpingImg[num], warpingImg[num + 1], Align_dx[num], Align_dy[num]);
 		}
-
-		//Align_dx[num] += 180;
-		//Align_dx[num] += 183; // + 是往左邊
-		multiBandBlend(warpingImg[num], warpingImg[num + 1], Align_dx[num], dyy);
 	}
-
+	// 輸出混合後的個別兩張圖.
 	raw_to_imgraw(warpingImg[0]).bmp("_WarpBlend1.bmp");
 	raw_to_imgraw(warpingImg[1]).bmp("_WarpBlend2.bmp");
+
+
 	//-------------------------------------------------------------------------
-	//------------------------------------------------------------------------
-	// Writing
+	// Writing 輸出圖片.
 	int cols = 0;
 	int rows = 0;
 	for(int i = 0; i < warpingImg.size(); i++) {
@@ -958,73 +965,93 @@ void Stitching::Check(float matchTh) {
 	}
 
 	//Raw result(cols, rows * 2);
-	int rows2 = rows * 2;
-	vector<unsigned char> result(cols * rows2 * 3, 0x00);
-	int distance = 0;
+	int rows2 = rows+150;
+	vector<unsigned char> result(cols*rows2*3);
 	int distancey = warpingImg[0].getRow() / 10;
+
 	double minb = warpingImg[0].getRow() / 2;
 	double mina = warpingImg[0].getCol() / 2;
 	double maxb = warpingImg[0].getRow() / 2;
 	double maxa = warpingImg[0].getCol() / 2;
-	double upb = 0.0;
-	double upa = 0.0;
-	double downb = 0.0;
-	double downa = 0.0;
 
-	for(int b = distancey; b < distancey + warpingImg[0].getRow(); b++)
-		for(int a = distance; a < warpingImg[0].getCol() + distance; a++) {
-			if(b - distancey >= 0 && b - distancey < warpingImg[0].getRow() && a - distance >= 0 && a - distance < warpingImg[0].getCol()) {
-				if(b < rows2 && b >= 0 && a >= 0 && a <= cols) {
-					result[(b * cols + a) * 3 + 0] = warpingImg[0].RGB[((b - distancey) * warpingImg[0].getCol() + (a - distance)) * 3 + 0];
-					result[(b * cols + a) * 3 + 1] = warpingImg[0].RGB[((b - distancey) * warpingImg[0].getCol() + (a - distance)) * 3 + 1];
-					result[(b * cols + a) * 3 + 2] = warpingImg[0].RGB[((b - distancey) * warpingImg[0].getCol() + (a - distance)) * 3 + 2];
+	// 可能是4個邊界點.
+	double upa, upb, downa, downb;
+	upa = upb = downa = downb = 0;
+
+	int distance = 0;
+	for(int j = distancey; j < distancey + warpingImg[0].getRow(); j++)
+	{
+		for(int i = distance; i < warpingImg[0].getCol()+distance; i++)
+		{
+			if(j - distancey >= 0 && j - distancey < warpingImg[0].getRow() && 
+				i - distance >= 0 && i - distance < warpingImg[0].getCol())
+			{
+				if(j < rows2 && j >= 0 && i >= 0 && i <= cols)
+				{
+					const auto&  currImg = warpingImg[0].RGB;
+					const auto&& imgW = warpingImg[0].getCol();
+					const auto&& imgY = (j-distancey);
+					const auto&& imgX = (i-distance);
+					// 寫入新圖.
+					result[(j*cols + i)*3 + 0] = currImg[(imgY*imgW + imgX)*3 + 0];
+					result[(j*cols + i)*3 + 1] = currImg[(imgY*imgW + imgX)*3 + 1];
+					result[(j*cols + i)*3 + 2] = currImg[(imgY*imgW + imgX)*3 + 2];
 				}
 			}
 		}
+	}
 	//system("pause");
 	for(int i = 1; i <= Align_dx.size(); i++) {
 		distance = distance + warpingImg[i - 1].getCol() - Align_dx[i - 1];
-		if(Align_dy[i - 1]>warpingImg[i - 1].getRow()) {
+
+		if(Align_dy[i - 1] > warpingImg[i - 1].getRow()) {
 			distancey = distancey - abs(warpingImg[i - 1].getRow() - Align_dy[i - 1]);
 		} else {
 			distancey = distancey + abs(warpingImg[i - 1].getRow() - Align_dy[i - 1]);
 		}
 
+		const auto& currImg = warpingImg[i];
+		const auto& currRgb = warpingImg[i].RGB;
+		const auto&& currW = warpingImg[i].getCol();
+		const auto&& currH = warpingImg[i].getRow();
+		for(int b = distancey; b < distancey+currH; b++) {
+			for(int a = distance; a < currW + distance; a++) {
+				if(b >= 0) {
+					//if (result.RGB[(b * result.getCol() + a) * 3 + 0] == 0 && result.RGB[(b * result.getCol() + a) * 3 + 1] == 0 && result.RGB[(b * result.getCol() + a) * 3 + 2] == 0)
+					//{
+					//if (b - distancey >= 0 && b - distancey<warpingImg[i].getRow() && a - distance >= 0 && a - distance<warpingImg[i].getCol())
+					//{
+					//result.RGB[(b * result.getCol() + a) * 3 + 0] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 0];
+					//result.RGB[(b * result.getCol() + a) * 3 + 1] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 1];
+					//result.RGB[(b * result.getCol() + a) * 3 + 2] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 2];
+					//}
+					//}
 
-		for(int b = distancey; b < distancey + warpingImg[i].getRow(); b++) {
 
-			for(int a = distance; a < warpingImg[i].getCol() + distance; a++) {
-				if(b<0) {
+					const auto&& imgY = b-distancey;
+					const auto&& imgX = a-distance;
+					const auto&& imgIdx = (imgY*currW + imgX)*3;
 
-				} else {
-					/*if (result.RGB[(b * result.getCol() + a) * 3 + 0] == 0 && result.RGB[(b * result.getCol() + a) * 3 + 1] == 0 && result.RGB[(b * result.getCol() + a) * 3 + 2] == 0)
+					if(imgY >= 0 && imgY < currH && 
+						a-distance >= 0 && a-distance < currW)
 					{
-					if (b - distancey >= 0 && b - distancey<warpingImg[i].getRow() && a - distance >= 0 && a - distance<warpingImg[i].getCol())
-					{
-					result.RGB[(b * result.getCol() + a) * 3 + 0] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 0];
-					result.RGB[(b * result.getCol() + a) * 3 + 1] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 1];
-					result.RGB[(b * result.getCol() + a) * 3 + 2] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 2];
-					}
-					}*/
-					if(b - distancey >= 0 && b - distancey<warpingImg[i].getRow() && a - distance >= 0 && a - distance<warpingImg[i].getCol()) {
-						if(warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 0] != 0 ||
-							warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 1] != 0 ||
-							warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 2] != 0) {
-							result[(b * cols + a) * 3 + 0] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 0];
-							result[(b * cols + a) * 3 + 1] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 1];
-							result[(b * cols + a) * 3 + 2] = warpingImg[i].RGB[((b - distancey) * warpingImg[i].getCol() + (a - distance)) * 3 + 2];
+						if( currRgb[imgIdx + 0] != 0 ||
+							currRgb[imgIdx + 1] != 0 ||
+							currRgb[imgIdx + 2] != 0) {
+							result[(b*cols + a)*3 + 0] = currRgb[imgIdx + 0];
+							result[(b*cols + a)*3 + 1] = currRgb[imgIdx + 1];
+							result[(b*cols + a)*3 + 2] = currRgb[imgIdx + 2];
 						}
 					}
+
 					if(b < minb) {
-						minb = b;
-						mina = a;
-						upb = b;
-						upa = a;
+						minb = upb = b;
+						mina = upa = a;
 					}
 					if(b>maxb) {
 						maxb = b;
 						maxa = a;
-						downb = b - warpingImg[i].getRow();
+						downb = b - currW;
 						downa = a;
 					}
 				}
@@ -1032,9 +1059,7 @@ void Stitching::Check(float matchTh) {
 		}
 	}
 
-	//RawToBmp("ball01", result, cols, rows2);
-
 	ImgRaw maru_match(result, cols, rows2, 24);
-	maru_match.bmp("_maru_match.bmp");
+	maru_match.bmp("__maru_match.bmp");
 	//------------------------------------------------------------------------
 }

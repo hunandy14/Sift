@@ -137,6 +137,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(LocalDebuggerWorkingDirectory);$(LocalDebuggerWorkingDirectory)\kdtree;$(LocalDebuggerWorkingDirectory)\ransac;$(LocalDebuggerWorkingDirectory)\stitch</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
