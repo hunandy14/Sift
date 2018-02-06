@@ -13,9 +13,10 @@
 #include <string>
 using std::vector;
 
+#include "imglib\imglib.hpp"
+
 #include "imagedata.hpp"
 #include "Blend.hpp"
-#include "imglib\imglib.hpp"
 
 #define RIGHT 1
 #define LEFT 0
@@ -411,284 +412,6 @@ float *GaussianKernel1D(int length, float sigma)
 	//system("pause");
 	return h_Kernel;
 }
-//高斯模糊 Blend
-
-//Blend_Image BlurImage(Blend_Image &img, float sigma, int r)
-//{
-//	Blend_Image dst;
-//	dst.width = img.width;
-//	dst.height = img.height;
-//	int imageW = img.width;
-//	int imageH = img.height;
-//	dst.RGB = new float[dst.width * dst.height * 3];
-//	/* Kernel 直徑 */
-//	int length = 2 * r + 1;
-//	/* Kernel 半徑 */
-//	int radius = r;
-//	/* radius * (2 * radius) GPU一次處理的總數 */
-//	int ROW_Size_X = imageW % (radius * (2 * radius));
-//	int ROW_Size_Y = imageH % radius;
-//	int COL_Size_X = imageW % radius;
-//	int COL_Size_Y = imageH % (radius * (2 * radius));
-//	/* 新圖大小 */
-//	int ROW_X = ROW_Size_X == 0 ? imageW : imageW - ROW_Size_X + (radius * (2 * radius));
-//	int ROW_Y = ROW_Size_Y == 0 ? imageH : imageH - ROW_Size_Y + radius;
-//	int COL_X = COL_Size_X == 0 ? imageW : imageW - COL_Size_X + radius;
-//	int COL_Y = COL_Size_Y == 0 ? imageH : imageH - COL_Size_Y + (radius * (2 * radius));
-//
-//	float *img_Buffer_R, *img_Buffer_G, *img_Buffer_B;
-//	img_Buffer_R = new float[ROW_X * COL_Y];
-//	img_Buffer_G = new float[ROW_X * COL_Y];
-//	img_Buffer_B = new float[ROW_X * COL_Y];
-//
-//	float *img_dst, *img_src;
-//	float *Buffer_R, *Buffer_G, *Buffer_B;
-//
-//	for(int i = 0; i < COL_Y; ++i) {
-//		Buffer_R = &img_Buffer_R[i * ROW_X];
-//		Buffer_G = &img_Buffer_G[i * ROW_X];
-//		Buffer_B = &img_Buffer_B[i * ROW_X];
-//		img_src = &img.RGB[i * imageW * 3];
-//		for(int j = 0; j < ROW_X; ++j) {
-//			if(i < imageH && j < imageW) {
-//				Buffer_R[j] = img_src[j * 3 + 0];
-//				Buffer_G[j] = img_src[j * 3 + 1];
-//				Buffer_B[j] = img_src[j * 3 + 2];
-//			} else {
-//				Buffer_R[j] = 0.0;
-//				Buffer_G[j] = 0.0;
-//				Buffer_B[j] = 0.0;
-//			}
-//		}
-//	}
-//
-//	float *convkernel;
-//	convkernel = GaussianKernel1D(length, sigma);
-//	setConvolutionKernel(convkernel);
-//	/* ------------------------------------------------------------------------------*/
-//	// 記憶體宣告
-//	float *d_Input, *d_Buffer;
-//	checkCudaErrors(cudaMalloc((void **)&d_Input, ROW_X * COL_Y * sizeof(float)));
-//	checkCudaErrors(cudaMalloc((void **)&d_Buffer, ROW_X * COL_Y * sizeof(float)));
-//	float *d_Output;
-//	checkCudaErrors(cudaMalloc((void **)&d_Output, ROW_X * COL_Y * sizeof(float)));
-//	float *GPU_Output;
-//	GPU_Output = new float[ROW_X * COL_Y];
-//	/* ------------------------------------------------------------------------------*/
-//	// R
-//	/* ROW */
-//	checkCudaErrors(cudaMemcpy(d_Input, img_Buffer_R, ROW_X * COL_Y * sizeof(float), cudaMemcpyHostToDevice));
-//	convolutionRowGPU(
-//		d_Buffer,
-//		d_Input,
-//		ROW_X,
-//		ROW_Y,
-//		radius,
-//		ROW_X
-//	);
-//	/* ------------------------------------------------------------------------------*/
-//	/* COL */
-//	convolutionColGPU(
-//		d_Output,
-//		d_Buffer,
-//		COL_X,
-//		COL_Y,
-//		radius,
-//		ROW_X
-//	);
-//	/* ------------------------------------------------------------------------------*/
-//	checkCudaErrors(cudaMemcpy(GPU_Output, d_Output, ROW_X * COL_Y * sizeof(float), cudaMemcpyDeviceToHost));
-//	for(int i = 0; i < ROW_Y; i++) {
-//		img_dst = &dst.RGB[i * imageW * 3];
-//		img_src = &GPU_Output[i * ROW_X];
-//		for(int j = 0; j < COL_X; j++) {
-//			if(i < imageH && j < imageW) {
-//				img_dst[j * 3 + 0] = img_src[j];
-//			}
-//		}
-//	}
-//	/* ------------------------------------------------------------------------------*/
-//	// G
-//	/* ROW */
-//	checkCudaErrors(cudaMemcpy(d_Input, img_Buffer_G, ROW_X * COL_Y * sizeof(float), cudaMemcpyHostToDevice));
-//	convolutionRowGPU(
-//		d_Buffer,
-//		d_Input,
-//		ROW_X,
-//		ROW_Y,
-//		radius,
-//		ROW_X
-//	);
-//	/* ------------------------------------------------------------------------------*/
-//	/* COL */
-//	convolutionColGPU(
-//		d_Output,
-//		d_Buffer,
-//		COL_X,
-//		COL_Y,
-//		radius,
-//		ROW_X
-//	);
-//	/* ------------------------------------------------------------------------------*/
-//	checkCudaErrors(cudaMemcpy(GPU_Output, d_Output, ROW_X * COL_Y * sizeof(float), cudaMemcpyDeviceToHost));
-//	for(int i = 0; i < ROW_Y; i++) {
-//		img_dst = &dst.RGB[i * imageW * 3];
-//		img_src = &GPU_Output[i * ROW_X];
-//		for(int j = 0; j < COL_X; j++) {
-//			if(i < imageH && j < imageW) {
-//				img_dst[j * 3 + 1] = img_src[j];
-//			}
-//		}
-//	}
-//	/* ------------------------------------------------------------------------------*/
-//	// B
-//	/* ROW */
-//	checkCudaErrors(cudaMemcpy(d_Input, img_Buffer_B, ROW_X * COL_Y * sizeof(float), cudaMemcpyHostToDevice));
-//	convolutionRowGPU(
-//		d_Buffer,
-//		d_Input,
-//		ROW_X,
-//		ROW_Y,
-//		radius,
-//		ROW_X
-//	);
-//	/* ------------------------------------------------------------------------------*/
-//	/* COL */
-//	convolutionColGPU(
-//		d_Output,
-//		d_Buffer,
-//		COL_X,
-//		COL_Y,
-//		radius,
-//		ROW_X
-//	);
-//	/* ------------------------------------------------------------------------------*/
-//	checkCudaErrors(cudaMemcpy(GPU_Output, d_Output, ROW_X * COL_Y * sizeof(float), cudaMemcpyDeviceToHost));
-//	for(int i = 0; i < ROW_Y; i++) {
-//		img_dst = &dst.RGB[i * imageW * 3];
-//		img_src = &GPU_Output[i * ROW_X];
-//		for(int j = 0; j < COL_X; j++) {
-//			if(i < imageH && j < imageW) {
-//				img_dst[j * 3 + 2] = img_src[j];
-//			}
-//		}
-//	}
-//	/* ------------------------------------------------------------------------------*/
-//	free(img_Buffer_R);
-//	free(img_Buffer_G);
-//	free(img_Buffer_B);
-//	free(convkernel);
-//	free(GPU_Output);
-//	checkCudaErrors(cudaFree(d_Input));
-//	checkCudaErrors(cudaFree(d_Buffer));
-//	checkCudaErrors(cudaFree(d_Output));
-//
-//	return dst;
-//}
-
-// todo 這個沒有替代的 gpu 函式 QuQ 不過看起來只是高斯模糊，可以自幹出來
-//Blend_Image BlurImage_GG(Blend_Image &img, float sigma, int r)
-//{
-//	Blend_Image dst;
-//	dst.width = img.width;
-//	dst.height = img.height;
-//	int imageW = img.width;
-//	int imageH = img.height;
-//	dst.RGB = new float[dst.width * dst.height * 3];
-//	/* Kernel 直徑 */
-//	int length = 2 * r + 1;
-//	/* Kernel 半徑 */
-//	int radius = r;
-//	/* radius * (2 * radius) GPU一次處理的總數 */
-//	int ROW_Size_X = imageW % (radius * (2 * radius));
-//	int ROW_Size_Y = imageH % radius;
-//	int COL_Size_X = imageW % radius;
-//	int COL_Size_Y = imageH % (radius * (2 * radius));
-//	/* 新圖大小 */
-//	int ROW_X = ROW_Size_X == 0 ? imageW : imageW - ROW_Size_X + (radius * (2 * radius));
-//	int ROW_Y = ROW_Size_Y == 0 ? imageH : imageH - ROW_Size_Y + radius;
-//	int COL_X = COL_Size_X == 0 ? imageW : imageW - COL_Size_X + radius;
-//	int COL_Y = COL_Size_Y == 0 ? imageH : imageH - COL_Size_Y + (radius * (2 * radius));
-//
-//	float *d_Input;
-//	d_Input = new float[ROW_X * COL_Y * 3];
-//
-//	for(int i = 0; i < COL_Y; ++i) {
-//		for(int j = 0; j < ROW_X; ++j) {
-//			if(i < imageH && j < imageW) {
-//				d_Input[(i * ROW_X + j) * 3 + 0] = img.RGB[(i * imageW + j) * 3 + 0];
-//				d_Input[(i * ROW_X + j) * 3 + 1] = img.RGB[(i * imageW + j) * 3 + 1];
-//				d_Input[(i * ROW_X + j) * 3 + 2] = img.RGB[(i * imageW + j) * 3 + 2];
-//			} else {
-//				d_Input[(i * ROW_X + j) * 3 + 0] = 0.f;
-//				d_Input[(i * ROW_X + j) * 3 + 1] = 0.f;
-//				d_Input[(i * ROW_X + j) * 3 + 2] = 0.f;
-//			}
-//		}
-//	}
-//
-//
-//	// 宣告顯示卡內存空間+複製.
-//	float *img_Buffer;
-//	//checkCudaErrors(cudaMalloc((void **)&img_Buffer, ROW_X * COL_Y * 3 * sizeof(float)));
-//
-//	//setInputDataRGB(img_Buffer, src, imageW, imageH, ROW_X, COL_Y);
-//	//checkCudaErrors(cudaMemcpy(img_Buffer, d_Input, ROW_X * COL_Y * 3 * sizeof(float), cudaMemcpyHostToDevice));
-//
-//	float *convkernel;
-//	//convkernel = GaussianKernel1D(length, sigma);
-//	// 把數數據複製到為顯示卡 const 記憶體內.
-//	//setConvolutionKernel(convkernel);
-//
-//	/* ROW */
-//	float *d_Buffer;
-//	//checkCudaErrors(cudaMalloc((void **)&d_Buffer, ROW_X * COL_Y * 3 * sizeof(float)));
-//
-//	// 捲積
-//	/*convolutionRowGPU_RGB(
-//		d_Buffer,
-//		img_Buffer,
-//		ROW_X,
-//		ROW_Y,
-//		radius,
-//		ROW_X
-//	);*/
-//	/* ------------------------------------------------------------------------------*/
-//	/* COL */
-//	float *d_Output;
-//	//checkCudaErrors(cudaMalloc((void **)&d_Output, ROW_X * COL_Y * 3 * sizeof(float)));
-//
-//	// 捲積
-//	/*convolutionColGPU_RGB(
-//		d_Output,
-//		d_Buffer,
-//		COL_X,
-//		COL_Y,
-//		radius,
-//		ROW_X
-//	);*/
-//
-//	/* ------------------------------------------------------------------------------*/
-//	// 把資料複製出來
-//	/*float *dd_Output;
-//	dd_Output = new float[ROW_X * COL_Y * 3];
-//	checkCudaErrors(cudaMemcpy(dd_Output, d_Output, ROW_X * COL_Y * 3 * sizeof(float), cudaMemcpyDeviceToHost));
-//	for(int i = 0; i < imageH; ++i) {
-//		for(int j = 0; j < imageW; ++j) {
-//			dst.RGB[(i * imageW + j) * 3 + 0] = dd_Output[(i * ROW_X + j) * 3 + 0];
-//			dst.RGB[(i * imageW + j) * 3 + 1] = dd_Output[(i * ROW_X + j) * 3 + 1];
-//			dst.RGB[(i * imageW + j) * 3 + 2] = dd_Output[(i * ROW_X + j) * 3 + 2];
-//		}
-//	}*/
-//	/* ------------------------------------------------------------------------------*/
-//	free(convkernel);
-//	/*checkCudaErrors(cudaFree(img_Buffer));
-//	checkCudaErrors(cudaFree(d_Buffer));
-//	checkCudaErrors(cudaFree(d_Output));*/
-//
-//	return dst;
-//}
-
 
 // 高斯模糊
 static void GauBlur3d(vector<float>& img_gau, const vector<float>& img_ori,
@@ -751,7 +474,7 @@ static void GauBlur3d(vector<float>& img_gau, const vector<float>& img_ori,
 		}
 	}
 }
-static Blend_Image BlurImage_GG(Blend_Image &img, float sigma, int r) {
+static Blend_Image BlurImage(Blend_Image &img, float sigma, int r) {
 	size_t w = img.width;
 	size_t h = img.height;
 
@@ -761,9 +484,7 @@ static Blend_Image BlurImage_GG(Blend_Image &img, float sigma, int r) {
 	}
 
 	vector<float> img_gau;
-	// todo 乾 這個就只做gray.....
 	GauBlur3d(img_gau, img_ori, w, h, sigma, (r*2 + 1));
-
 
 	Blend_Image dst;
 	dst.width = img.width;
@@ -776,7 +497,7 @@ static Blend_Image BlurImage_GG(Blend_Image &img, float sigma, int r) {
 }
 
 /*********************** Functions prototyped in Blend.h **********************/
-// 把處理好的重疊區寫入原圖
+// 把處理好的重疊區寫入原圖.
 static void blendImg(Raw &inputArray, const Blend_Image &overlap_area, int dx, int dy, int lr, const vector<bool> &bol, const vector<bool> &bor)
 {
 	int disx = (lr == RIGHT) ? 0 : (inputArray.getCol() - dx);
@@ -815,7 +536,7 @@ static void blendImg(Raw &inputArray, const Blend_Image &overlap_area, int dx, i
 		}
 	}
 }
-// 這個裡面的 BlurImage_GG 要重寫cpu版本的.
+// 建立 Laplacian 金字塔.
 static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image> &outputArrays, int dx, int dy, int chkLR)
 {
 	vector<bool> OverlapBool;
@@ -922,7 +643,7 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 	};
 	for(int i = 1; i < PYR_OCTAVE; i++) {
 		// 模糊圖片.
-		const Blend_Image&& blurImg = BlurImage_GG(outputArrays[i - 1], sigma, PYR_R);
+		const Blend_Image&& blurImg = BlurImage(outputArrays[i - 1], sigma, PYR_R);
 		// 縮小圖片.
 		const Blend_Image&& scalImg = Bicubic(blurImg, transMat_0_5);
 

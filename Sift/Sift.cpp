@@ -28,7 +28,9 @@ using namespace std;
 #include "opencv2/opencv.hpp"
 using namespace cv;
 
+#include "imagedata.hpp"
 #include "Sift.hpp"
+
 #include "kdtree.hpp"
 #include "xform.hpp"
 #include "stitch.hpp"
@@ -754,7 +756,10 @@ static void alignMatch(
 		}
 	}
 }
+
+
 void Stitching::Check(float matchTh) {
+
 	Timer t1;
 /* kdtree */
 	t1.start();
@@ -915,6 +920,7 @@ void Stitching::Check(float matchTh) {
 	vector<fpoint> downedge;
 	vector<Raw> warpingImg;
 	warping(InputImage, ft, warpingImg, upedge, downedge);
+	cout << "warp=" << warpingImg.size() << endl;
 
 	raw_to_imgraw(warpingImg[0]).bmp("_Warp1.bmp");
 	raw_to_imgraw(warpingImg[1]).bmp("_Warp2.bmp");
@@ -1062,4 +1068,52 @@ void Stitching::Check(float matchTh) {
 	ImgRaw maru_match(result, cols, rows2, 24);
 	maru_match.bmp("__maru_match.bmp");
 	//------------------------------------------------------------------------
+	// get UpDw limit
+	struct posiMaxComp {
+		bool operator() (fpoint i,fpoint j) { return i.y>j.y; }
+	} posiMaxComp;
+	struct posiMinComp {
+		bool operator() (fpoint i,fpoint j) { return i.y<j.y; }
+	} posiMinComp;
+
+	float posiUp = max_element(upedge.begin(), upedge.end(), posiMaxComp)->y;
+	//posiUp = (min_element(upedge.begin(), upedge.end(), posiMinComp)->y);
+
+	float posiDw = max_element(downedge.begin(), downedge.end(), posiMaxComp)->y;
+
+	posiUp += minb;
+	posiDw += distancey;
+
+	//posiUp=89;
+	//posiDw=673;
+	
+	cout << "posiUp=" << posiUp << endl;
+	cout << "posiDw=" << posiDw << endl;
+
+	
+	//------------------------------------------------------------------------
+	// draw cut img
+	int cutImgsizeW = cols;
+	int cutImgsizeH = posiDw - posiUp;
+	cutImgsizeH = rows2;
+
+	ImgRaw cutImage(cols, rows2, 24);
+	/*for (int j = posiUp; j < posiDw; j++)
+	{
+		for (int i = 0; i < cutImgsizeW; i++)
+		{
+			cutImage[((j-posiUp)*cutImgsizeW + i) * 3 + 0] = result[(j*cols + i) * 3 + 0];
+			cutImage[((j-posiUp)*cutImgsizeW + i) * 3 + 1] = result[(j*cols + i) * 3 + 1];
+			cutImage[((j-posiUp)*cutImgsizeW + i) * 3 + 2] = result[(j*cols + i) * 3 + 2];
+		}
+	}*/
+	for(size_t j = 0; j < cutImgsizeH; j++){
+		for(size_t i = 0; i < cutImgsizeW; i++){
+			cutImage[(j*cutImgsizeW+i)*3 +0] = maru_match[(j*cols+i)*3 +0];
+			cutImage[(j*cutImgsizeW+i)*3 +1] = maru_match[(j*cols+i)*3 +1];
+			cutImage[(j*cutImgsizeW+i)*3 +2] = maru_match[(j*cols+i)*3 +2];
+		}
+	}
+
+	cutImage.bmp("_cutImg.bmp");
 }

@@ -1,11 +1,11 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <timer.hpp>
 using namespace std;
 
 #include "imagedata.hpp"
 #include "stitch.hpp"
-//#include "Blend.hpp"
 
 #define M_PI 3.14159265358979323846
 
@@ -188,16 +188,12 @@ Raw DealWithImgData(Raw &srcdata, int width, int height, float R)
 	// 由投影後的點去回推原圖點，並利用 bilinear 補齊像素
 	// http://blog.csdn.net/weixinhum/article/details/50611750
 	float  k = 0.f;
-	//for (hnum = 0; hnum < height; hnum++)
-	//{
-	//	drcdata_RGB = &drcdata.RGB[hnum * width * 3];
-	//	drcdata_gray = &drcdata[hnum * width];
 	for (hnum = -(height / 2); hnum < (height * 3 / 2); hnum++)
 	{
 		drcdata_RGB = &drcdata.RGB[(hnum + (height / 2)) * width * 3];
 		for (wnum = 0; wnum < width; wnum++)
 		{
-			k = R / sqrt(R * R + ((float)wnum - (float)width / 2.f) * ((float)wnum - (float)width / 2.f));
+			float k = R / sqrt(R * R + ((float)wnum - (float)width / 2.f) * ((float)wnum - (float)width / 2.f));
 			x = ((float)wnum - (float)width / 2.f) / k + (float)width / 2.f;
 			y = ((float)hnum - (float)height / 2.f) / k + (float)height / 2.f;
 
@@ -226,13 +222,16 @@ void warping(const vector<Raw> &inputArrays, float FL2,
 		float mid_y = (float)image.getRow() / 2.f;
 		size_t curr_h = image.getRow();
 		size_t curr_w = image.getCol();
-		for (int j = 0; j < curr_h; j++)
-		{
-			for (int i = 0; i < curr_w; i++)
-			{
-				float k = FL / sqrtf(FL * FL + (i - mid_x) * (i - mid_x));
-				float x = (i - mid_x) / k + mid_x;
-				float y = (j - mid_y) / k + mid_y;
+
+		vector<float> k_core(curr_w);
+		Timer t;
+		for(int j = 0; j < curr_h; j++){
+			for(int i = 0; i < curr_w; i++){
+				if(j == 0)
+					k_core[i] = sqrtf(FL * FL + (i - mid_x) * (i - mid_x)) / FL;
+				float k = k_core[i];
+				float x = (i-mid_x)*k + mid_x;
+				float y = (j-mid_y)*k + mid_y;
 
 				if(x >= 0 && y >= 0 &&
 					x < curr_w && y < curr_h)
@@ -243,15 +242,17 @@ void warping(const vector<Raw> &inputArrays, float FL2,
 					temp.RGB[(j*curr_w + i) * 3 + 2] = color.B;
 				}
 				if(j == 0) { // 圖上邊邊界.
-					fpoint pos = fpoint((float)x, (float)y);
-					upedge.push_back(pos);
+					upedge.emplace_back(fpoint((float)x, (float)y));
 				} else if(j == curr_h - 1) { // 圖下邊邊界.
-					fpoint pos = fpoint((float)x, (float)y);
-					downedge.push_back(pos);
+					downedge.emplace_back(fpoint((float)x, (float)y));
 				}
 			}
 		}
-		Output.push_back(temp);
+		//t.print("warping time = ");
+		
+		cout << "temp.RGB=" << (int)temp.RGB.data() << endl;
+		Output.emplace_back(temp);
+		cout << "&Output[idx].RGB=" << (int)Output[idx].RGB.data() << endl;
 	}
 }
 
