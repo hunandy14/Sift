@@ -867,18 +867,12 @@ void Stitching::Check(float matchTh) {
 					float len = end-start;
 					float ratioR = (i-start)/len;
 					float ratioL = 1.0 - ratioR;
-					matchImg[j*matchImg.width*3 + i*3+0] = //100;
+					matchImg[j*matchImg.width*3 + i*3+0] = 
 						img1[j*img1.width*3 + i*3+0]*ratioL + warpImg2[j*warpImg2.width*3 + i*3+0]*ratioR;
-						//img1[j*img1.width*3 + i*3+0]*.5 + warpImg2[j*warpImg2.width*3 + i*3+0]*.5;
-						//warpImg2[j*warpImg2.width*3 + i+0]*.5;
-					matchImg[j*matchImg.width*3 + i*3+1] = //100;
+					matchImg[j*matchImg.width*3 + i*3+1] = 
 						img1[j*img1.width*3 + i*3+1]*ratioL + warpImg2[j*warpImg2.width*3 + i*3+1]*ratioR;
-						//img1[j*img1.width*3 + i*3+1]*.5 + warpImg2[j*warpImg2.width*3 + i*3+1]*.5;
-						//warpImg2[j*warpImg2.width*3 + i+1]*.5;
-					matchImg[j*matchImg.width*3 + i*3+2] = //100;
+					matchImg[j*matchImg.width*3 + i*3+2] = 
 						img1[j*img1.width*3 + i*3+2]*ratioL + warpImg2[j*warpImg2.width*3 + i*3+2]*ratioR;
-						//img1[j*img1.width*3 + i*3+2]*.5 + warpImg2[j*warpImg2.width*3 + i*3+2]*.5;
-						//warpImg2[j*warpImg2.width*3 + i+2]*.5;
 				}
 				
 				
@@ -974,6 +968,7 @@ void Stitching::Check(float matchTh) {
 	int rows2 = rows+150;
 	vector<unsigned char> result(cols*rows2*3);
 	int distancey = warpingImg[0].getRow() / 10;
+
 
 	double minb = warpingImg[0].getRow() / 2;
 	double mina = warpingImg[0].getCol() / 2;
@@ -1081,12 +1076,13 @@ void Stitching::Check(float matchTh) {
 
 	float posiDw = max_element(downedge.begin(), downedge.end(), posiMaxComp)->y;
 
-	posiUp += minb;
-	posiDw += distancey;
+	//posiUp += minb;
+	//posiDw += distancey;
 
 	//posiUp=89;
 	//posiDw=673;
-	
+	cout << "minb=" << minb << endl;
+	cout << "distancey=" << distancey << endl;
 	cout << "posiUp=" << posiUp << endl;
 	cout << "posiDw=" << posiDw << endl;
 

@@ -11,9 +11,12 @@
 #include <time.h>
 #include <vector>
 #include <string>
-using std::vector;
+using namespace std;
 
 #include "imglib\imglib.hpp"
+#include "Raw2Img\Raw2Img.hpp"
+#include "imglib\imglib.hpp"
+#include "Imgraw.hpp"
 
 #include "imagedata.hpp"
 #include "Blend.hpp"
@@ -555,13 +558,21 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 		((chkLR == RIGHT) ? (inputArray.getRow() + dy) : 0);
 	//cout << "dis (x, y) = " << disx << ", " << disy << endl;;
 
+	auto&& Blend_to_imgraw = [](const Blend_Image& src){
+		vector<unsigned char> temp(src.width*src.height*3);
+		for(size_t i = 0; i < temp.size(); i++){
+			temp[i]=src.RGB[i];
+		}
+		ImgRaw dst(temp, src.width, src.height, 24);
+		return dst;
+	};
 
 	if (disx < 0) { disx = 0; }
-
-	for(int j = 0; j < tmp.height; j++) {
+	// copy出重疊區
+	/*for(int j = 0; j < tmp.height; j++) {
 		for(int i = 0; i < tmp.width; i++) {
 			bool flag = false;
-			if( (j + disy) < imgW && 
+			if( (j + disy) < imgH && 
 				(i + disx) < imgW)
 			{
 				for(int c = 0; c < 3; c++) {
@@ -573,8 +584,24 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 			}
 			OverlapBool.push_back(flag);
 		}
+	}*/
+	for(int j = 0; j < tmp.height; j++){
+		for(int i = 0; i < tmp.width; i++){
+			bool flag = false;
+			if((j + disy) < inputArray.getRow() && (i + disx) < inputArray.getCol()){
+				for(int c = 0; c < 3; c++){
+					tmp.RGB[(j * tmp.width + i) * 3 + c] = (float)inputArray.RGB[((j + disy) * inputArray.getCol() + (i + disx)) * 3 + c];
+					if(inputArray.RGB[((j + disy) * inputArray.getCol() + (i + disx)) * 3 + c] != 0){
+						flag = true;
+					}
+				}
+			}
+			OverlapBool.push_back(flag);
+		}
 	}
-
+	Blend_to_imgraw(tmp).bmp("overlap0 .bmp");
+	system("pause");
+	
 	int set_r = 1;
 	int ur = 0, dr = 0;
 	for(int j = 0; j < tmp.width; j++) {
@@ -630,6 +657,8 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 		}
 		//-------------------------------------------------------------------------------------------------------------------------------------------------
 	}
+
+	// TODO 0207 這裡就出事了2 看一下 temp 再衝三毀的
 	outputArrays.clear();
 	outputArrays.resize(PYR_OCTAVE);
 	outputArrays[0] = tmp;
@@ -638,18 +667,25 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 	// 縮小的變換矩陣.
 	float transMat_0_5[3][3] = {
 		{ 0.5f,  0.f, 0.f },
-	{  0.f, 0.5f, 0.f },
-	{  0.f,  0.f, 1.f }
+		{  0.f, 0.5f, 0.f },
+		{  0.f,  0.f, 1.f }
 	};
+
+
+	//Blend_to_imgraw(outputArrays[0]).bmp("blurImg0 .bmp");
+
+
+
+
 	for(int i = 1; i < PYR_OCTAVE; i++) {
 		// 模糊圖片.
 		const Blend_Image&& blurImg = BlurImage(outputArrays[i - 1], sigma, PYR_R);
+
+		// TODO 這裡就出事了
+		// Blend_to_imgraw(blurImg).bmp("blurImg .bmp");
 		// 縮小圖片.
 		const Blend_Image&& scalImg = Bicubic(blurImg, transMat_0_5);
-
 		outputArrays[i] = scalImg;
-		// 這裡本來就註解了.
-		//outputArrays[i] = Bicubic(BlurImage(outputArrays[i - 1], sigma, PYR_R), transMat_0_5);
 	}
 
 
@@ -657,8 +693,8 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 	// 放大的變換矩陣.
 	float transMat_2[3][3] = {
 		{ 2.0f,  0.f, 0.f },
-	{  0.f, 2.0f, 0.f },
-	{  0.f,  0.f, 1.f }
+		{  0.f, 2.0f, 0.f },
+		{  0.f,  0.f, 1.f }
 	};
 	for(int a = 0; a < PYR_OCTAVE - 1; a++) {
 		// 縮小圖片.
@@ -691,6 +727,7 @@ void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
 	bol = buildLaplacianMap(limg, llpyr, dx, dy, LEFT);
 	bor = buildLaplacianMap(rimg, rlpyr, dx, dy, RIGHT);
 
+	cout << "llpyr.h=" << llpyr[0].height << endl;
 
 
 	int center = 0;
@@ -732,8 +769,12 @@ void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
 			for(i = 0; i < LS[a - 1].width; i++) {
 				for(c = 0; c < 3; c++) {
 					if(j < result.height && i < result.width) {
-						LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] = LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] + result.RGB[(j * result.width + i) * 3 + c];
-						LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] = LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] < 0.f ? 0.f : LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] > 255.f ? 255.f : LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c];
+						LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] = 
+							LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] + result.RGB[(j * result.width + i) * 3 + c];
+						LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] = 
+							LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] < 0.f ? 
+								0.f : LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c] > 255.f ? 
+								255.f : LS[a - 1].RGB[(j * LS[a - 1].width + i) * 3 + c];
 					}
 				}
 			}
@@ -741,6 +782,28 @@ void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
 	}
 
 	result = LS[0];
+
+	// 轉換用函式.
+	auto&& raw_to_imgraw = [](const Raw& src){
+		ImgRaw dst(src.RGB, src.getCol(), src.getRow(), 24);
+		return dst;
+	};
+	auto&& imgraw_to_raw = [](const ImgRaw& src){
+		Raw dst(src.width, src.height);
+		dst.RGB = src; // 這裡會呼叫重載函式轉uch
+		return dst;
+	};
+	auto&& Blend_to_imgraw = [](const Blend_Image& src){
+		vector<unsigned char> temp(src.width*src.height*3);
+		for(size_t i = 0; i < temp.size(); i++){
+			temp[i]=src.RGB[i];
+		}
+		ImgRaw dst(temp, src.width, src.height, 24);
+		return dst;
+	};
+
+	raw_to_imgraw(limg).bmp("imgL.bmp");
+	Blend_to_imgraw(LS[0]).bmp("overlap.bmp");
 
 	blendImg(limg, result, dx, dy, LEFT, bol, bor);
 	//RawToBmp("lt", limg.RGB, limg.getCol(), limg.getRow());
@@ -1280,259 +1343,5 @@ vector<unsigned char> MultiBandBlending(vector<unsigned char> left, vector<unsig
 	R_L.clear();
 	L_T.clear();
 	return I;
-}
-*/
-
-
-//----------------------------------------
-//GPU
-//----------------------------------------
-
-/*
-void blendImg_G(unsigned char *inputArray, float *overlap_area, int inXsize, int inYsize, int lap_Xsize, int lap_Ysize, int dx, int dy, int lr, bool *bol, bool *bor)
-{
-	int disx = (lr == RIGHT) ? 0 : (inXsize - dx);
-	int disy = dy >= 0 ? ((lr == RIGHT) ? 0 : (inYsize - dy)) : ((lr == RIGHT) ? (inYsize + dy) : 0);
-
-	if (disy < 0) { disy = 0; }
-	if (disx < 0) { disx = 0; }
-
-
-	ChangData_GPU(inputArray, overlap_area, inXsize, inYsize, lap_Xsize, lap_Ysize, disx, disy, bol, bor);
-}
-void buildLaplacianMap_G(unsigned char *inputArray, vector<float*> &outputArrays, bool *bo, int Xsize, int Ysize, int dx, int dy, int lr)
-{
-	int tmp_H = abs(dy);
-	int tmp_W = dx;
-
-	int disx = (lr == RIGHT) ? 0 : (Xsize - dx);
-	int disy = dy >= 0 ? ((lr == RIGHT) ? 0 : (Ysize - dy)) : ((lr == RIGHT) ? (Ysize + dy) : 0);
-
-
-	if (disx < 0) { disx = 0; }
-
-	SetBoolData(outputArrays[0], bo, inputArray, tmp_W, tmp_H, Xsize, Ysize, disx, disy);
-	vector<float> rrr(tmp_W * tmp_H * 3);
-	checkCudaErrors(cudaMemcpy((float*)&rrr[0], (float*)&outputArrays[0][0], tmp_W * tmp_H * 3 * sizeof(float), cudaMemcpyDeviceToHost));
-
-	int set_r = 1;
-	int ur = 0, dr = 0;
-	for (int j = 0; j < tmp_W; j++)
-	{
-		for (int i = 0; i < tmp_H; i++)
-		{
-			if (rrr[(i * tmp_W + j) * 3 + 0] != 0.f || rrr[(i * tmp_W + j) * 3 + 1] != 0.f || rrr[(i * tmp_W + j) * 3 + 2] != 0.f)
-			{
-				ur = i;
-				break;
-			}
-		}
-		for (int i = ur; i >= 0; i--)
-		{
-			rrr[(i * tmp_W + j) * 3 + 0] = rrr[((ur + set_r) * tmp_W + j) * 3 + 0];
-			rrr[(i * tmp_W + j) * 3 + 1] = rrr[((ur + set_r) * tmp_W + j) * 3 + 1];
-			rrr[(i * tmp_W + j) * 3 + 2] = rrr[((ur + set_r) * tmp_W + j) * 3 + 2];
-		}
-		for (int i = tmp_H - 1; i >= 0; i--)
-		{
-			if (rrr[(i * tmp_W + j) * 3 + 0] != 0.f || rrr[(i * tmp_W + j) * 3 + 1] != 0.f || rrr[(i * tmp_W + j) * 3 + 2] != 0.f)
-			{
-				dr = i;
-				break;
-			}
-		}
-		dr = dr < 1 ? 1 : dr;
-		for (int i = dr; i < tmp_H; i++)
-		{
-			rrr[(i * tmp_W + j) * 3 + 0] = rrr[((dr - set_r) * tmp_W + j) * 3 + 0];
-			rrr[(i * tmp_W + j) * 3 + 1] = rrr[((dr - set_r) * tmp_W + j) * 3 + 1];
-			rrr[(i * tmp_W + j) * 3 + 2] = rrr[((dr - set_r) * tmp_W + j) * 3 + 2];
-		}
-		//-------------------------------------------------------------------------------------------------------------------------------------------------
-	}
-
-	for (int i = 0; i < tmp_H; i++)
-	{
-		for (int j = 0; j < tmp_W; j++)
-		{
-			if (rrr[(i * tmp_W + j) * 3 + 0] != 0.f || rrr[(i * tmp_W + j) * 3 + 1] != 0.f || rrr[(i * tmp_W + j) * 3 + 2] != 0.f)
-			{
-				ur = j;
-				break;
-			}
-		}
-		for (int j = ur; j >= 0; j--)
-		{
-			rrr[(i * tmp_W + j) * 3 + 0] = rrr[(i * tmp_W + (ur + set_r)) * 3 + 0];
-			rrr[(i * tmp_W + j) * 3 + 1] = rrr[(i * tmp_W + (ur + set_r)) * 3 + 1];
-			rrr[(i * tmp_W + j) * 3 + 2] = rrr[(i * tmp_W + (ur + set_r)) * 3 + 2];
-		}
-		for (int j = tmp_W - 1; j >= 0; j--)
-		{
-			if (rrr[(i * tmp_W + j) * 3 + 0] != 0.f || rrr[(i * tmp_W + j) * 3 + 1] != 0.f || rrr[(i * tmp_W + j) * 3 + 2] != 0.f)
-			{
-				dr = j;
-				break;
-			}
-		}
-		dr = dr < 1 ? 1 : dr;
-		for (int j = dr; j < tmp_W; j++)
-		{
-			rrr[(i * tmp_W + j) * 3 + 0] = rrr[(i * tmp_W + (dr - set_r)) * 3 + 0];
-			rrr[(i * tmp_W + j) * 3 + 1] = rrr[(i * tmp_W + (dr - set_r)) * 3 + 1];
-			rrr[(i * tmp_W + j) * 3 + 2] = rrr[(i * tmp_W + (dr - set_r)) * 3 + 2];
-		}
-		//-------------------------------------------------------------------------------------------------------------------------------------------------
-	}
-	//fstream aaa;
-	//aaa.open("te.raw", ios::out | ios::binary);
-	//for (int i = 0; i < tmp_W * tmp_H * 3; i++)
-	//{
-	//	aaa << (unsigned char)rrr[i];
-	//}
-	//aaa.close();
-	//cout << tmp_W << " " << tmp_H << endl;
-	//system("pause");
-
-	checkCudaErrors(cudaMemcpy((float*)&outputArrays[0][0], (float*)&rrr[0], tmp_W * tmp_H * 3 * sizeof(float), cudaMemcpyHostToDevice));
-
-	float sigma = sqrt((-1) * pow(2.f, 2.f) / (2.f * log(0.5f)));
-
-	float *reg;
-	vector<int> C(PYR_OCTAVE), R(PYR_OCTAVE);
-	C[0] = tmp_W;
-	R[0] = tmp_H;
-	for (int i = 1; i < PYR_OCTAVE; i++)
-	{
-		C[i] = C[i - 1] / 2;
-		R[i] = R[i - 1] / 2;
-	}
-	checkCudaErrors(cudaMalloc((void **)&reg, C[0] * R[0] * 3 * sizeof(float)));
-	for (int i = 1; i < PYR_OCTAVE; i++)
-	{
-		BlurImage_G_RGB(reg, outputArrays[i - 1], sigma, C[i-1], R[i-1], 2 * PYR_R + 1);
-		//Gpu_First_order_RGB(outputArrays[i], reg, C[i - 1], R[i - 1], false);
-		Gpu_Bicubic_RGB(outputArrays[i], reg, C[i - 1], R[i - 1], false);
-
-		//vector<float> rrr(C[i] * R[i] * 3);
-		//checkCudaErrors(cudaMemcpy((float*)&rrr[0], (float*)&outputArrays[i][0], C[i] * R[i] * 3 * sizeof(float), cudaMemcpyDeviceToHost));
-		//fstream aaa;
-		//aaa.open("te.raw", ios::out | ios::binary);
-		//for (int iii = 0; iii < C[i] * R[i] * 3; iii++)
-		//{
-		//	aaa << (unsigned char)rrr[iii];
-		//}
-		//aaa.close();
-		//cout << C[i] << " " << R[i] << endl;
-		//system("pause");
-	}
-
-	for (int a = 0; a < PYR_OCTAVE - 1; a++)
-	{
-		//Gpu_First_order_RGB(reg, outputArrays[a + 1], C[a + 1], R[a + 1], true);
-		Gpu_Bicubic_RGB(reg, outputArrays[a + 1], C[a + 1], R[a + 1], true);
-		Sub_RGB(outputArrays[a], reg, C[a], R[a], C[a + 1] * 2, R[a + 1] * 2);
-	}
-
-	checkCudaErrors(cudaFree(reg));
-}
-void multiBandBlend_G(unsigned char *limg, unsigned char *rimg, int Xsize, int Ysize, int dx, int dy)
-{
-	if (dx % 2 == 0)
-	{
-		if (dx + 1 <= Xsize && dx + 1 <= Xsize)
-		{
-			dx += 1;
-		}
-		else
-		{
-			dx -= 1;
-		}
-	}
-	if (dy % 2 == 0)
-	{
-		if (dy + 1 <= Ysize && dy + 1 <= Ysize)
-		{
-			dy += 1;
-		}
-		else
-		{
-			dy -= 1;
-		}
-	}
-	vector<int> R(PYR_OCTAVE), C(PYR_OCTAVE);
-	C[0] = dx;
-	R[0] = abs(dy);
-	for (int i = 1; i < PYR_OCTAVE; i++)
-	{
-		C[i] = C[i - 1] / 2;
-		R[i] = R[i - 1] / 2;
-	}
-	vector<float*> llpyr(PYR_OCTAVE), rlpyr(PYR_OCTAVE);
-	bool *bol, *bor;
-	checkCudaErrors(cudaMalloc((void **)&bol, C[0] * R[0] * sizeof(bool)));
-	checkCudaErrors(cudaMalloc((void **)&bor, C[0] * R[0] * sizeof(bool)));
-	for (int a = 0; a < llpyr.size(); a++)
-	{
-		checkCudaErrors(cudaMalloc((void **)&llpyr[a], C[a] * R[a] * 3 * sizeof(float)));
-		checkCudaErrors(cudaMalloc((void **)&rlpyr[a], C[a] * R[a] * 3 * sizeof(float)));
-	}
-	buildLaplacianMap_G(limg, llpyr, bol, Xsize, Ysize, dx, dy, LEFT);
-	buildLaplacianMap_G(rimg, rlpyr, bor, Xsize, Ysize, dx, dy, RIGHT);
-	int center = 0;
-	int i = 0, c = 0;
-	vector<float*> LS(PYR_OCTAVE);
-	float *kernel;
-	checkCudaErrors(cudaMalloc((void **)&kernel, C[PYR_OCTAVE - 1] * R[PYR_OCTAVE - 1] * sizeof(float)));
-	vector<float> CPU_kernel = getGaussianKernel_rr(C[PYR_OCTAVE - 1], R[PYR_OCTAVE - 1], C[PYR_OCTAVE - 1], 0);
-	checkCudaErrors(cudaMemcpy((float*)&kernel[0], (float*)&CPU_kernel[0], C[PYR_OCTAVE - 1] * R[PYR_OCTAVE - 1] * sizeof(float), cudaMemcpyHostToDevice));
-
-	for (int a = 0; a < llpyr.size(); a++)
-	{
-		checkCudaErrors(cudaMalloc((void **)&LS[a], C[a] * R[a] * 3 * sizeof(float)));
-		center = (int)(C[a] / 2.0);
-
-		if (a == PYR_OCTAVE - 1)
-		{
-			Pyr_RGB_2(LS[a], llpyr[a], rlpyr[a], kernel, C[a], R[a]);
-		}
-		else
-		{
-			Pyr_RGB_1(LS[a], llpyr[a], rlpyr[a], C[a], R[a]);
-		}
-	}
-
-	CPU_kernel.clear();
-	checkCudaErrors(cudaFree(kernel));
-	for (int a = 0; a < llpyr.size(); a++)
-	{
-		checkCudaErrors(cudaFree(llpyr[a]));
-		checkCudaErrors(cudaFree(rlpyr[a]));
-	}
-	llpyr.clear();
-	rlpyr.clear();
-
-	float *result;
-	checkCudaErrors(cudaMalloc((void **)&result, C[0] * R[0] * 3 * sizeof(float)));
-	for (int a = PYR_OCTAVE - 1; a > 0; a--)
-	{
-		//Gpu_First_order_RGB(result, LS[a], C[a], R[a], true);
-		Gpu_Bicubic_RGB(result, LS[a], C[a], R[a], true);
-
-		Add_GPU(LS[a - 1], result, C[a - 1], R[a - 1], C[a] * 2, R[a] * 2);
-	}
-
-	checkCudaErrors(cudaFree(result));
-	blendImg_G(limg, LS[0], Xsize, Ysize, C[0], R[0], dx, dy, LEFT, bol, bor);
-	blendImg_G(rimg, LS[0], Xsize, Ysize, C[0], R[0], dx, dy, RIGHT, bol, bor);
-
-	checkCudaErrors(cudaFree(bol));
-	checkCudaErrors(cudaFree(bor));
-
-	for (int a = 0; a < LS.size(); a++)
-	{
-		checkCudaErrors(cudaFree(LS[a]));
-	}
-	LS.clear();
 }
 */

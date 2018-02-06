@@ -19,6 +19,10 @@ public:
 	Raw() = default;
 	Raw(size_t w, size_t h) :
 		RGB(w*h * 3), col(w), row(h) {}
+	void resize(size_t w, size_t h){
+		RGB.resize(w*h*3);
+		col=w, row=h;
+	}
 	int getCol() const { return (int)col; }
 	int getRow() const { return (int)row; }
 public:

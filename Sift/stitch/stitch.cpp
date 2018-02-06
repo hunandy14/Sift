@@ -62,41 +62,6 @@ static Color bilinear(const Raw &src, float _x, float _y)
 	return color;
 }
 /************************ Functions prototyped here **************************/
-// 影像縫合
-vector<unsigned char> StitchingImg(Raw &img, Raw &xformed, int &W, int &H)
-{
-	//----------------------------------------
-	int i = 0, j = 0, o = 0;
-	vector<unsigned char> _img, _xformed, _rimg;
-	int Row = xformed.getRow();
-	int Col = xformed.getCol();
-	unsigned char *img_r, *img_;
-	//----------------------------------------
-	_rimg.resize(Col * Row * 3, 0);
-	//----------------------------------------
-	// 將原圖轉換空間
-	for (i = 0; i < img.getRow(); ++i)
-	{
-		img_r = &_rimg[i * Col * 3];
-		img_ = &img.RGB[i * img.getCol() * 3];
-		for (j = 0; j < img.getCol(); ++j)
-		{
-			img_r[j * 3 + 0] = img_[j * 3 + 0];
-			img_r[j * 3 + 1] = img_[j * 3 + 1];
-			img_r[j * 3 + 2] = img_[j * 3 + 2];
-		}
-	}
-	//----------------------------------------
-	//將兩圖片混合
-	vector<unsigned char> OutImg;
-	// todo 這裡是cuda先註解掉.
-	//OutImg = MultiBandBlending(_rimg, xformed.RGB, Col, Row);
-	W = Col;
-	H = Row;
-	//----------------------------------------
-	return OutImg;
-}
-//-------------------------------------
 // 仿射投影
 void WarpPerspective(const Raw &src, Raw &dst, const vector<float> &H) {
 	//-------------------------------------
@@ -214,10 +179,13 @@ void warping(const vector<Raw> &inputArrays, float FL2,
 	vector<Raw> &Output, vector<fpoint> &upedge, vector<fpoint> &downedge)
 {
 	float FL = FL2;
+	Output.resize(inputArrays.size());
+
+	Timer t;
 	for (int idx = 0; idx < inputArrays.size(); idx++)
 	{
-		Raw image = inputArrays[idx];
-		Raw temp(image.getCol(), image.getRow());
+		const Raw& image = inputArrays[idx];
+		Output[idx].resize(image.getCol(), image.getRow());
 		float mid_x = (float)image.getCol() / 2.f;
 		float mid_y = (float)image.getRow() / 2.f;
 		size_t curr_h = image.getRow();
@@ -237,9 +205,9 @@ void warping(const vector<Raw> &inputArrays, float FL2,
 					x < curr_w && y < curr_h)
 				{
 					Color color = bilinear(image, x, y);
-					temp.RGB[(j*curr_w + i) * 3 + 0] = color.R;
-					temp.RGB[(j*curr_w + i) * 3 + 1] = color.G;
-					temp.RGB[(j*curr_w + i) * 3 + 2] = color.B;
+					Output[idx].RGB[(j*curr_w + i) * 3 + 0] = color.R;
+					Output[idx].RGB[(j*curr_w + i) * 3 + 1] = color.G;
+					Output[idx].RGB[(j*curr_w + i) * 3 + 2] = color.B;
 				}
 				if(j == 0) { // 圖上邊邊界.
 					upedge.emplace_back(fpoint((float)x, (float)y));
@@ -248,12 +216,8 @@ void warping(const vector<Raw> &inputArrays, float FL2,
 				}
 			}
 		}
-		//t.print("warping time = ");
-		
-		cout << "temp.RGB=" << (int)temp.RGB.data() << endl;
-		Output.emplace_back(temp);
-		cout << "&Output[idx].RGB=" << (int)Output[idx].RGB.data() << endl;
 	}
+	//t.print("warping time = ");
 }
 
 
