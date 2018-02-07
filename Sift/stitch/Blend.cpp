@@ -549,7 +549,7 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 	tmp.RGB = new float[tmp.width * tmp.height * 3];
 
 	auto&& imgW = inputArray.getCol();
-	auto&& imgH = inputArray.getCol();
+	auto&& imgH = inputArray.getRow();
 
 	// 重疊區起始位置 (所以右圖才是從0, 0開始)
 	int disx = (chkLR == RIGHT) ? 0 : (inputArray.getCol() - dx);
@@ -569,7 +569,7 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 
 	if (disx < 0) { disx = 0; }
 	// copy出重疊區
-	/*for(int j = 0; j < tmp.height; j++) {
+	for(int j = 0; j < tmp.height; j++) {
 		for(int i = 0; i < tmp.width; i++) {
 			bool flag = false;
 			if( (j + disy) < imgH && 
@@ -584,24 +584,12 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 			}
 			OverlapBool.push_back(flag);
 		}
-	}*/
-	for(int j = 0; j < tmp.height; j++){
-		for(int i = 0; i < tmp.width; i++){
-			bool flag = false;
-			if((j + disy) < inputArray.getRow() && (i + disx) < inputArray.getCol()){
-				for(int c = 0; c < 3; c++){
-					tmp.RGB[(j * tmp.width + i) * 3 + c] = (float)inputArray.RGB[((j + disy) * inputArray.getCol() + (i + disx)) * 3 + c];
-					if(inputArray.RGB[((j + disy) * inputArray.getCol() + (i + disx)) * 3 + c] != 0){
-						flag = true;
-					}
-				}
-			}
-			OverlapBool.push_back(flag);
-		}
 	}
-	Blend_to_imgraw(tmp).bmp("overlap0 .bmp");
-	system("pause");
+	//Blend_to_imgraw(tmp).bmp("overlap0 .bmp");
+	//system("pause");
 	
+
+	// 把黑色區域補成延伸(降低上下面圓柱切面的不自然)
 	int set_r = 1;
 	int ur = 0, dr = 0;
 	for(int j = 0; j < tmp.width; j++) {
@@ -630,7 +618,6 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 		}
 		//-------------------------------------------------------------------------------------------------------------------------------------------------
 	}
-
 	for(int i = 0; i < tmp.height; i++) {
 		for(int j = 0; j < tmp.width; j++) {
 			if(tmp.RGB[(i * tmp.width + j) * 3 + 0] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 1] != 0.f || tmp.RGB[(i * tmp.width + j) * 3 + 2] != 0.f) {
@@ -657,6 +644,7 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 		}
 		//-------------------------------------------------------------------------------------------------------------------------------------------------
 	}
+	
 
 	// TODO 0207 這裡就出事了2 看一下 temp 再衝三毀的
 	outputArrays.clear();
@@ -670,11 +658,9 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 		{  0.f, 0.5f, 0.f },
 		{  0.f,  0.f, 1.f }
 	};
+	//Blend_to_imgraw(outputArrays[0]).bmp("overlap1 .bmp");
 
-
-	//Blend_to_imgraw(outputArrays[0]).bmp("blurImg0 .bmp");
-
-
+	//system("pause");
 
 
 	for(int i = 1; i < PYR_OCTAVE; i++) {
@@ -687,9 +673,6 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 		const Blend_Image&& scalImg = Bicubic(blurImg, transMat_0_5);
 		outputArrays[i] = scalImg;
 	}
-
-
-
 	// 放大的變換矩陣.
 	float transMat_2[3][3] = {
 		{ 2.0f,  0.f, 0.f },
@@ -707,7 +690,8 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 // 多頻段混合，輸入圖L與圖R，還有圖R的偏移量.
 void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
 {
-	if(dx % 2 == 0) {
+	// 我把他寫出去了，一開始對齊就修正好
+	/*if(dx % 2 == 0) {
 		if(dx + 1 <= limg.getCol() && dx + 1 <= rimg.getCol()) {
 			dx += 1;
 		} else {
@@ -720,15 +704,15 @@ void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
 		} else {
 			dy -= 1;
 		}
-	}
+	} else if(dy % 2 == 1){
+		dy += 1;
+	}*/
+
 
 	vector<Blend_Image> llpyr, rlpyr;
 	vector<bool> bol, bor; // 兩圖像的重疊區域，或是合集
 	bol = buildLaplacianMap(limg, llpyr, dx, dy, LEFT);
 	bor = buildLaplacianMap(rimg, rlpyr, dx, dy, RIGHT);
-
-	cout << "llpyr.h=" << llpyr[0].height << endl;
-
 
 	int center = 0;
 	int i, c;
@@ -802,132 +786,13 @@ void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
 		return dst;
 	};
 
-	raw_to_imgraw(limg).bmp("imgL.bmp");
-	Blend_to_imgraw(LS[0]).bmp("overlap.bmp");
+	//Blend_to_imgraw(LS[0]).bmp("overlap.bmp");
 
 	blendImg(limg, result, dx, dy, LEFT, bol, bor);
-	//RawToBmp("lt", limg.RGB, limg.getCol(), limg.getRow());
-	//system("pause");
 	blendImg(rimg, result, dx, dy, RIGHT, bol, bor);
-	//RawToBmp("rt", rimg.RGB, rimg.getCol(), rimg.getRow());
-	//system("pause");
 }
 
-/*void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
-{ // 這個本來就註解.
-	if (dx % 2 == 0)
-	{
-		if (dx + 1 <= limg.getCol() && dx + 1 <= rimg.getCol())
-		{
-			dx += 1;
-		}
-		else
-		{
-			dx -= 1;
-		}
-	}
-	if (dy % 2 == 0)
-	{
-		if (dy + 1 <= limg.getRow() && dy + 1 <= rimg.getRow())
-		{
-			dy += 1;
-		}
-		else
-		{
-			dy -= 1;
-		}
-	}
-
-	Blend_Image llpyr, rlpyr;
-	vector<bool> bol, bor;
-
-	llpyr.height = abs(dy);
-	llpyr.width = dx;
-	llpyr.RGB = new float[llpyr.width * llpyr.height * 3];
-
-	int disx = (limg.getCol() - dx);
-	int disy = dy >= 0 ? (limg.getRow() - dy) : 0;
-
-
-	if (disx < 0) { disx = 0; }
-
-	bool flag = false;
-	for (int j = 0; j < llpyr.height; j++)
-	{
-		for (int i = 0; i < llpyr.width; i++)
-		{
-			flag = false;
-			if ((j + disy) < limg.getRow() && (i + disx) < limg.getCol())
-			{
-				for (int c = 0; c < 3; c++)
-				{
-					llpyr.RGB[(j * llpyr.width + i) * 3 + c] = (float)limg.RGB[((j + disy) * limg.getCol() + (i + disx)) * 3 + c];
-					if (limg.RGB[((j + disy) * limg.getCol() + (i + disx)) * 3 + c] != 0)
-					{
-						flag = true;
-					}
-				}
-			}
-			bol.push_back(flag);
-		}
-	}
-
-	rlpyr.height = abs(dy);
-	rlpyr.width = dx;
-	rlpyr.RGB = new float[rlpyr.width * rlpyr.height * 3];
-
-	disx = 0;
-	disy = dy >= 0 ? 0 : rimg.getRow() + dy;
-
-	if (disx < 0) { disx = 0; }
-
-	flag = false;
-	for (int j = 0; j < rlpyr.height; j++)
-	{
-		for (int i = 0; i < rlpyr.width; i++)
-		{
-			flag = false;
-			if ((j + disy) < rimg.getRow() && (i + disx) < rimg.getCol())
-			{
-				for (int c = 0; c < 3; c++)
-				{
-					rlpyr.RGB[(j * rlpyr.width + i) * 3 + c] = (float)rimg.RGB[((j + disy) * rimg.getCol() + (i + disx)) * 3 + c];
-					if (rimg.RGB[((j + disy) * rimg.getCol() + (i + disx)) * 3 + c] != 0)
-					{
-						flag = true;
-					}
-				}
-			}
-			bor.push_back(flag);
-		}
-	}
-
-	Blend_Image result;
-	result.height = llpyr.height;
-	result.width = llpyr.width;
-	result.RGB = new float[result.height * result.width * 3];
-
-	for (int j = 0; j < llpyr.height; j++)
-	{
-		for (int i = 0; i < llpyr.width; i++)
-		{
-			for (int c = 0; c < 3; c++)
-			{
-				result.RGB[(j * result.width + i) * 3 + c] = (1.f - ((float)i / (float)llpyr.width)) * llpyr.RGB[(j * llpyr.width + i) * 3 + c];
-				result.RGB[(j * result.width + i) * 3 + c] += ((float)i / (float)llpyr.width) * rlpyr.RGB[(j * rlpyr.width + i) * 3 + c];
-			}
-		}
-	}
-
-	blendImg(limg, result, dx, dy, LEFT, bol, bor);
-	//RawToBmp("lt", limg.RGB, limg.getCol(), limg.getRow());
-	//system("pause");
-	blendImg(rimg, result, dx, dy, RIGHT, bol, bor);
-	//RawToBmp("rt", rimg.RGB, rimg.getCol(), rimg.getRow());
-	//system("pause");
-}*/
-
-/*
+/* 這個或許可以看拉普斯金字塔怎麼做的
 vector<unsigned char> MultiBandBlending(vector<unsigned char> left, vector<unsigned char> right, int width, int height)
 {
 	int Col = width;

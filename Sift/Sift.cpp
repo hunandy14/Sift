@@ -709,52 +709,75 @@ static void alignMatch(
 	vector<int> &x, vector<int> &y, 
 	float FL)
 {
-	int i = 0;
 	int cal_dx = 0;
 	int cal_dy = 0;
-	float avg_dx = 0.f;
-	float avg_dy = 0.f;
-	float mid_x1 = 0.f, mid_x2 = 0.f;
-	float mid_y1 = 0.f, mid_y2 = 0.f;
-	float fL1 = 0.f, fL2 = 0.f;
-	float theta1 = 0.f, theta2 = 0.f;
-	float h1 = 0.f, h2 = 0.f;
-	int x1 = 0, x2 = 0;
-	int y1 = 0, y2 = 0;
-	int distance = 0, distancey1 = 0;
-	for (i = 0; i < gm_num; i++)
-	{
+	// 中間值.
+	const float&& mid_x1 = (float)img1.getCol() / 2.f;
+	const float&& mid_x2 = (float)img2.getCol() / 2.f;
+	const float&& mid_y1 = (float)img1.getRow() / 2.f;
+	const float&& mid_y2 = (float)img2.getRow() / 2.f;
+	// 先算平方.
+	const float& fL1 = FL;
+	const float& fL2 = FL;
+	const float&& fL1_pow = pow(fL1, 2);
+	const float&& fL2_pow = pow(fL2, 2);
+	
+	Timer t;
+	for (int i = 0; i < gm_num-1; i++) {
 		Feature const* const& curr_m = good_match[i];
-		if (i == gm_num - 1){
-			avg_dx = (float)cal_dx / (float)(gm_num - 1);
-			x.push_back(int(avg_dx));
-			avg_dy = (float)cal_dy / (float)(gm_num - 1);
-			y.push_back(int(avg_dy));
-		} else {
-			mid_x1 = (float)img1.getCol() / 2.f;
-			mid_x2 = (float)img2.getCol() / 2.f;
-			mid_y1 = (float)img1.getRow() / 2.f;
-			mid_y2 = (float)img2.getRow() / 2.f;
+		const float&& imgX1 = curr_m->rX();
+		const float&& imgY1 = curr_m->rY();
+		const float&& imgX2 = curr_m->fwd_match->rX();
+		const float&& imgY2 = curr_m->fwd_match->rY();
+		// 圖1
+		float theta1 = fastAtanf_rad((imgX2 - mid_x1) / fL1);
+		float h1 = imgY2 - mid_y1;
+		h1 /= sqrt(pow((imgX2 - mid_x1), 2) + fL1_pow);
+		int x1 = (int)round(fL1*theta1 + mid_x1);
+		int y1 = (int)round(fL1*h1 + mid_y1);
+		// 圖2
+		float theta2 = fastAtanf_rad((imgX1 - mid_x2) / fL2);
+		float h2 = imgY1 - mid_y2;
+		h2 /= sqrt(pow((imgX1 - mid_x2), 2) + fL2_pow);
+		int x2 = (int)round(fL2*theta2 + mid_x2 + img1.getCol());
+		int y2 = (int)round(fL2*h2 + mid_y2);
+		// 累加座標.
+		int distX = x2 - x1;
+		int distY = img1.getRow() - y1 + y2;
+		cal_dx += distX;
+		cal_dy += distY;
+	}
+	//t.print("match time.");
 
-			fL1 = FL;
-			theta1 = atan((curr_m->fwd_match->rX() - mid_x1) / fL1);
-			h1 = (curr_m->fwd_match->rY() - mid_y1) / pow(pow((curr_m->fwd_match->rX() - mid_x1), 2) + pow(fL1, 2), 0.5f);
-			x1 = (int)(fL1 * theta1 + mid_x1 + 0.5f);
-			y1 = (int)(fL1 * h1 + mid_y1 + 0.5f);
+	// 平均座標.
+	int avg_dx = (float)cal_dx / (float)(gm_num-1);
+	int avg_dy = (float)cal_dy / (float)(gm_num-1);
 
-			fL2 = FL;
-			theta2 = atan((curr_m->rX() - mid_x2) / fL2);
-			h2 = (float)(curr_m->rY() - mid_y2) / pow(pow((curr_m->rX() - mid_x2), 2) + pow(fL2, 2), 0.5f);
-			x2 = (int)(fL2 * theta2 + mid_x2 + img1.getCol() + 0.5f);
-			y2 = (int)(fL2 * h2 + mid_y2 + 0.5f);
 
-			distance = x2 - x1;
-			distancey1 = img1.getRow() - y1 + y2;
-
-			cal_dx = cal_dx + distance;
-			cal_dy = cal_dy + distancey1;
+	// 修正座標(猜測是4捨5入哪裡怎樣沒寫好才變成這樣).
+	if(avg_dx % 2 == 0){
+		if(avg_dx + 1 <= img1.getCol() && avg_dx + 1 <= img2.getCol()){
+			avg_dx += 1;
+		} else{
+			avg_dx -= 1;
 		}
 	}
+	if(avg_dy % 2 == 0){
+		if(avg_dy + 1 <= img1.getRow() && avg_dy + 1 <= img2.getRow()){
+			avg_dy += 1;
+		} else{
+			avg_dy -= 1;
+		}
+	} else if(avg_dy % 2 == 1){
+		avg_dy+=0;
+	}
+
+	// 輸出座標.
+	x.emplace_back(avg_dx);
+	y.emplace_back(avg_dy);
+
+
+
 }
 
 
@@ -767,7 +790,7 @@ void Stitching::Check(float matchTh) {
 	//forceMatchFeat(feat1, feat1_Count, feat2, feat2_Count, matchTh);
 	t1.print("KD-tree match time");
 	// 畫出連線.
-	featDrawLine("_matchImg_kdLinkImg.bmp", stackImg, feat2, feat2_Count);
+	//featDrawLine("_matchImg_kdLinkImg.bmp", stackImg, feat2, feat2_Count);
 /* ransac */
 	// 獲得矩陣.
 	Feature** RANSAC_feat = nullptr;
@@ -783,35 +806,7 @@ void Stitching::Check(float matchTh) {
 		} cout << endl;
 	} cout << endl;
 	// 畫出連線.
-	featDrawLine("_matchImg_RANSACImg.bmp", stackImg, RANSAC_feat, RANSAC_num);
-
-
-	// 輸出仿射轉換圖.
-	//Mat src1 = cv::imread("testImg\\mm07.bmp"), src2 = cv::imread("testImg\\mm08.bmp");
-	//Mat src1 = cv::imread("testImg\\mm05.bmp"), src2 = cv::imread("testImg\\mm06.bmp");
-	//Mat dst;
-
-	//定义平移矩阵.
-	//Mat t_mat = Mat::zeros(2, 3, CV_32FC1);  
-	//t_mat.at<float>(0, 0) = HomogMat[0];
-	//t_mat.at<float>(0, 1) = HomogMat[1];
-	//t_mat.at<float>(0, 2) = HomogMat[2];
-	//t_mat.at<float>(1, 0) = HomogMat[3]; 
-	//t_mat.at<float>(1, 1) = HomogMat[4]; 
-	//t_mat.at<float>(1, 2) = HomogMat[5];
-
-	//warpAffine(src2, dst, t_mat, src2.size());  
-
-	//显示平移效果.
-	//imshow("image1", src1);
-	//imwrite("image1.bmp", src1);
-	//imshow("image2", src2);
-	//imshow("result", dst);  
-	//imwrite("image2.bmp", dst);
-	//waitKey(0);
-
-
-
+	//featDrawLine("_matchImg_RANSACImg.bmp", stackImg, RANSAC_feat, RANSAC_num);
 // 縫合圖片.
 	//------------------------------------------------------------------------
 	// 轉換用函式.
@@ -829,8 +824,6 @@ void Stitching::Check(float matchTh) {
 		imgraw_to_raw(img1),
 		imgraw_to_raw(img2)
 	};
-
-
 	//------------------------------------------------------------------------
 	// WarpPerspective
 	// todo 這裡的長寬沒有算出來，有空讓他自動算出完整的大小
@@ -839,7 +832,7 @@ void Stitching::Check(float matchTh) {
 	_WarpPerspective(InputImage[1], warpImg, HomogMat);
 
 	ImgRaw warpImg2 = raw_to_imgraw(warpImg);
-	warpImg2.bmp("_warpImg2.bmp");
+	//warpImg2.bmp("_warpImg2.bmp");
 
 	ImgRaw matchImg=warpImg2;
 	for(size_t j = 0; j < img1.height; j++) {
@@ -879,11 +872,9 @@ void Stitching::Check(float matchTh) {
 			}
 		}
 	}
-	matchImg.bmp("_matchImg_Warp.bmp");
-
-
+	//matchImg.bmp("_matchImg_Warp.bmp");
 	//------------------------------------------------------------------------
-	// 獲得焦距.
+	// 獲得焦距(所有圖共用一個).
 	int img_total = 2;
 	float f0 = 0.f, f1 = 0.f, ft = 0.f;
 	bool f0ok = false, f1ok = false;
@@ -894,7 +885,6 @@ void Stitching::Check(float matchTh) {
 			all_focals.push_back(sqrtf(f0 * f1));
 		}
 	}
-
 	if(all_focals.size() >= img_total - 1) {
 		sort(all_focals.begin(), all_focals.end());
 		if(all_focals.size() % 2 == 1) {
@@ -932,8 +922,8 @@ void Stitching::Check(float matchTh) {
 	// Blend 多頻段混合.
 	for(int num = 0; num < warpingImg.size() - 1; num++) {
 		if(Align_dy[num] > warpingImg[num].getRow()) { // 假如 y 的偏移量大於圖片高
-			cout << "!!!!!!!!!!!!!!" << endl;
-			int dyy = (warpingImg[num].getRow() - abs(warpingImg[num].getRow() - Align_dy[num]))  *(-1);
+			int dyy = -(warpingImg[num].getRow() - abs(warpingImg[num].getRow() - Align_dy[num]));
+			cout << "dy--->dyy = " << Align_dy[num] << ", " << dyy << endl;
 			multiBandBlend(warpingImg[num], warpingImg[num + 1], Align_dx[num], dyy);
 		} else { // 通常情況
 			multiBandBlend(warpingImg[num], warpingImg[num + 1], Align_dx[num], Align_dy[num]);

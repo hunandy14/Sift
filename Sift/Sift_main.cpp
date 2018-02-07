@@ -36,7 +36,7 @@ int main(int argc, char const *argv[]){
 
 	//string name1="kanna.bmp", name2="kanna2.bmp";
 	//string name1="ball_01.bmp", name2="ball_02.bmp";
-	string name1="ball_03.bmp", name2="ball_04.bmp";
+	//string name1="ball_03.bmp", name2="ball_04.bmp";
 	//string name1="sd01.bmp", name2="sd02.bmp";
 	//string name1="d01.bmp", name2="d02.bmp";
 	//string name1="kanna.bmp", name2="kanna2.bmp";
@@ -46,8 +46,10 @@ int main(int argc, char const *argv[]){
 	//string name1="mm03.bmp", name2="mm04.bmp";
 	//string name1="mm05.bmp", name2="mm06.bmp";
 	//string name1="mm07.bmp", name2="mm08.bmp";
-	//string name1="mori1.bmp", name2="mori2.bmp";
+	string name1="mori1.bmp", name2="mori2.bmp";
+	//string name1="morii1.bmp", name2="morii2.bmp";
 	//string name1="mori2.bmp", name2="mori3.bmp";
+	//string name1="l01.bmp", name2="l02.bmp";
 	
 	ImgRaw img1(name1, "testImg");
 	ImgRaw img2(name2, "testImg");
