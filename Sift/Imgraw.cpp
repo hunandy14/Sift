@@ -50,7 +50,79 @@ float fastAtan2f(float dy, float dx){
 		a = 360.f - a;
 	return a;
 }
+float fastAtan2f_rad(float dy, float dx){
+	static const float atan2_p1 =  0.9997878412794807f;
+	static const float atan2_p3 = -0.3258083974640975f;
+	static const float atan2_p5 =  0.1555786518463281f;
+	static const float atan2_p7 = -0.04432655554792128f;
+	static const float atan2_DBL_EPSILON = 2.2204460492503131e-016;
 
+	float ax = std::abs(dx), ay = std::abs(dy);
+	float a, c, c2;
+	if (ax >= ay) {
+		c = ay/(ax + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	} else {
+		c = ax/(ay + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = M_PI/0.5 - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	}
+	if (dx < 0)
+		a = M_PI - a;
+	if (dy < 0)
+		a = M_PI*2.0 - a;
+	return a;
+}
+// 快速 atan 算法
+float fastAtanf(float dy){
+	static const float atan2_p1 = 0.9997878412794807f*(float)(180/M_PI);
+	static const float atan2_p3 = -0.3258083974640975f*(float)(180/M_PI);
+	static const float atan2_p5 = 0.1555786518463281f*(float)(180/M_PI);
+	static const float atan2_p7 = -0.04432655554792128f*(float)(180/M_PI);
+	static const float atan2_DBL_EPSILON = 2.2204460492503131e-016;
+
+	float ax = 1.0, ay = std::abs(dy);
+	float a, c, c2;
+	if (ax >= ay) {
+		c = ay/(ax + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	} else {
+		c = ax/(ay + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = 90.f - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	}
+
+	if (dy < 0)
+		a = - a;
+
+	return a;
+}
+float fastAtanf_rad(float dy){
+	static const float atan2_p1 =  0.9997878412794807f;
+	static const float atan2_p3 = -0.3258083974640975f;
+	static const float atan2_p5 =  0.1555786518463281f;
+	static const float atan2_p7 = -0.04432655554792128f;
+	static const float atan2_DBL_EPSILON = 2.2204460492503131e-016;
+
+	float ax = 1.0, ay = std::abs(dy);
+	float a, c, c2;
+	if (ax >= ay) {
+		c = ay/(ax + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	} else {
+		c = ax/(ay + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = M_PI*0.5 - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	}
+
+	if (dy < 0)
+		a = - a;
+
+	return a;
+}
 
 
 // ImgRaw 建構子

@@ -10,7 +10,9 @@ Final: 2017/11/16
 //-----------------------------------------------------------------
 // §Ö³tatan¹Bºâ
 float fastAtan2f(float dy, float dx);
-
+float fastAtan2f_rad(float dy, float dx);
+float fastAtanf(float dy);
+float fastAtanf_rad(float dy);
 
 
 //-----------------------------------------------------------------
