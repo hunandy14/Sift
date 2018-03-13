@@ -1,10 +1,3 @@
-
-// #include "gaussian.hpp"
-// #include "Bmp.hpp"
-// #include "bicubic.hpp"
-// #include "First_order_GPU.hpp"
-// #include "Convolution.hpp"
-
 #include <iostream>
 #include <algorithm>
 #include <fstream>
@@ -39,22 +32,11 @@ struct X_S
 	int l;
 };
 
-using namespace std;
 /************************* Local Function Prototypes *************************/
-/*static vector<float> getGaussianKernel(int);
-static Blend_Image sub(const Blend_Image&, const Blend_Image&);
-static Blend_Image add(const Blend_Image&, const Blend_Image&);
-static vector<struct X_S> getXsize(Blend_Image);
-
-vector<bool> buildLaplacianMap(const Raw &, vector<Blend_Image> &, int, int, int);
-vector<float> getGaussianKernel_rr(int, int, int, int);
-void blendImg(Raw &, const Blend_Image &, int, int, int, const vector<bool> &, const vector<bool> &);*/
-
 
 /****************************** Local Function *******************************/
 // 建立寬度大小個高斯kernel
-static vector<float> getGaussianKernel(int x)
-{
+static vector<float> getGaussianKernel(int x) {
 	vector<float> kernel(x, 0.f);
 	float sigma; // sigma 由半徑去計算
 
@@ -95,7 +77,6 @@ static Blend_Image sub(const Blend_Image& m, const Blend_Image& n)
 	}
 	return out;
 }
-//----------------------------------------
 // 兩圖層相加
 static Blend_Image add(const Blend_Image& m, const Blend_Image& n)
 {
@@ -123,7 +104,6 @@ static Blend_Image add(const Blend_Image& m, const Blend_Image& n)
 	}
 	return out;
 }
-//----------------------------------------
 // 計算每個高度裡的X寬度
 static vector<struct X_S> getXsize(Blend_Image input)
 {
@@ -375,47 +355,6 @@ static Blend_Image Bicubic(const Blend_Image& src, float TransMat[3][3])
 	return dst;
 }
 
-//一維高斯核.
-#define KERNEL_RADIUS 8
-#define KERNEL_LENGTH (2 * KERNEL_RADIUS + 1)
-float *GaussianKernel1D(int length, float sigma)
-{
-	cout << sigma << endl;
-	float *h_Kernel;
-	h_Kernel = new float[KERNEL_LENGTH];
-
-	double s2 = sigma * sigma;
-	double m = 1.0 / (sqrt(2.0 * M_PI) * sigma);
-	double v = 0.0;
-	int i = 0;
-
-	for (i = 0; i < KERNEL_LENGTH; ++i)
-	{
-		h_Kernel[i] = 0.0;
-	}
-
-	int radius = length / 2;
-
-	for (i = 0; i <= radius; ++i)
-	{
-		v = m * exp(-(1.0 * i * i) / (2.0 * s2));
-		h_Kernel[radius + i] = (float)v;
-		h_Kernel[radius - i] = (float)v;
-	}
-	float total = 0.0;
-	for (i = 0; i < length; ++i)
-	{
-		total += h_Kernel[i];
-	}
-	for (i = 0; i < length; ++i)
-	{
-		h_Kernel[i] /= total;
-		//	cout << h_Kernel[i] << endl;
-	}
-	//system("pause");
-	return h_Kernel;
-}
-
 // 高斯模糊
 static void GauBlur3d(vector<float>& img_gau, const vector<float>& img_ori,
 	size_t width, size_t height, float p, size_t mat_len)
@@ -517,7 +456,6 @@ static void blendImg(Raw &inputArray, const Blend_Image &overlap_area, int dx, i
 			if (bol[j*currW + i]     == true && bor[j*currW + i]     == true 
 				&& bol[j*currW + (i+1)] == true && bor[j*currW + (i+1)] == true)
 			{
-				//todo 0203整理到這裡
 				if (j + disy < inputArray.getRow() && i + disx < inputArray.getCol())
 				{
 					/*if (flag == false)
@@ -645,8 +583,6 @@ static vector<bool> buildLaplacianMap(const Raw &inputArray, vector<Blend_Image>
 		//-------------------------------------------------------------------------------------------------------------------------------------------------
 	}
 	
-
-	// TODO 0207 這裡就出事了2 看一下 temp 再衝三毀的
 	outputArrays.clear();
 	outputArrays.resize(PYR_OCTAVE);
 	outputArrays[0] = tmp;
@@ -792,7 +728,7 @@ void multiBandBlend(Raw &limg, Raw &rimg, int dx, int dy)
 	blendImg(rimg, result, dx, dy, RIGHT, bol, bor);
 }
 
-/* 這個或許可以看拉普斯金字塔怎麼做的
+/* todo 這個或許可以看拉普斯金字塔怎麼做的
 vector<unsigned char> MultiBandBlending(vector<unsigned char> left, vector<unsigned char> right, int width, int height)
 {
 	int Col = width;

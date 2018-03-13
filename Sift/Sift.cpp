@@ -765,11 +765,16 @@ static void alignMatch(
 	if(avg_dy % 2 == 0){
 		if(avg_dy + 1 <= img1.getRow() && avg_dy + 1 <= img2.getRow()){
 			avg_dy += 1;
+			cout << "		############ this is up" << endl;
+
 		} else{
 			avg_dy -= 1;
+			cout << "		############ this is dw" << endl;
+
 		}
 	} else if(avg_dy % 2 == 1){
-		avg_dy+=0;
+		avg_dy+=1;
+		cout << "		############ this is else" << endl;
 	}
 
 	// 輸出座標.
@@ -790,7 +795,7 @@ void Stitching::Check(float matchTh) {
 	//forceMatchFeat(feat1, feat1_Count, feat2, feat2_Count, matchTh);
 	t1.print("KD-tree match time");
 	// 畫出連線.
-	//featDrawLine("_matchImg_kdLinkImg.bmp", stackImg, feat2, feat2_Count);
+	featDrawLine("_matchImg_kdLinkImg.bmp", stackImg, feat2, feat2_Count);
 /* ransac */
 	// 獲得矩陣.
 	Feature** RANSAC_feat = nullptr;
@@ -806,7 +811,7 @@ void Stitching::Check(float matchTh) {
 		} cout << endl;
 	} cout << endl;
 	// 畫出連線.
-	//featDrawLine("_matchImg_RANSACImg.bmp", stackImg, RANSAC_feat, RANSAC_num);
+	featDrawLine("_matchImg_RANSACImg.bmp", stackImg, RANSAC_feat, RANSAC_num);
 // 縫合圖片.
 	//------------------------------------------------------------------------
 	// 轉換用函式.
@@ -872,9 +877,9 @@ void Stitching::Check(float matchTh) {
 			}
 		}
 	}
-	//matchImg.bmp("_matchImg_Warp.bmp");
+	matchImg.bmp("_matchImg_Warp.bmp");
 	//------------------------------------------------------------------------
-	// 獲得焦距(所有圖共用一個).
+	// 獲得焦距(所有圖共用一個ft).
 	int img_total = 2;
 	float f0 = 0.f, f1 = 0.f, ft = 0.f;
 	bool f0ok = false, f1ok = false;
@@ -906,8 +911,8 @@ void Stitching::Check(float matchTh) {
 	warping(InputImage, ft, warpingImg, upedge, downedge);
 	cout << "warp=" << warpingImg.size() << endl;
 
-	raw_to_imgraw(warpingImg[0]).bmp("_Warp1.bmp");
-	raw_to_imgraw(warpingImg[1]).bmp("_Warp2.bmp");
+	//raw_to_imgraw(warpingImg[0]).bmp("_Warp1.bmp");
+	//raw_to_imgraw(warpingImg[1]).bmp("_Warp2.bmp");
 
 
 	//-------------------------------------------------------------------------

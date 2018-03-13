@@ -95,12 +95,3 @@ struct detection_data
 	float subintvl;
 	float scl_octv;
 };
-
-
-// Blend
-struct Blend_Image
-{
-	int width;
-	int height;
-	float *RGB;
-};
