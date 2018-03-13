@@ -37,7 +37,6 @@ Final: 2017/07/05
 #include <vector>
 #include <cmath>
 #include "imglib\imglib.hpp"
-#include "Raw2Img\Raw2Img.hpp"
 #include "Imgraw.hpp"
 #include "imagedata.hpp"
 

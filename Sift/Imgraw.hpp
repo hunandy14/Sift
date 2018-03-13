@@ -92,26 +92,10 @@ public:
 	// 取出旋轉後的圖片
 	ImgRaw rotateImg(size_t x, size_t y, float radius, float sita);
 public: // 放大縮小 (覺得累贅想拿掉)
-	static void zero(ImgRaw& tar, ImgRaw& sou, float z) {
-		Scaling::zero(tar, sou, sou.width, sou.height, z);
-		tar.width = (size_t)(sou.width*z);
-		tar.height = (size_t)(sou.height*z);
-	}
-	static void first(ImgRaw& tar, ImgRaw& sou, float z) {
-		Scaling::first(tar, sou, sou.width, sou.height, z);
-		tar.width = (size_t)(sou.width*z);
-		tar.height = (size_t)(sou.height*z);
-	}
-	static void cubic(ImgRaw& tar, ImgRaw& sou, float z) {
-		Scaling::cubic(tar, sou, sou.width, sou.height, z);
-		tar.width = (size_t)(sou.width*z);
-		tar.height = (size_t)(sou.height*z);
-	}
-	static void gauBlur(ImgRaw& tar, ImgRaw& sou, float p) {
-		Gaus::GauBlur(tar, sou, sou.width, sou.height, p);
-		tar.width = (size_t)(sou.width);
-		tar.height = (size_t)(sou.height);
-	}
+	static void zero(ImgRaw& tar, ImgRaw& sou, float z);
+	static void first(ImgRaw& tar, ImgRaw& sou, float z);
+	static void cubic(ImgRaw& tar, ImgRaw& sou, float z);
+	static void gauBlur(ImgRaw& tar, ImgRaw& sou, float p);
 public:
 	vector<types> raw_img;
 	uint32_t width;
@@ -126,31 +110,6 @@ inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
 	if (lhs.width == rhs.width &&  lhs.height == rhs.height) {
 		return 1;
 	} return 0;
-}
-// 寫 BMP 檔
-inline void ImgRaw::bmp(string name, uint32_t bits) {
-	if (bits == 0) { bits = this->bitCount; }
-	vector<unsigned char> img = (*this);// 有重載轉換函式
-	Raw2Img::raw2bmp(name, img, width, height, bits);
-}
-inline void ImgRaw::bmp(string name, uint32_t bits) const {
-	if (bits == 0) { bits = this->bitCount; }
-	vector<unsigned char> img = (*this);// 有重載轉換函式
-	Raw2Img::raw2bmp(name, img, width, height, bits);
-}
-// 轉為灰階
-inline ImgRaw ImgRaw::ConverGray() const {
-	if (bitCount == 24) {
-		ImgRaw gray(this->width, this->height, 8);
-		for (size_t i = 0; i < gray.size(); i++) {
-			const types& R = raw_img[i*3+0];
-			const types& G = raw_img[i*3+1];
-			const types& B = raw_img[i*3+2];
-			gray[i] = (float)(R*0.299 + G*0.587 + B*0.114);
-		} return gray;
-	} else if (bitCount == 8) {
-		return (*this);
-	}
 }
 
 

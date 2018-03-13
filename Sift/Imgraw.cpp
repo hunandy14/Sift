@@ -191,6 +191,54 @@ ImgRaw ImgRaw::rotateImg(size_t x, size_t y, float radius, float sita) {
 }
 
 
+void ImgRaw::zero(ImgRaw& tar, ImgRaw& sou, float z) {
+	Scaling::zero(tar, sou, sou.width, sou.height, z);
+	tar.width = (size_t)(sou.width*z);
+	tar.height = (size_t)(sou.height*z);
+}
+void ImgRaw::first(ImgRaw& tar, ImgRaw& sou, float z) {
+	Scaling::first(tar, sou, sou.width, sou.height, z);
+	tar.width = (size_t)(sou.width*z);
+	tar.height = (size_t)(sou.height*z);
+}
+void ImgRaw::cubic(ImgRaw& tar, ImgRaw& sou, float z) {
+	Scaling::cubic(tar, sou, sou.width, sou.height, z);
+	tar.width = (size_t)(sou.width*z);
+	tar.height = (size_t)(sou.height*z);
+}
+void ImgRaw::gauBlur(ImgRaw& tar, ImgRaw& sou, float p) {
+	Gaus::GauBlur(tar, sou, sou.width, sou.height, p);
+	tar.width = (size_t)(sou.width);
+	tar.height = (size_t)(sou.height);
+}
+
+
+// 寫 BMP 檔
+void ImgRaw::bmp(string name, uint32_t bits) {
+	if (bits == 0) { bits = this->bitCount; }
+	vector<unsigned char> img = (*this);// 有重載轉換函式
+	Raw2Img::raw2bmp(name, img, width, height, bits);
+}
+void ImgRaw::bmp(string name, uint32_t bits) const {
+	if (bits == 0) { bits = this->bitCount; }
+	vector<unsigned char> img = (*this);// 有重載轉換函式
+	Raw2Img::raw2bmp(name, img, width, height, bits);
+}
+// 轉為灰階
+ImgRaw ImgRaw::ConverGray() const {
+	if (bitCount == 24) {
+		ImgRaw gray(this->width, this->height, 8);
+		for (size_t i = 0; i < gray.size(); i++) {
+			const types& R = raw_img[i*3+0];
+			const types& G = raw_img[i*3+1];
+			const types& B = raw_img[i*3+2];
+			gray[i] = (float)(R*0.299 + G*0.587 + B*0.114);
+		} return gray;
+	} else if (bitCount == 8) {
+		return (*this);
+	}
+}
+
 
 
 // 畫線
