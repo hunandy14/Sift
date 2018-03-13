@@ -691,7 +691,7 @@ void Stitching::Check(float matchTh) {
 		} cout << endl;
 	} cout << endl;
 	// 畫出連線.
-	// featDrawLine("_matchImg_RANSACImg.bmp", stackImg, RANSAC_feat, RANSAC_num);
+	featDrawLine("_matchImg_RANSACImg.bmp", stackImg, RANSAC_feat, RANSAC_num);
 // 縫合圖片.
 	blen2img(img1, img2, HomogMat, RANSAC_feat, RANSAC_num);
 }

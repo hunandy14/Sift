@@ -16,6 +16,8 @@ float fastAtanf_rad(float dy);
 
 
 //-----------------------------------------------------------------
+#define ImgRawPixMax 255.0
+
 class ImgRaw {
 private:
 	using types = float;
@@ -28,12 +30,18 @@ public:
 		width(width), height(height), bitCount(bits)
 	{
 		raw_img.resize(img.size());
-		for(unsigned i = 0; i < img.size(); ++i)
-			raw_img[i] = img[i]/255.0;
+		for(unsigned i = 0; i < img.size(); ++i) {
+			if(nomal) {
+				raw_img[i] = img[i]/ImgRawPixMax;
+			} else {
+				raw_img[i] = img[i];
+			}
+		}
 	}
 	ImgRaw(uint32_t width, uint32_t height, uint16_t bits) :raw_img(width*height * (bits/8)), 
 		width(width), height(height), bitCount(bits){}
 	ImgRaw(string bmpname, string path="");
+	ImgRaw(string bmpname, string path, bool nomal);
 	// 複製函式
 	ImgRaw& operator=(const ImgRaw& other) {
 		if (this != &other) {
@@ -48,13 +56,27 @@ public:
 	operator vector<types>&() { return raw_img; }
 	operator const vector<types>&() const { return raw_img; }
 	operator vector<unsigned char>() {
-		const vector<unsigned char> img = static_cast<const ImgRaw&>(*this);
-		return const_cast<vector<unsigned char>&>(img);
+		vector<unsigned char> img(raw_img.size());
+		for(unsigned i = 0; i < raw_img.size(); ++i) {
+			if(nomal) {
+				img[i] = (unsigned char)(raw_img[i]*ImgRawPixMax);
+			} else {
+				img[i] = (unsigned char)(raw_img[i]);
+			}
+		}
+		return img;
+		//const vector<unsigned char> img = static_cast<const ImgRaw&>(*this);
+		//return const_cast<vector<unsigned char>&>(img);
 	}
 	operator const vector<unsigned char>() const {
 		vector<unsigned char> img(raw_img.size());
-		for(unsigned i = 0; i < raw_img.size(); ++i)
-			img[i] = (unsigned char)(raw_img[i]*255);
+		for(unsigned i = 0; i < raw_img.size(); ++i) {
+			if(nomal) {
+				img[i] = (unsigned char)(raw_img[i]*ImgRawPixMax);
+			} else {
+				img[i] = (unsigned char)(raw_img[i]);
+			}
+		}
 		return img;
 	}
 	// 重載下標符號
@@ -101,6 +123,7 @@ public:
 	uint32_t width;
 	uint32_t height;
 	uint16_t bitCount = 0;
+	bool nomal = 1;
 };
 // 大小是否相等
 inline bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs) {
@@ -116,11 +139,13 @@ inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
 
 //-----------------------------------------------------------------
 // 畫線
+#define DrawPixNomal 255.0
+
 class Draw {
 public:
-	static void drawLine_p(ImgRaw& img, int y, int x, int y2, int x2, float val=200/255.0);
-	static void drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg, float val=200/255.0);
-	static void draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg, float val=200/255.0);
+	static void drawLine_p(ImgRaw& img, int y, int x, int y2, int x2, float val=200/DrawPixNomal);
+	static void drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg, float val=200/DrawPixNomal);
+	static void draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg, float val=200/DrawPixNomal);
 
 	static void drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2, 
 		float r, float, float);

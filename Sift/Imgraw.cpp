@@ -142,8 +142,16 @@ ImgRaw::ImgRaw(string bmpname, string path){
 	// 初始化(含正規化)
 	raw_img.resize(img.size());
 	for (size_t i = 0; i < img.size(); i++) {
-		raw_img[i] = (float)img[i] / 255.0;
+		if(nomal) {
+			raw_img[i] = (float)img[i] / ImgRawPixMax;
+		} else {
+			raw_img[i] = (float)img[i];
+		}
 	}
+}
+ImgRaw::ImgRaw(string bmpname, string path, bool nomal) {
+	this->nomal=nomal;
+	ImgRaw(bmpname, path);
 }
 // 二維雙線性運算讀取
 const ImgRaw::types ImgRaw::atBilinear(float y, float x) const {
