@@ -75,7 +75,7 @@ public:
 	friend bool operator!=(const ImgRaw& lhs, const ImgRaw& rhs);
 	friend bool operator==(const ImgRaw& lhs, const ImgRaw& rhs);
 	// 獲得大小
-	size_t size() { return this->raw_img.size(); }
+	const size_t size() const { return this->raw_img.size(); }
 	// 重設大小
 	void resize(uint32_t width, uint32_t height, uint16_t bits) {
 		raw_img.resize(width*height * bits/8);
