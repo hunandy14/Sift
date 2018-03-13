@@ -143,9 +143,9 @@ inline bool operator==(const ImgRaw& lhs, const ImgRaw& rhs) {
 
 class Draw {
 public:
-	static void drawLine_p(ImgRaw& img, int y, int x, int y2, int x2, float val=200/DrawPixNomal);
-	static void drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg, float val=200/DrawPixNomal);
-	static void draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg, float val=200/DrawPixNomal);
+	static void drawLine_p(ImgRaw& img, int y, int x, int y2, int x2, float val=200);
+	static void drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg, float val=200);
+	static void draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg, float val=200);
 
 	static void drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2, 
 		float r, float, float);

@@ -251,6 +251,9 @@ ImgRaw ImgRaw::ConverGray() const {
 
 // 畫線
 void Draw::drawLine_p(ImgRaw& img, int y, int x, int y2, int x2, float val) {
+	if(img.nomal) {
+		val /= DrawPixNomal;
+	}
 	// 兩點之間的距離差
 	float dx = x2-x;
 	float dy = y2-y;
@@ -289,6 +292,9 @@ void Draw::drawLine_p(ImgRaw& img, int y, int x, int y2, int x2, float val) {
 	}
 }
 void Draw::drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg, float val) {
+	if(img.nomal) {
+		val /= DrawPixNomal;
+	}
 	// 防呆
 	if (line_len < 0) {
 		return;
@@ -304,6 +310,9 @@ void Draw::drawLine_s(ImgRaw& img, int y, int x, float line_len, float sg, float
 	drawLine_p(img, y, x, y2, x2, val);
 }
 void Draw::draw_arrow(ImgRaw& img, int y, int x, float line_len, float sg, float val) {
+	if(img.nomal) {
+		val /= DrawPixNomal;
+	}
 	// 防呆
 	if (line_len < 0) {
 		return;
@@ -372,27 +381,40 @@ void Draw::drawLineRGB_p(ImgRaw& img, int y, int x, int y2, int x2) {
 	auto random_num = [] {
 		return ((rand() / (RAND_MAX+1.0)) * (1 - 0) + 0);
 	};
-	float rVal = random_num();
-	float gVal = random_num();
-	float bVal = random_num();
+	float rVal, gVal, bVal;
+	if(img.nomal) {
+		rVal = random_num();
+		gVal = random_num();
+		bVal = random_num();
+	} else {
+		rVal = random_num()*DrawPixNomal;
+		gVal = random_num()*DrawPixNomal;
+		bVal = random_num()*DrawPixNomal;
+	}
 	drawLineRGB_p(img, y, x, y2, x2, rVal, gVal, bVal);
 }
 void Draw::drawLineRGB_s(ImgRaw& img, int y, int x, float line_len, float sg) {
-	float value = 200 /255.0;
-	float endvalue = 255 /255.0;
 	// 防呆
 	if (line_len < 0) {
 		return;
 	}
 	if (line_len==1) {
-		img[x*img.width + y] = value;
+		if(img.nomal) {
+			img[x*img.width + y] = 200 /DrawPixNomal;
+		} else {
+			img[x*img.width + y] = 200;
+		}
 		return;
 	}
 	// 算頭尾
 	int x2 = x + line_len*cos(sg * M_PI/180.0);
 	int y2 = y + line_len*sin(sg * M_PI/180.0);
 	// 畫線
-	drawLineRGB_p(img, y, x, y2, x2, 242/255.f, 66/255.f, 54/255.f);
+	if(img.nomal) {
+		drawLineRGB_p(img, y, x, y2, x2, 242/DrawPixNomal, 66/DrawPixNomal, 54/DrawPixNomal);
+	} else {
+		drawLineRGB_p(img, y, x, y2, x2, 242, 66, 54);
+	}
 }
 void Draw::draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg) {
 	float value = 200 /255.0;
@@ -402,14 +424,24 @@ void Draw::draw_arrowRGB(ImgRaw& img, int y, int x, float line_len, float sg) {
 		return;
 	}
 	if (line_len==1) {
-		img[x*img.width + y] = value;
+		if(img.nomal) {
+			img[x*img.width + y] = 200 /DrawPixNomal;
+		} else {
+			img[x*img.width + y] = 200;
+		}
 		return;
 	}
 	// 算頭尾
 	int x2 = x + line_len*cos(sg * M_PI/180.0);
 	int y2 = y + line_len*sin(sg * M_PI/180.0);
+	
 	// 畫線
-	drawLineRGB_p(img, y, x, y2, x2, 242/255.f, 66/255.f, 54/255.f);
+	if(img.nomal) {
+		drawLineRGB_p(img, y, x, y2, x2, 242/DrawPixNomal, 66/DrawPixNomal, 54/DrawPixNomal);
+	} else {
+		drawLineRGB_p(img, y, x, y2, x2, 242, 66, 54);
+	}
+
 	// 畫頭
 	size_t head_len = 6;
 	drawLineRGB_s(img, y2, x2, head_len, sg-150);
