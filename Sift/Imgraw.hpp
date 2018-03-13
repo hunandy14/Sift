@@ -7,6 +7,7 @@ Final: 2017/11/16
 #pragma warning(disable : 4819)
 #pragma once
 
+#include "imglib\imglib.hpp"
 //-----------------------------------------------------------------
 // §Ö³tatan¹Bºâ
 float fastAtan2f(float dy, float dx);
