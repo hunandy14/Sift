@@ -151,7 +151,28 @@ ImgRaw::ImgRaw(string bmpname, string path){
 }
 ImgRaw::ImgRaw(string bmpname, string path, bool nomal) {
 	this->nomal=nomal;
-	ImgRaw(bmpname, path);
+
+	if(path!="") {
+		bmpname = path+"\\"+bmpname;
+		std::cout << "bmpname=" << bmpname << std::endl;
+	}
+	vector<unsigned char> img;
+	uint32_t width, height;
+	uint16_t bits;
+	// 讀取圖片
+	Raw2Img::read_bmp(img, bmpname, &width, &height, &bits);
+	this->width    = width;
+	this->height   = height;
+	this->bitCount = bits;
+	// 初始化(含正規化)
+	raw_img.resize(img.size());
+	for (size_t i = 0; i < img.size(); i++) {
+		if(nomal) {
+			raw_img[i] = (float)img[i] / ImgRawPixMax;
+		} else {
+			raw_img[i] = (float)img[i];
+		}
+	}
 }
 // 二維雙線性運算讀取
 const ImgRaw::types ImgRaw::atBilinear(float y, float x) const {

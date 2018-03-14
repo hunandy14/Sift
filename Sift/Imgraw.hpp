@@ -44,7 +44,7 @@ public:
 	ImgRaw(string bmpname, string path="");
 	ImgRaw(string bmpname, string path, bool nomal);
 	// 複製函式
-	ImgRaw& operator=(const ImgRaw& other) {
+	/*ImgRaw& operator=(const ImgRaw& other) {
 		if (this != &other) {
 			raw_img = other.raw_img;
 			width = other.width;
@@ -52,7 +52,7 @@ public:
 			bitCount = other.bitCount;
 		}
 		return *this;
-	}
+	}*/
 	// 隱式轉換
 	operator vector<types>&() { return raw_img; }
 	operator const vector<types>&() const { return raw_img; }

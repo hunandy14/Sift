@@ -52,9 +52,9 @@ int main(int argc, char const *argv[]){
 	//string name1="l01.bmp", name2="l02.bmp";
 	//string name1="dk05.bmp", name2="dk06.bmp";
 	//string name1="sc01.bmp", name2="sc02.bmp";
-	//string name1="sc01.bmp", name2="sc02.bmp";
+	string name1="sc02.bmp", name2="sc03.bmp";
 	
-	string name1="lib01.bmp", name2="lib02.bmp";
+	//string name1="lib01.bmp", name2="lib02.bmp";
 	//string name1="lib03.bmp", name2="lib04.bmp";
 	
 	ImgRaw img1(name1, "testImg");
