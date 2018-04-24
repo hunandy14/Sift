@@ -804,16 +804,16 @@ static void alignMatch(
 	if(avg_dy % 2 == 0){
 		if(avg_dy + 1 <= img1.getRow() && avg_dy + 1 <= img2.getRow()){
 			avg_dy += 1;
-			cout << "		############ this is up" << endl;
+			//cout << "		############ this is up" << endl;
 
 		} else{
 			avg_dy -= 1;
-			cout << "		############ this is dw" << endl;
+			//cout << "		############ this is dw" << endl;
 
 		}
 	} else if(avg_dy % 2 == 1){
 		avg_dy+=1;
-		cout << "		############ this is else" << endl;
+		//cout << "		############ this is else" << endl;
 	}
 
 	// 輸出座標.
@@ -895,7 +895,9 @@ float getFocal(const vector<float> &HomogMat, size_t img1Size, size_t img2Size) 
 
 /*********************** Functions prototyped in Blend.h **********************/
 // 縫合兩張圖片
-void blen2img(const ImgRaw& img1, const ImgRaw& img2, const vector<float>& HomogMat, const Feature* const * RANSAC_feat, int RANSAC_num) {
+void blen2img(const ImgRaw& img1, const ImgRaw& img2, ImgRaw& dst, 
+	const vector<float>& HomogMat, const Feature* const * RANSAC_feat, int RANSAC_num)
+{
 	//------------------------------------------------------------------------
 	// 轉換用函式.
 	auto&& raw_to_imgraw = [](const Raw& src){
@@ -960,7 +962,7 @@ void blen2img(const ImgRaw& img1, const ImgRaw& img2, const vector<float>& Homog
 			}
 		}
 	}
-	matchImg.bmp("_matchImg_Warp.bmp");
+	//matchImg.bmp("_matchImg_Warp.bmp");
 	//------------------------------------------------------------------------
 	// 獲取共同焦距ft
 	float ft = getFocal(HomogMat, img1.size(), img2.size());
@@ -970,7 +972,7 @@ void blen2img(const ImgRaw& img1, const ImgRaw& img2, const vector<float>& Homog
 	vector<fpoint> downedge;
 	vector<Raw> warpingImg;
 	warping(InputImage, ft, warpingImg, upedge, downedge);
-	cout << "warp=" << warpingImg.size() << endl;
+	//cout << "warp=" << warpingImg.size() << endl;
 	//raw_to_imgraw(warpingImg[0]).bmp("_Warp1.bmp");
 	//raw_to_imgraw(warpingImg[1]).bmp("_Warp2.bmp");
 
@@ -979,8 +981,8 @@ void blen2img(const ImgRaw& img1, const ImgRaw& img2, const vector<float>& Homog
 	//Align 對齊.
 	vector<int> Align_dx, Align_dy; // 第二張圖整張的偏移量
 	alignMatch(InputImage[0], InputImage[1], RANSAC_feat, RANSAC_num, Align_dx, Align_dy, ft);
-	cout << "dxSize = " << Align_dx.size() << ", dx = " << Align_dx[0] << endl;
-	cout << "dySize = " << Align_dy.size() << ", dy = " << Align_dy[0] << endl;
+	//cout << "dxSize = " << Align_dx.size() << ", dx = " << Align_dx[0] << endl;
+	//cout << "dySize = " << Align_dy.size() << ", dy = " << Align_dy[0] << endl;
 
 
 	//-------------------------------------------------------------------------
@@ -988,7 +990,7 @@ void blen2img(const ImgRaw& img1, const ImgRaw& img2, const vector<float>& Homog
 	for(int num = 0; num < warpingImg.size() - 1; num++) {
 		if(Align_dy[num] > warpingImg[num].getRow()) { // 假如 y 的偏移量大於圖片高
 			int dyy = -(warpingImg[num].getRow() - abs(warpingImg[num].getRow() - Align_dy[num]));
-			cout << "dy--->dyy = " << Align_dy[num] << ", " << dyy << endl;
+			//cout << "dy--->dyy = " << Align_dy[num] << ", " << dyy << endl;
 			multiBandBlend(warpingImg[num], warpingImg[num + 1], Align_dx[num], dyy);
 		} else { // 通常情況
 			multiBandBlend(warpingImg[num], warpingImg[num + 1], Align_dx[num], Align_dy[num]);
@@ -1116,7 +1118,7 @@ void blen2img(const ImgRaw& img1, const ImgRaw& img2, const vector<float>& Homog
 	}
 
 	ImgRaw maru_match(result, cols, rows2, 24);
-	maru_match.bmp("__maru_match.bmp");
+	//maru_match.bmp("__maru_match.bmp");
 	//------------------------------------------------------------------------
 	// get UpDw limit
 	struct posiMaxComp {
@@ -1136,10 +1138,11 @@ void blen2img(const ImgRaw& img1, const ImgRaw& img2, const vector<float>& Homog
 
 	//posiUp=89;
 	//posiDw=673;
-	cout << "minb=" << minb << endl;
+
+	/*cout << "minb=" << minb << endl;
 	cout << "distancey=" << distancey << endl;
 	cout << "posiUp=" << posiUp << endl;
-	cout << "posiDw=" << posiDw << endl;
+	cout << "posiDw=" << posiDw << endl;*/
 
 
 	//------------------------------------------------------------------------
@@ -1166,7 +1169,8 @@ void blen2img(const ImgRaw& img1, const ImgRaw& img2, const vector<float>& Homog
 		}
 	}
 
-	cutImage.bmp("_cutImg.bmp");
+	dst=cutImage;
+	//cutImage.bmp("_cutImg.bmp");
 }
 
 
